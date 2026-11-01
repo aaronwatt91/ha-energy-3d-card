@@ -15,13 +15,21 @@ export class HaEnergy3DCard extends HTMLElement {
     this.sceneManager = null;
     this.hud = null;
     this.energyData = JSON.parse(JSON.stringify(DEFAULT_ENERGY_DATA));
+
+    // Load any user-customized sensor mappings from localStorage
+    try {
+      const savedSensors = JSON.parse(localStorage.getItem('ha_energy_3d_custom_sensors') || '{}');
+      this.customSensors = savedSensors;
+    } catch (e) {
+      this.customSensors = {};
+    }
   }
 
   static getStubConfig() {
     return {
       type: 'custom:ha-energy-3d-card',
       title: 'Home Energy 3D',
-      model_url: '/local/ha-energy-3d/Taylor_Wimpey_Blair.glb',
+      model_url: 'Taylor_Wimpey_Blair.glb',
       height: '560px',
       // Solax Solar
       solax_power: 'sensor.solax_pv_power_total',
@@ -39,13 +47,13 @@ export class HaEnergy3DCard extends HTMLElement {
       octopus_electric_week: 'sensor.octopus_energy_electricity_week',
       octopus_electric_month: 'sensor.octopus_energy_electricity_month',
       // Octopus Gas & Boiler
+      boiler_status: 'sensor.boiler_status',
       octopus_gas_30min: 'sensor.octopus_home_mini_gas_30min',
       octopus_gas_day: 'sensor.octopus_energy_gas_day',
       octopus_gas_week: 'sensor.octopus_energy_gas_week',
       octopus_gas_month: 'sensor.octopus_energy_gas_month',
       octopus_gas_rate: 'sensor.octopus_energy_gas_current_rate',
       octopus_gas_spend: 'sensor.octopus_energy_gas_current_month_cost',
-      boiler_status: 'sensor.boiler_status',
       // myenergi & Peugeot EV
       myenergi_power: 'sensor.myenergi_zappi_power',
       myenergi_energy: 'sensor.myenergi_zappi_charge_added_session',
@@ -61,11 +69,12 @@ export class HaEnergy3DCard extends HTMLElement {
 
   setConfig(config) {
     this._config = {
-      model_url: '/local/ha-energy-3d/Taylor_Wimpey_Blair.glb',
+      model_url: 'Taylor_Wimpey_Blair.glb',
       height: '560px',
       night_mode: false,
       auto_rotate: false,
-      ...config
+      ...config,
+      ...this.customSensors
     };
 
     if (this.wrapper) {
@@ -128,11 +137,17 @@ export class HaEnergy3DCard extends HTMLElement {
 
     // Initialize HUD Overlay inside viewport container
     this.hud = new HUDOverlay(this.wrapper, {
+      currentSensorConfig: this._config,
       onPresetClick: (preset) => this.sceneManager.setCameraPreset(preset),
       onToggleXray: (enable) => this.sceneManager.setXRayRoof(enable),
       onToggleNight: (enable) => this.sceneManager.setNightMode(enable),
       onToggleRotate: (enable) => {
         this.sceneManager.controls.autoRotate = enable;
+      },
+      onSaveSensors: (customSensors) => {
+        this.customSensors = customSensors;
+        this._config = { ...this._config, ...customSensors };
+        this.updateStatesFromHass();
       }
     });
 
@@ -142,7 +157,6 @@ export class HaEnergy3DCard extends HTMLElement {
       this.hud.update(this.energyData, hotspots);
     };
 
-    // If hass already exists, parse entities
     if (this._hass) {
       this.updateStatesFromHass();
     }
@@ -150,6 +164,9 @@ export class HaEnergy3DCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
+    if (this.hud && hass?.states) {
+      this.hud.setAvailableEntities(Object.keys(hass.states));
+    }
     this.updateStatesFromHass();
   }
 
@@ -174,7 +191,7 @@ export class HaEnergy3DCard extends HTMLElement {
 
   updateStatesFromHass() {
     if (!this._hass) return;
-    const cfg = this._config;
+    const cfg = { ...this._config, ...this.customSensors };
 
     // 1. Solax Solar
     const solaxPower = this.getEntityNumericValue(cfg.solax_power, this.energyData.solar.power_kw);
@@ -184,7 +201,7 @@ export class HaEnergy3DCard extends HTMLElement {
       week_kwh: this.getEntityNumericValue(cfg.solax_week, this.energyData.solar.week_kwh),
       month_kwh: this.getEntityNumericValue(cfg.solax_month, this.energyData.solar.month_kwh),
       year_kwh: this.getEntityNumericValue(cfg.solax_year, this.energyData.solar.year_kwh),
-      status: solaxPower > 0.05 ? 'Generating' : 'Standby'
+      status: solaxPower > 0.04 ? 'Generating' : 'Idle'
     };
 
     // 2. Octopus Electricity & Grid
@@ -192,7 +209,7 @@ export class HaEnergy3DCard extends HTMLElement {
     const exportKw = this.getEntityNumericValue(cfg.octopus_export_power, 0);
     let isExporting = false;
 
-    if (exportKw > 0.05) {
+    if (exportKw > 0.04) {
       electricKw = -exportKw;
       isExporting = true;
     } else if (electricKw < 0) {
@@ -216,7 +233,7 @@ export class HaEnergy3DCard extends HTMLElement {
 
     this.energyData.octopus_gas = {
       is_active: isGasActive,
-      power_kw: isGasActive ? 1.5 : 0.0,
+      power_kw: isGasActive ? 1.45 : 0.0,
       boiler_status: isGasActive ? 'Central Heating' : 'Standby',
       reading_30min_kwh: this.getEntityNumericValue(cfg.octopus_gas_30min, this.energyData.octopus_gas.reading_30min_kwh),
       day_kwh: this.getEntityNumericValue(cfg.octopus_gas_day, this.energyData.octopus_gas.day_kwh),
@@ -229,7 +246,7 @@ export class HaEnergy3DCard extends HTMLElement {
     // 4. myenergi Zappi & Peugeot e-2008
     const evChargerKw = this.getEntityNumericValue(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
     this.energyData.ev = {
-      is_charging: evChargerKw > 0.1,
+      is_charging: evChargerKw > 0.08,
       is_plugged: true,
       charger_power_kw: evChargerKw,
       energy_added_kwh: this.getEntityNumericValue(cfg.myenergi_energy, this.energyData.ev.energy_added_kwh),
@@ -238,7 +255,6 @@ export class HaEnergy3DCard extends HTMLElement {
       range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
     };
 
-    // Forward to 3D scene
     if (this.sceneManager) {
       this.sceneManager.updateEnergyData(this.energyData);
     }
@@ -252,7 +268,6 @@ export class HaEnergy3DCard extends HTMLElement {
 // Register Custom Element
 customElements.define('ha-energy-3d-card', HaEnergy3DCard);
 
-// Register with Home Assistant Custom Card window registry
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'ha-energy-3d-card',

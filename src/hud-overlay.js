@@ -1,17 +1,20 @@
 /**
  * HUDOverlay
  * High-tech glassmorphism HUD overlay with floating 3D hotspot badges,
- * live power summary, camera view switchers, and comprehensive metric tabs.
+ * live power summary, camera view switchers, metrics drawer, and Sensor Config modal.
  */
 export class HUDOverlay {
   constructor(container, options = {}) {
     this.container = container;
     this.options = options;
     this.activeTab = null;
+    this.availableEntities = options.availableEntities || [];
+    this.currentSensorConfig = options.currentSensorConfig || {};
     this.onPresetClick = options.onPresetClick || (() => {});
     this.onToggleXray = options.onToggleXray || (() => {});
     this.onToggleNight = options.onToggleNight || (() => {});
     this.onToggleRotate = options.onToggleRotate || (() => {});
+    this.onSaveSensors = options.onSaveSensors || (() => {});
 
     this.initDOM();
   }
@@ -192,16 +195,6 @@ export class HUDOverlay {
           box-shadow: 0 8px 24px rgba(56, 189, 248, 0.3);
         }
 
-        .hotspot-icon {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 10px;
-        }
-
         /* Slide-Out Detail Modal / Drawer */
         .hud-drawer {
           position: absolute;
@@ -307,7 +300,6 @@ export class HUDOverlay {
           margin-top: 3px;
         }
 
-        /* Battery Gauge */
         .battery-bar-container {
           width: 100%;
           height: 8px;
@@ -324,7 +316,6 @@ export class HUDOverlay {
           transition: width 0.4s ease;
         }
 
-        /* Navigation Drawer Tabs */
         .drawer-nav-tabs {
           display: flex;
           gap: 6px;
@@ -352,20 +343,128 @@ export class HUDOverlay {
           background: rgba(255, 255, 255, 0.12);
         }
 
+        /* Sensor Settings Modal */
+        .sensor-modal {
+          position: absolute;
+          inset: 20px;
+          max-width: 600px;
+          max-height: 520px;
+          margin: auto;
+          background: rgba(15, 23, 42, 0.96);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          border-radius: 20px;
+          padding: 20px;
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+          pointer-events: auto;
+          z-index: 30;
+          display: none;
+          flex-direction: column;
+        }
+
+        .sensor-modal.open {
+          display: flex;
+        }
+
+        .modal-body {
+          flex: 1;
+          overflow-y: auto;
+          padding-right: 6px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .modal-body::-webkit-scrollbar {
+          width: 5px;
+        }
+        .modal-body::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+        }
+
+        .sensor-group-title {
+          font-size: 12px;
+          font-weight: 700;
+          color: #38bdf8;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 6px;
+        }
+
+        .sensor-row {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .sensor-row label {
+          font-size: 11px;
+          color: #94a3b8;
+        }
+
+        .sensor-row input {
+          background: rgba(0, 0, 0, 0.35);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #f8fafc;
+          padding: 8px 10px;
+          border-radius: 8px;
+          font-size: 12px;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+
+        .sensor-row input:focus {
+          border-color: #38bdf8;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 14px;
+          padding-top: 10px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-action {
+          padding: 7px 16px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          transition: 0.2s ease;
+        }
+
+        .btn-save {
+          background: #0284c7;
+          color: #fff;
+        }
+        .btn-save:hover { background: #0369a1; }
+
+        .btn-detect {
+          background: rgba(255, 255, 255, 0.1);
+          color: #e2e8f0;
+        }
+        .btn-detect:hover { background: rgba(255, 255, 255, 0.18); }
+
         @media (max-width: 600px) {
           .hud-controls-bar {
             width: calc(100% - 24px);
             overflow-x: auto;
             justify-content: flex-start;
           }
-          .hud-flow-summary {
-            display: none; /* Hide top pill on very small mobile screens */
-          }
+          .hud-flow-summary { display: none; }
           .hud-drawer {
             top: 60px;
             right: 8px;
             left: 8px;
             width: auto;
+          }
+          .sensor-modal {
+            inset: 10px;
+            max-height: calc(100vh - 20px);
           }
         }
       </style>
@@ -417,6 +516,125 @@ export class HUDOverlay {
         <div id="drawer-content"></div>
       </div>
 
+      <!-- Sensor Configuration Modal (Add In My Own Sensors) -->
+      <div class="sensor-modal" id="sensor-modal">
+        <div class="drawer-header">
+          <div class="drawer-title">⚙️ Configure My Device Sensors</div>
+          <button class="drawer-close" id="sensor-modal-close">&times;</button>
+        </div>
+
+        <div class="modal-body" id="sensor-modal-body">
+          <div style="font-size: 11px; color: #94a3b8; margin-bottom: 6px;">
+            Map your Home Assistant entities to monitor live power in the 3D model:
+          </div>
+
+          <!-- Solar -->
+          <div class="sensor-group-title">☀️ Solax Solar Integration</div>
+          <div class="sensor-row">
+            <label>Live Solar Generation Power (kW)</label>
+            <input type="text" id="cfg-solax-power" placeholder="sensor.solax_pv_power_total">
+          </div>
+          <div class="sensor-row">
+            <label>Today's Solar Energy (kWh)</label>
+            <input type="text" id="cfg-solax-today" placeholder="sensor.solax_today_s_solar_energy">
+          </div>
+          <div class="sensor-row">
+            <label>This Week's Solar Energy (kWh)</label>
+            <input type="text" id="cfg-solax-week" placeholder="sensor.solax_this_week_solar_energy">
+          </div>
+          <div class="sensor-row">
+            <label>This Month's Solar Energy (kWh)</label>
+            <input type="text" id="cfg-solax-month" placeholder="sensor.solax_this_month_solar_energy">
+          </div>
+          <div class="sensor-row">
+            <label>This Year's Solar Energy (kWh)</label>
+            <input type="text" id="cfg-solax-year" placeholder="sensor.solax_this_year_solar_energy">
+          </div>
+
+          <!-- Octopus Electricity -->
+          <div class="sensor-group-title">⚡ Octopus Electricity & Grid</div>
+          <div class="sensor-row">
+            <label>Live Electricity Power / Home Mini (kW)</label>
+            <input type="text" id="cfg-octopus-power" placeholder="sensor.octopus_home_mini_current_electricity_power">
+          </div>
+          <div class="sensor-row">
+            <label>Solar Feed-In Export Power (kW)</label>
+            <input type="text" id="cfg-octopus-export" placeholder="sensor.solax_feed_in_power">
+          </div>
+          <div class="sensor-row">
+            <label>Electricity Unit Rate (p/kWh)</label>
+            <input type="text" id="cfg-octopus-rate" placeholder="sensor.octopus_energy_electricity_current_rate">
+          </div>
+          <div class="sensor-row">
+            <label>Month-to-Date Spend (£)</label>
+            <input type="text" id="cfg-octopus-spend" placeholder="sensor.octopus_energy_electricity_current_month_cost">
+          </div>
+          <div class="sensor-row">
+            <label>Octopus Home Mini 30-Min Reading (kWh)</label>
+            <input type="text" id="cfg-octopus-30min" placeholder="sensor.octopus_home_mini_electricity_30min">
+          </div>
+          <div class="sensor-row">
+            <label>Electricity Day (kWh)</label>
+            <input type="text" id="cfg-octopus-day" placeholder="sensor.octopus_energy_electricity_day">
+          </div>
+          <div class="sensor-row">
+            <label>Electricity Week (kWh)</label>
+            <input type="text" id="cfg-octopus-week" placeholder="sensor.octopus_energy_electricity_week">
+          </div>
+          <div class="sensor-row">
+            <label>Electricity Month (kWh)</label>
+            <input type="text" id="cfg-octopus-month" placeholder="sensor.octopus_energy_electricity_month">
+          </div>
+
+          <!-- Gas -->
+          <div class="sensor-group-title">🔥 Octopus Gas & Combi Boiler</div>
+          <div class="sensor-row">
+            <label>Boiler Status (switch / climate / sensor)</label>
+            <input type="text" id="cfg-boiler-status" placeholder="sensor.boiler_status">
+          </div>
+          <div class="sensor-row">
+            <label>Gas 30-Min Reading (Home Mini) (kWh)</label>
+            <input type="text" id="cfg-gas-30min" placeholder="sensor.octopus_home_mini_gas_30min">
+          </div>
+          <div class="sensor-row">
+            <label>Gas Day (kWh)</label>
+            <input type="text" id="cfg-gas-day" placeholder="sensor.octopus_energy_gas_day">
+          </div>
+          <div class="sensor-row">
+            <label>Gas Week (kWh)</label>
+            <input type="text" id="cfg-gas-week" placeholder="sensor.octopus_energy_gas_week">
+          </div>
+          <div class="sensor-row">
+            <label>Gas Month (kWh)</label>
+            <input type="text" id="cfg-gas-month" placeholder="sensor.octopus_energy_gas_month">
+          </div>
+
+          <!-- EV -->
+          <div class="sensor-group-title">🚗 myenergi Zappi & Peugeot e-2008</div>
+          <div class="sensor-row">
+            <label>Zappi Charging Speed (kW)</label>
+            <input type="text" id="cfg-zappi-power" placeholder="sensor.myenergi_zappi_power">
+          </div>
+          <div class="sensor-row">
+            <label>Zappi Session Energy Added (kWh)</label>
+            <input type="text" id="cfg-zappi-energy" placeholder="sensor.myenergi_zappi_charge_added_session">
+          </div>
+          <div class="sensor-row">
+            <label>Peugeot Battery SoC (%)</label>
+            <input type="text" id="cfg-peugeot-battery" placeholder="sensor.e2008_battery_level">
+          </div>
+          <div class="sensor-row">
+            <label>Peugeot Remaining Range (miles)</label>
+            <input type="text" id="cfg-peugeot-range" placeholder="sensor.e2008_battery_range">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-action btn-detect" id="btn-detect-sensors">🔍 Auto-Detect Sensors</button>
+          <button class="btn-action btn-save" id="btn-save-sensors">💾 Save & Apply</button>
+        </div>
+      </div>
+
       <!-- Bottom Camera & Feature Bar -->
       <div class="hud-controls-bar">
         <button class="hud-btn active" data-preset="overview">🏠 House</button>
@@ -429,15 +647,16 @@ export class HUDOverlay {
         <button class="hud-btn" id="btn-night">🌙 Night</button>
         <button class="hud-btn" id="btn-rotate">🔄 Orbit</button>
         <button class="hud-btn" id="btn-drawer">📊 Stats</button>
+        <button class="hud-btn" id="btn-sensors">⚙️ Sensors</button>
       </div>
     `;
 
     this.container.appendChild(this.el);
     this.bindEvents();
+    this.populateSensorInputs();
   }
 
   bindEvents() {
-    // Preset buttons
     const presetBtns = this.el.querySelectorAll('[data-preset]');
     presetBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -448,7 +667,6 @@ export class HUDOverlay {
       });
     });
 
-    // Feature Toggles
     const btnXray = this.el.querySelector('#btn-xray');
     btnXray.addEventListener('click', () => {
       btnXray.classList.toggle('active');
@@ -485,6 +703,39 @@ export class HUDOverlay {
       btnDrawer.classList.remove('active');
     });
 
+    // Sensor Config Modal
+    const btnSensors = this.el.querySelector('#btn-sensors');
+    const sensorModal = this.el.querySelector('#sensor-modal');
+    const sensorClose = this.el.querySelector('#sensor-modal-close');
+    const btnSaveSensors = this.el.querySelector('#btn-save-sensors');
+    const btnDetectSensors = this.el.querySelector('#btn-detect-sensors');
+
+    btnSensors.addEventListener('click', () => {
+      sensorModal.classList.toggle('open');
+      btnSensors.classList.toggle('active', sensorModal.classList.contains('open'));
+    });
+
+    sensorClose.addEventListener('click', () => {
+      sensorModal.classList.remove('open');
+      btnSensors.classList.remove('active');
+    });
+
+    btnSaveSensors.addEventListener('click', () => {
+      const cfg = this.readSensorInputs();
+      this.currentSensorConfig = cfg;
+      try {
+        localStorage.setItem('ha_energy_3d_custom_sensors', JSON.stringify(cfg));
+      } catch (e) {}
+
+      this.onSaveSensors(cfg);
+      sensorModal.classList.remove('open');
+      btnSensors.classList.remove('active');
+    });
+
+    btnDetectSensors.addEventListener('click', () => {
+      this.autoDetectSensors();
+    });
+
     // Tab buttons
     const tabBtns = this.el.querySelectorAll('.drawer-nav-tab');
     tabBtns.forEach((tabBtn) => {
@@ -493,6 +744,132 @@ export class HUDOverlay {
         this.switchTab(tab);
       });
     });
+  }
+
+  populateSensorInputs() {
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem('ha_energy_3d_custom_sensors') || '{}');
+    } catch (e) {}
+
+    const cfg = { ...this.currentSensorConfig, ...saved };
+    const setVal = (id, val) => {
+      const el = this.el.querySelector(id);
+      if (el && val) el.value = val;
+    };
+
+    setVal('#cfg-solax-power', cfg.solax_power);
+    setVal('#cfg-solax-today', cfg.solax_today);
+    setVal('#cfg-solax-week', cfg.solax_week);
+    setVal('#cfg-solax-month', cfg.solax_month);
+    setVal('#cfg-solax-year', cfg.solax_year);
+
+    setVal('#cfg-octopus-power', cfg.octopus_electric_power);
+    setVal('#cfg-octopus-export', cfg.octopus_export_power);
+    setVal('#cfg-octopus-rate', cfg.octopus_rate);
+    setVal('#cfg-octopus-spend', cfg.octopus_monthly_spend);
+    setVal('#cfg-octopus-30min', cfg.octopus_electric_30min);
+    setVal('#cfg-octopus-day', cfg.octopus_electric_day);
+    setVal('#cfg-octopus-week', cfg.octopus_electric_week);
+    setVal('#cfg-octopus-month', cfg.octopus_electric_month);
+
+    setVal('#cfg-boiler-status', cfg.boiler_status);
+    setVal('#cfg-gas-30min', cfg.octopus_gas_30min);
+    setVal('#cfg-gas-day', cfg.octopus_gas_day);
+    setVal('#cfg-gas-week', cfg.octopus_gas_week);
+    setVal('#cfg-gas-month', cfg.octopus_gas_month);
+
+    setVal('#cfg-zappi-power', cfg.myenergi_power);
+    setVal('#cfg-zappi-energy', cfg.myenergi_energy);
+    setVal('#cfg-peugeot-battery', cfg.peugeot_battery);
+    setVal('#cfg-peugeot-range', cfg.peugeot_range);
+  }
+
+  readSensorInputs() {
+    const getVal = (id) => {
+      const el = this.el.querySelector(id);
+      return el ? el.value.trim() : '';
+    };
+
+    return {
+      solax_power: getVal('#cfg-solax-power'),
+      solax_today: getVal('#cfg-solax-today'),
+      solax_week: getVal('#cfg-solax-week'),
+      solax_month: getVal('#cfg-solax-month'),
+      solax_year: getVal('#cfg-solax-year'),
+
+      octopus_electric_power: getVal('#cfg-octopus-power'),
+      octopus_export_power: getVal('#cfg-octopus-export'),
+      octopus_rate: getVal('#cfg-octopus-rate'),
+      octopus_monthly_spend: getVal('#cfg-octopus-spend'),
+      octopus_electric_30min: getVal('#cfg-octopus-30min'),
+      octopus_electric_day: getVal('#cfg-octopus-day'),
+      octopus_electric_week: getVal('#cfg-octopus-week'),
+      octopus_electric_month: getVal('#cfg-octopus-month'),
+
+      boiler_status: getVal('#cfg-boiler-status'),
+      octopus_gas_30min: getVal('#cfg-gas-30min'),
+      octopus_gas_day: getVal('#cfg-gas-day'),
+      octopus_gas_week: getVal('#cfg-gas-week'),
+      octopus_gas_month: getVal('#cfg-gas-month'),
+
+      myenergi_power: getVal('#cfg-zappi-power'),
+      myenergi_energy: getVal('#cfg-zappi-energy'),
+      peugeot_battery: getVal('#cfg-peugeot-battery'),
+      peugeot_range: getVal('#cfg-peugeot-range')
+    };
+  }
+
+  setAvailableEntities(entities) {
+    this.availableEntities = entities || [];
+  }
+
+  autoDetectSensors() {
+    const ids = this.availableEntities.map((e) => (typeof e === 'string' ? e : e.entity_id || ''));
+    if (!ids.length) return;
+
+    const findBest = (...patterns) => {
+      for (const p of patterns) {
+        const found = ids.find((id) => id.toLowerCase().includes(p.toLowerCase()));
+        if (found) return found;
+      }
+      return '';
+    };
+
+    const setIfFound = (elemId, ...patterns) => {
+      const el = this.el.querySelector(elemId);
+      if (el && !el.value) {
+        const match = findBest(...patterns);
+        if (match) el.value = match;
+      }
+    };
+
+    // Auto-detect matches
+    setIfFound('#cfg-solax-power', 'solax_pv_power', 'solax_power', 'pv_power', 'solar_power');
+    setIfFound('#cfg-solax-today', 'solax_today', 'solar_today', 'pv_energy_today');
+    setIfFound('#cfg-solax-week', 'solax_week', 'solar_week');
+    setIfFound('#cfg-solax-month', 'solax_month', 'solar_month');
+    setIfFound('#cfg-solax-year', 'solax_year', 'solar_year');
+
+    setIfFound('#cfg-octopus-power', 'home_mini_current_electricity', 'octopus_electricity_power', 'grid_power');
+    setIfFound('#cfg-octopus-export', 'feed_in_power', 'solax_export', 'grid_export');
+    setIfFound('#cfg-octopus-rate', 'electricity_current_rate', 'octopus_rate', 'current_rate');
+    setIfFound('#cfg-octopus-spend', 'electricity_current_month_cost', 'octopus_month_cost', 'electricity_cost');
+    setIfFound('#cfg-octopus-30min', 'home_mini_electricity_30min', 'electricity_30min');
+    setIfFound('#cfg-octopus-day', 'electricity_day', 'octopus_electricity_today');
+    setIfFound('#cfg-octopus-week', 'electricity_week');
+    setIfFound('#cfg-octopus-month', 'electricity_month');
+
+    setIfFound('#cfg-boiler-status', 'boiler', 'climate.boiler', 'switch.boiler', 'heating');
+    setIfFound('#cfg-gas-30min', 'home_mini_gas_30min', 'gas_30min');
+    setIfFound('#cfg-gas-day', 'gas_day', 'octopus_gas_today');
+    setIfFound('#cfg-gas-week', 'gas_week');
+    setIfFound('#cfg-gas-month', 'gas_month');
+
+    setIfFound('#cfg-zappi-power', 'zappi_power', 'myenergi_power', 'ev_power', 'charger_power');
+    setIfFound('#cfg-zappi-energy', 'charge_added_session', 'zappi_energy', 'zappi_today');
+    setIfFound('#cfg-peugeot-battery', 'e2008_battery', 'peugeot_battery', 'battery_level', 'soc');
+    setIfFound('#cfg-peugeot-range', 'e2008_range', 'peugeot_range', 'range');
   }
 
   openDrawerTab(tab) {
@@ -519,12 +896,14 @@ export class HUDOverlay {
 
     if (this.activeTab === 'solar') {
       const s = data.solar || {};
+      const kw = Number(s.power_kw || 0);
+      const isGenerating = kw > 0.04;
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
             <div class="stat-label">SOLAX LIVE GENERATION</div>
-            <div class="stat-val color-solar">${Number(s.power_kw || 0).toFixed(2)} <span class="stat-unit">kW</span></div>
-            <div class="stat-subtext">Status: ${s.status || 'Generating'} • DC Isolator Closed</div>
+            <div class="stat-val color-solar">${kw.toFixed(2)} <span class="stat-unit">kW</span></div>
+            <div class="stat-subtext">Status: ${isGenerating ? 'Generating • Active Flow' : 'Frozen (No Generation)'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">TODAY</div>
@@ -548,14 +927,15 @@ export class HUDOverlay {
       const o = data.octopus_electric || {};
       const kw = Number(o.power_kw || 0);
       const isExporting = kw < 0 || Boolean(o.is_exporting);
+      const isMoving = Math.abs(kw) > 0.03;
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
-            <div class="stat-label">OCTOPUS GRID POWER (${isExporting ? 'EXPORT' : 'IMPORT'})</div>
+            <div class="stat-label">OCTOPUS GRID POWER (${isMoving ? (isExporting ? 'EXPORTING TO GRID' : 'IMPORTING FROM GRID') : 'IDLE / FROZEN'})</div>
             <div class="stat-val ${isExporting ? 'color-grid-export' : 'color-grid-import'}">
               ${Math.abs(kw).toFixed(2)} <span class="stat-unit">kW</span>
             </div>
-            <div class="stat-subtext">Service Drop: Utility Pylon to Entrance Meter</div>
+            <div class="stat-subtext">Flow: ${isMoving ? (isExporting ? '⬆️ House to Pylon' : '⬇️ Pylon to House') : 'Frozen (0 kW)'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">CURRENT TARIFF RATE</div>
@@ -585,12 +965,13 @@ export class HUDOverlay {
       `;
     } else if (this.activeTab === 'gas') {
       const g = data.octopus_gas || {};
+      const isActive = Boolean(g.is_active && g.boiler_status !== 'off');
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
             <div class="stat-label">KITCHEN COMBI BOILER</div>
-            <div class="stat-val color-gas">${g.boiler_status || 'Active'}</div>
-            <div class="stat-subtext">Fed via External LPG Bulk Tank & Gable Pipework</div>
+            <div class="stat-val color-gas">${g.boiler_status || (isActive ? 'Active' : 'Standby')}</div>
+            <div class="stat-subtext">Pipework: ${isActive ? '🔥 Flowing Tank to Boiler' : 'Frozen (Idle)'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">30-MIN READING (MINI)</div>
@@ -621,6 +1002,7 @@ export class HUDOverlay {
     } else if (this.activeTab === 'ev') {
       const ev = data.ev || {};
       const soc = Math.min(Math.max(Number(ev.battery_soc_pct || 0), 0), 100);
+      const isCharging = Boolean(ev.is_charging && Number(ev.charger_power_kw || 0) > 0.08);
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
@@ -629,6 +1011,7 @@ export class HUDOverlay {
             <div class="battery-bar-container">
               <div class="battery-bar-fill" style="width: ${soc}%"></div>
             </div>
+            <div class="stat-subtext" style="margin-top: 6px;">Charging Cable: ${isCharging ? '⚡ Flowing Charger to Car' : 'Frozen (Not Charging)'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">myenergi ZAPPI SPEED</div>
@@ -638,7 +1021,6 @@ export class HUDOverlay {
           <div class="stat-card">
             <div class="stat-label">SESSION ENERGY ADDED</div>
             <div class="stat-val">${Number(ev.energy_added_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
-            <div class="stat-subtext">Plugged In • Catenary Cable</div>
           </div>
         </div>
       `;
@@ -648,7 +1030,6 @@ export class HUDOverlay {
   update(data, projectedHotspots = []) {
     this.lastData = data;
 
-    // Header pills
     const solarKw = Number(data.solar?.power_kw || 0);
     const gridKw = Number(data.octopus_electric?.power_kw || 0);
     const evKw = Number(data.ev?.charger_power_kw || 0);
@@ -678,7 +1059,8 @@ export class HUDOverlay {
 
       let badgeHtml = '';
       if (spot.id === 'solar') {
-        badgeHtml = `<span>☀️ Solax</span> <span class="color-solar">${solarKw.toFixed(2)} kW</span>`;
+        const isGen = solarKw > 0.04;
+        badgeHtml = `<span>☀️ Solax</span> <span class="color-solar">${solarKw.toFixed(2)} kW</span> <span style="font-size:9px;color:${isGen ? '#10b981' : '#64748b'}">●</span>`;
       } else if (spot.id === 'grid') {
         const rate = Number(data.octopus_electric?.current_rate_p || 0).toFixed(1);
         badgeHtml = `<span>⚡ Octopus</span> <span>${Math.abs(gridKw).toFixed(1)} kW</span> <span style="color:#94a3b8">(${rate}p)</span>`;
@@ -703,7 +1085,6 @@ export class HUDOverlay {
       container.appendChild(badge);
     }
 
-    // Update open drawer if visible
     if (this.el.querySelector('#hud-drawer').classList.contains('open')) {
       this.renderDrawerContent();
     }
