@@ -22,7 +22,7 @@ export class SceneManager {
       { id: 'solar', name: 'Solax Solar PV', pos: new THREE.Vector3(2.80, 6.60, -6.80) },
       { id: 'grid', name: 'Octopus Grid & Meter', pos: new THREE.Vector3(5.30, 2.00, -0.85) },
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
-      { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(4.30, 1.30, 3.20) }
+      { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) }
     ];
 
     this.roofParts = [];
@@ -248,8 +248,8 @@ export class SceneManager {
         xray: true
       },
       ev: {
-        pos: new THREE.Vector3(7.5, 2.8, 4.8),
-        target: new THREE.Vector3(4.3, 0.9, 2.8),
+        pos: new THREE.Vector3(7.2, 2.2, 3.2),
+        target: new THREE.Vector3(5.2, 0.95, 1.0),
         xray: false
       }
     };

@@ -3,11 +3,12 @@ import * as THREE from 'three';
 /**
  * EnergyFlowSystem
  * Generates high-visibility energy pulse streams that:
- * 1. Stick directly to the physical cable/pipe centerlines.
- * 2. Are larger and brighter with luminous cores.
- * 3. SHINE CLEARLY THROUGH WALLS (depthTest: false, renderOrder: 999) when running internally.
- * 4. Move strictly in the physical direction of power flow.
- * 5. Freeze completely (0 speed) when generation or consumption is 0.
+ * 1. Attach directly and precisely to the physical cable and pipe geometries.
+ * 2. EV energy flows strictly towards the car, smoothly slowing down as energy drops and stopping at 0 kW.
+ * 3. Grid energy flows forwards (pylon -> meter) when importing, and backwards (meter -> pylon) when exporting.
+ *    The more energy in either direction, the faster it flows.
+ * 4. Solar energy flows from roof panels to meter box, getting slower as energy drops and stopping at 0 kW.
+ * 5. Internal cables shine clearly through walls with depthTest: false and high renderOrder.
  */
 export class EnergyFlowSystem {
   constructor(scene) {
@@ -43,15 +44,25 @@ export class EnergyFlowSystem {
         new THREE.Vector3(5.27, 0.950, -0.60)  // 100A main service cutout fuse & smart meter (INTERNAL)
       ]),
 
-      // 3. EV Charging Cable: Zappi wallbox -> catenary loop -> Peugeot e-2008 socket
+      // 3. EV Charging Cable: Exact 17-point catenary curve from Zappi wallbox directly into Peugeot e-2008 socket
       ev: new THREE.CatmullRomCurve3([
-        new THREE.Vector3(5.19, 1.120, 0.050), // myenergi Zappi Wallbox outlet
-        new THREE.Vector3(4.98, 0.920, 0.250), // Cable dropping from wallbox
-        new THREE.Vector3(4.77, 0.760, 0.438), // Drooping catenary curve
-        new THREE.Vector3(4.35, 0.590, 0.825), // Lowest loop near driveway ground
-        new THREE.Vector3(3.93, 0.610, 1.213), // Rising curve towards car
-        new THREE.Vector3(3.68, 0.720, 1.450), // Entering charging port vicinity
-        new THREE.Vector3(3.51, 0.820, 1.600)  // Peugeot e-2008 charging socket
+        new THREE.Vector3(5.190, 1.120, 0.050), // Wallbox outlet
+        new THREE.Vector3(5.195, 1.009, 0.150),
+        new THREE.Vector3(5.200, 0.910, 0.250),
+        new THREE.Vector3(5.205, 0.823, 0.350),
+        new THREE.Vector3(5.210, 0.748, 0.450),
+        new THREE.Vector3(5.215, 0.684, 0.550),
+        new THREE.Vector3(5.220, 0.633, 0.650),
+        new THREE.Vector3(5.225, 0.593, 0.750),
+        new THREE.Vector3(5.230, 0.565, 0.850),
+        new THREE.Vector3(5.235, 0.549, 0.950), // Lowest catenary loop
+        new THREE.Vector3(5.240, 0.545, 1.050),
+        new THREE.Vector3(5.245, 0.553, 1.150),
+        new THREE.Vector3(5.250, 0.573, 1.250),
+        new THREE.Vector3(5.255, 0.604, 1.350),
+        new THREE.Vector3(5.260, 0.648, 1.450),
+        new THREE.Vector3(5.265, 0.703, 1.550),
+        new THREE.Vector3(5.270, 0.770, 1.650)  // Peugeot charging port
       ]),
 
       // 4. Gas Pipe: LPG Storage Tank regulator -> plinth -> gable wall riser -> wall sleeve -> combi boiler
@@ -74,39 +85,34 @@ export class EnergyFlowSystem {
     this.streamDefs = {
       solar: {
         curve: this.paths.solar,
-        color: new THREE.Color(0xffb700), // Bright golden solar
-        baseSpeed: 0.35,
-        size: 0.058,                      // Prominent, highly visible size
-        flowDirection: 1
+        color: new THREE.Color(0xffb700), // Golden solar
+        baseSpeed: 0.38,
+        size: 0.058
       },
       grid: {
         curve: this.paths.grid,
-        color: new THREE.Color(0x00d2ff), // Electric cyan
-        baseSpeed: 0.30,
-        size: 0.065,                      // Prominent overhead grid size
-        flowDirection: 1
+        color: new THREE.Color(0x00d2ff), // Electric cyan (import)
+        baseSpeed: 0.35,
+        size: 0.065
       },
       ev: {
         curve: this.paths.ev,
         color: new THREE.Color(0x00f59b), // Vibrant EV turquoise / green
-        baseSpeed: 0.40,
-        size: 0.060,                      // Prominent EV cable size
-        flowDirection: 1
+        baseSpeed: 0.42,
+        size: 0.060
       },
       gas: {
         curve: this.paths.gas,
         color: new THREE.Color(0xff6d00), // Warm flame amber
-        baseSpeed: 0.25,
-        size: 0.052,                      // Prominent gas pipe size
-        flowDirection: 1
+        baseSpeed: 0.30,
+        size: 0.052
       }
     };
 
     const sphereGeo = new THREE.SphereGeometry(1, 12, 12);
 
     for (const [key, def] of Object.entries(this.streamDefs)) {
-      // Material with depthTest: false & renderOrder: 999
-      // This ensures energy pulses shine directly through walls when running internally!
+      // Glow balls with depthTest: false to shine through walls
       const mat = new THREE.MeshBasicMaterial({
         color: def.color,
         transparent: true,
@@ -119,7 +125,7 @@ export class EnergyFlowSystem {
       const count = this.particleCountPerStream;
       const instancedMesh = new THREE.InstancedMesh(sphereGeo, mat, count);
       instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      instancedMesh.renderOrder = 999; // Render on top of walls
+      instancedMesh.renderOrder = 999;
 
       const dummy = new THREE.Object3D();
       for (let i = 0; i < count; i++) {
@@ -138,12 +144,11 @@ export class EnergyFlowSystem {
         mesh: instancedMesh,
         def,
         dummy,
-        offset: 0,
-        isFrozen: false
+        offset: 0
       });
     }
 
-    // Glowing core backbone directly along cables - also visible through walls!
+    // Glowing core line along cables - also shines through walls
     this.glowLines = {};
     for (const [key, def] of Object.entries(this.streamDefs)) {
       const points = def.curve.getPoints(100);
@@ -157,7 +162,7 @@ export class EnergyFlowSystem {
         blending: THREE.AdditiveBlending
       });
       const line = new THREE.Line(geo, mat);
-      line.renderOrder = 998; // Just below particles
+      line.renderOrder = 998;
       this.scene.add(line);
       this.glowLines[key] = line;
     }
@@ -204,8 +209,14 @@ export class EnergyFlowSystem {
   }
 
   /**
-   * Update animation with strict freeze condition when power is 0,
-   * prominent particle scaling, and physical direction matching live flow
+   * Update animation loop:
+   * - Solar: Always flows towards meter box, gets slower as energy drops, completely stops at 0 kW.
+   * - Grid:
+   *   - Importing: Flows downwards from pylon to meter box (cyan). Faster with more kW.
+   *   - Exporting: Flows backwards towards the grid (meter box up to pylon, green). Faster with more kW.
+   *   - 0 kW: Completely stopped.
+   * - EV: Flows strictly towards the car, gets slower as energy drops, completely stops at 0 kW.
+   * - Gas: Flows towards boiler, gets slower and stops when idle.
    */
   update(delta, energyData) {
     if (!energyData) return;
@@ -213,77 +224,83 @@ export class EnergyFlowSystem {
     const solarKw = Number(energyData.solar?.power_kw || 0);
     const gridKw = Number(energyData.octopus_electric?.power_kw || 0);
     const evKw = Number(energyData.ev?.charger_power_kw || 0);
-    const isCharging = Boolean(energyData.ev?.is_charging && evKw > 0.08);
+    const isCharging = Boolean(energyData.ev?.is_charging && evKw > 0.05);
     const gasKw = Number(energyData.octopus_gas?.power_kw || 0);
     const gasActive = Boolean((energyData.octopus_gas?.is_active || gasKw > 0.05) && energyData.octopus_gas?.boiler_status !== 'off');
 
     for (const stream of this.streams) {
       const { id, mesh, def, dummy } = stream;
-      let isMoving = true;
-      let speedFactor = 1.0;
-      let direction = 1;
+      let speed = 0;
+      let direction = 1; // 1 = forward along curve, -1 = reverse
 
       if (id === 'solar') {
-        // IF NO GENERATION (solarKw <= 0.04), FROZEN NOT MOVING!
-        if (solarKw <= 0.04) {
-          isMoving = false;
-        } else {
-          speedFactor = Math.min(Math.max(solarKw / 2.0, 0.3), 3.0);
+        // Solar: Always goes roof -> meter. Slower as kW drops, stops at 0 kW.
+        if (solarKw > 0.02) {
+          // Linear speed scaling with gentle square root curve for natural feel
+          const normalized = Math.min(solarKw / 4.0, 1.0);
+          speed = (0.20 + 0.80 * Math.sqrt(normalized)) * def.baseSpeed;
           direction = 1; // Always panels -> meter box
+        } else {
+          speed = 0; // Frozen stopped!
         }
       } else if (id === 'grid') {
-        // IF NO GRID POWER (|gridKw| <= 0.03), FROZEN NOT MOVING!
-        if (Math.abs(gridKw) <= 0.03) {
-          isMoving = false;
-        } else {
-          speedFactor = Math.min(Math.max(Math.abs(gridKw) / 1.5, 0.3), 3.0);
-          const isExporting = gridKw < 0 || Boolean(energyData.octopus_electric?.is_exporting);
+        // Grid:
+        // Exporting: goes backwards towards grid (direction = -1), faster with more export
+        // Importing: goes inwards towards meter (direction = 1), faster with more import
+        const absGridKw = Math.abs(gridKw);
+        const isExporting = gridKw < -0.02 || (Boolean(energyData.octopus_electric?.is_exporting) && absGridKw > 0.02);
+
+        if (absGridKw > 0.02) {
+          const normalized = Math.min(absGridKw / 3.5, 1.0);
+          speed = (0.22 + 0.78 * Math.sqrt(normalized)) * def.baseSpeed;
 
           if (isExporting) {
-            // EXPORTING: Energy moves from meter box UP along cable to pylon/grid!
-            direction = -1;
+            direction = -1; // Goes backwards towards the grid!
             const green = new THREE.Color(0x00ff88);
-            mesh.material.color.lerp(green, 0.12);
-            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(green, 0.12);
+            mesh.material.color.lerp(green, 0.15);
+            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(green, 0.15);
           } else {
-            // IMPORTING: Energy moves from utility pylon DOWN along cable into meter box!
-            direction = 1;
+            direction = 1; // Flows from pylon into meter box
             const cyan = new THREE.Color(0x00d2ff);
-            mesh.material.color.lerp(cyan, 0.12);
-            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(cyan, 0.12);
+            mesh.material.color.lerp(cyan, 0.15);
+            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(cyan, 0.15);
           }
+        } else {
+          speed = 0; // Frozen stopped!
         }
       } else if (id === 'ev') {
-        // IF NOT CHARGING, FROZEN NOT MOVING!
-        if (!isCharging) {
-          isMoving = false;
+        // EV: Flows towards the car (direction = 1), gets slower as energy drops, stops at 0 kW
+        if (isCharging && evKw > 0.05) {
+          const normalized = Math.min(evKw / 7.4, 1.0);
+          speed = (0.20 + 0.80 * Math.sqrt(normalized)) * def.baseSpeed;
+          direction = 1; // Always towards the car
         } else {
-          speedFactor = Math.min(Math.max(evKw / 4.0, 0.35), 3.0);
-          direction = 1; // Always wallbox -> Peugeot battery port
+          speed = 0; // Frozen stopped!
         }
       } else if (id === 'gas') {
-        // IF BOILER IDLE, FROZEN NOT MOVING!
-        if (!gasActive) {
-          isMoving = false;
+        // Gas: Flows towards boiler, stops when idle
+        if (gasActive && gasKw > 0.05) {
+          const normalized = Math.min(gasKw / 2.0, 1.0);
+          speed = (0.25 + 0.75 * Math.sqrt(normalized)) * def.baseSpeed;
+          direction = 1; // Always towards boiler
         } else {
-          speedFactor = Math.min(Math.max(gasKw / 1.0, 0.3), 2.5);
-          direction = 1; // Always tank -> combi boiler
+          speed = 0; // Frozen stopped!
         }
       }
 
-      // If FROZEN: keep particles visible but completely still (0 speed) and dimmed
-      if (!isMoving) {
-        mesh.material.opacity = 0.22;
+      // If STOPPED (speed === 0): keep balls visible but completely still & dimmed
+      if (speed === 0) {
+        mesh.material.opacity = 0.20;
         if (this.glowLines[id]) this.glowLines[id].material.opacity = 0.12;
         continue;
       }
 
-      // If ACTIVE: prominent bright glowing flow
+      // If MOVING: bright luminous flow
       mesh.material.opacity = 0.95;
       if (this.glowLines[id]) this.glowLines[id].material.opacity = 0.50;
 
-      // Animate offset along curve
-      stream.offset += delta * def.baseSpeed * speedFactor * direction;
+      // Update offset along curve with exact direction & speed
+      stream.offset += delta * speed * direction;
       if (stream.offset > 1.0) stream.offset -= 1.0;
       if (stream.offset < 0.0) stream.offset += 1.0;
 
@@ -295,9 +312,9 @@ export class EnergyFlowSystem {
         const pt = def.curve.getPointAt(t);
         dummy.position.copy(pt);
 
-        // Breathing pulse variation to make the flow look organic and energetic
+        // Breathing pulse variation
         const scalePhase = Math.sin(t * Math.PI * 4 + delta * 5);
-        dummy.scale.setScalar(def.size * (0.88 + 0.28 * scalePhase));
+        dummy.scale.setScalar(def.size * (0.90 + 0.25 * scalePhase));
 
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
