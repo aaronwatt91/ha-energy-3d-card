@@ -4,7 +4,8 @@ import * as THREE from 'three';
  * EnergyFlowSystem
  * Generates high-visibility energy pulse streams that:
  * 1. Attach directly and precisely to the physical cable and pipe geometries.
- * 2. EV energy flows strictly towards the car, smoothly slowing down as energy drops and stopping at 0 kW.
+ * 2. EV energy flows strictly towards the car, with speed directly proportional to power,
+ *    getting slower as energy drops and stopping at 0 kW.
  * 3. Grid energy flows forwards (pylon -> meter) when importing, and backwards (meter -> pylon) when exporting.
  *    The more energy in either direction, the faster it flows.
  * 4. Solar energy flows from roof panels to meter box, getting slower as energy drops and stopping at 0 kW.
@@ -31,9 +32,9 @@ export class EnergyFlowSystem {
         new THREE.Vector3(5.28, 1.650, -0.95)  // Main consumer unit / meter (INTERNAL)
       ]),
 
-      // 2. Grid Overhead Service: Pylon distribution box -> Catenary sag -> House bracket -> PVC drop -> Smart meter
+      // 2. Grid Overhead Service: Pylon distribution box (t=0) -> Catenary sag -> House bracket -> PVC drop -> Smart meter (t=1)
       grid: new THREE.CatmullRomCurve3([
-        new THREE.Vector3(6.40, 6.950, 6.950), // Overhead pylon distribution cutout box
+        new THREE.Vector3(6.40, 6.950, 6.950), // Overhead pylon distribution cutout box (t = 0)
         new THREE.Vector3(6.12, 6.250, 5.200), // ABC cable sagging curve
         new THREE.Vector3(5.86, 5.525, 3.465), // Lowest sag point over driveway
         new THREE.Vector3(5.55, 5.150, 1.700), // Rising catenary towards house
@@ -41,12 +42,12 @@ export class EnergyFlowSystem {
         new THREE.Vector3(5.32, 3.000, 0.040), // Vertical external PVC conduit
         new THREE.Vector3(5.32, 1.100, 0.040), // 90-degree through-wall inspection elbow
         new THREE.Vector3(5.26, 1.100, -0.55), // Entering entrance cupboard (INTERNAL)
-        new THREE.Vector3(5.27, 0.950, -0.60)  // 100A main service cutout fuse & smart meter (INTERNAL)
+        new THREE.Vector3(5.27, 0.950, -0.60)  // 100A main service cutout fuse & smart meter (INTERNAL, t = 1)
       ]),
 
       // 3. EV Charging Cable: Exact 17-point catenary curve from Zappi wallbox directly into Peugeot e-2008 socket
       ev: new THREE.CatmullRomCurve3([
-        new THREE.Vector3(5.190, 1.120, 0.050), // Wallbox outlet
+        new THREE.Vector3(5.190, 1.120, 0.050), // Wallbox outlet (t = 0)
         new THREE.Vector3(5.195, 1.009, 0.150),
         new THREE.Vector3(5.200, 0.910, 0.250),
         new THREE.Vector3(5.205, 0.823, 0.350),
@@ -62,19 +63,19 @@ export class EnergyFlowSystem {
         new THREE.Vector3(5.255, 0.604, 1.350),
         new THREE.Vector3(5.260, 0.648, 1.450),
         new THREE.Vector3(5.265, 0.703, 1.550),
-        new THREE.Vector3(5.270, 0.770, 1.650)  // Peugeot charging port
+        new THREE.Vector3(5.270, 0.770, 1.650)  // Peugeot charging port (t = 1)
       ]),
 
-      // 4. Gas Pipe: LPG Storage Tank regulator -> plinth -> gable wall riser -> wall sleeve -> combi boiler
+      // 4. Gas Pipe: LPG Storage Tank regulator (t=0) -> plinth -> gable wall riser -> wall sleeve -> combi boiler (t=1)
       gas: new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-1.30, 1.050, -8.00), // LPG bulk tank regulator valve
+        new THREE.Vector3(-1.30, 1.050, -8.00), // LPG bulk tank regulator valve (t = 0)
         new THREE.Vector3(-1.30, 0.220, -8.00), // Vertical drop to concrete plinth
         new THREE.Vector3(-0.65, 0.220, -8.15), // Running along garden ground
         new THREE.Vector3(-0.08, 0.220, -8.32), // Reaching external gable wall base
         new THREE.Vector3(-0.08, 1.050, -8.32), // Rising up gable wall through emergency tap
         new THREE.Vector3(0.301, 1.050, -8.32), // Passing through wall sleeve into kitchen (INTERNAL)
         new THREE.Vector3(0.601, 1.050, -8.32), // Under counter to boiler position (INTERNAL)
-        new THREE.Vector3(0.601, 1.350, -8.32)  // Combi boiler copper gas manifold (INTERNAL)
+        new THREE.Vector3(0.601, 1.350, -8.32)  // Combi boiler copper gas manifold (INTERNAL, t = 1)
       ])
     };
 
@@ -86,25 +87,25 @@ export class EnergyFlowSystem {
       solar: {
         curve: this.paths.solar,
         color: new THREE.Color(0xffb700), // Golden solar
-        baseSpeed: 0.38,
+        baseSpeed: 0.40,
         size: 0.058
       },
       grid: {
         curve: this.paths.grid,
         color: new THREE.Color(0x00d2ff), // Electric cyan (import)
-        baseSpeed: 0.35,
+        baseSpeed: 0.38,
         size: 0.065
       },
       ev: {
         curve: this.paths.ev,
         color: new THREE.Color(0x00f59b), // Vibrant EV turquoise / green
-        baseSpeed: 0.42,
+        baseSpeed: 0.44,
         size: 0.060
       },
       gas: {
         curve: this.paths.gas,
         color: new THREE.Color(0xff6d00), // Warm flame amber
-        baseSpeed: 0.30,
+        baseSpeed: 0.32,
         size: 0.052
       }
     };
@@ -210,10 +211,10 @@ export class EnergyFlowSystem {
 
   /**
    * Update animation loop:
-   * - Solar: Always flows towards meter box, gets slower as energy drops, completely stops at 0 kW.
+   * - Solar: Always flows roof -> meter box. Gets slower as energy drops, completely stops at 0 kW.
    * - Grid:
-   *   - Importing: Flows downwards from pylon to meter box (cyan). Faster with more kW.
-   *   - Exporting: Flows backwards towards the grid (meter box up to pylon, green). Faster with more kW.
+   *   - Importing: Flows pylon -> meter box (cyan). Faster with more kW.
+   *   - Exporting: Flows meter box -> pylon (green backwards). Faster with more kW.
    *   - 0 kW: Completely stopped.
    * - EV: Flows strictly towards the car, gets slower as energy drops, completely stops at 0 kW.
    * - Gas: Flows towards boiler, gets slower and stops when idle.
@@ -221,11 +222,19 @@ export class EnergyFlowSystem {
   update(delta, energyData) {
     if (!energyData) return;
 
-    const solarKw = Number(energyData.solar?.power_kw || 0);
-    const gridKw = Number(energyData.octopus_electric?.power_kw || 0);
-    const evKw = Number(energyData.ev?.charger_power_kw || 0);
-    const isCharging = Boolean(energyData.ev?.is_charging && evKw > 0.05);
-    const gasKw = Number(energyData.octopus_gas?.power_kw || 0);
+    // Normalize power values (auto-detect Watts > 50 vs kW)
+    let rawSolar = Number(energyData.solar?.power_kw || 0);
+    const solarKw = rawSolar > 50 ? rawSolar / 1000 : rawSolar;
+
+    let rawGrid = Number(energyData.octopus_electric?.power_kw || 0);
+    const gridKw = Math.abs(rawGrid) > 50 ? rawGrid / 1000 : rawGrid;
+
+    let rawEv = Number(energyData.ev?.charger_power_kw || 0);
+    const evKw = rawEv > 50 ? rawEv / 1000 : rawEv;
+
+    let rawGas = Number(energyData.octopus_gas?.power_kw || 0);
+    const gasKw = rawGas > 50 ? rawGas / 1000 : rawGas;
+
     const gasActive = Boolean((energyData.octopus_gas?.is_active || gasKw > 0.05) && energyData.octopus_gas?.boiler_status !== 'off');
 
     for (const stream of this.streams) {
@@ -236,9 +245,9 @@ export class EnergyFlowSystem {
       if (id === 'solar') {
         // Solar: Always goes roof -> meter. Slower as kW drops, stops at 0 kW.
         if (solarKw > 0.02) {
-          // Linear speed scaling with gentle square root curve for natural feel
-          const normalized = Math.min(solarKw / 4.0, 1.0);
-          speed = (0.20 + 0.80 * Math.sqrt(normalized)) * def.baseSpeed;
+          const ratio = Math.min(solarKw / 4.0, 2.5);
+          // Speed scales directly with kW: slower with less energy, faster with more
+          speed = Math.max(ratio * def.baseSpeed, 0.04);
           direction = 1; // Always panels -> meter box
         } else {
           speed = 0; // Frozen stopped!
@@ -251,28 +260,29 @@ export class EnergyFlowSystem {
         const isExporting = gridKw < -0.02 || (Boolean(energyData.octopus_electric?.is_exporting) && absGridKw > 0.02);
 
         if (absGridKw > 0.02) {
-          const normalized = Math.min(absGridKw / 3.5, 1.0);
-          speed = (0.22 + 0.78 * Math.sqrt(normalized)) * def.baseSpeed;
+          const ratio = Math.min(absGridKw / 3.5, 2.5);
+          speed = Math.max(ratio * def.baseSpeed, 0.04);
 
           if (isExporting) {
             direction = -1; // Goes backwards towards the grid!
             const green = new THREE.Color(0x00ff88);
-            mesh.material.color.lerp(green, 0.15);
-            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(green, 0.15);
+            mesh.material.color.lerp(green, 0.2);
+            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(green, 0.2);
           } else {
             direction = 1; // Flows from pylon into meter box
             const cyan = new THREE.Color(0x00d2ff);
-            mesh.material.color.lerp(cyan, 0.15);
-            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(cyan, 0.15);
+            mesh.material.color.lerp(cyan, 0.2);
+            if (this.glowLines[id]) this.glowLines[id].material.color.lerp(cyan, 0.2);
           }
         } else {
           speed = 0; // Frozen stopped!
         }
       } else if (id === 'ev') {
-        // EV: Flows towards the car (direction = 1), gets slower as energy drops, stops at 0 kW
-        if (isCharging && evKw > 0.05) {
-          const normalized = Math.min(evKw / 7.4, 1.0);
-          speed = (0.20 + 0.80 * Math.sqrt(normalized)) * def.baseSpeed;
+        // EV: Flows strictly towards the car (direction = 1).
+        // Slower as energy drops, completely stops at 0 kW!
+        if (evKw > 0.04) {
+          const ratio = Math.min(evKw / 7.2, 2.5);
+          speed = Math.max(ratio * def.baseSpeed, 0.04);
           direction = 1; // Always towards the car
         } else {
           speed = 0; // Frozen stopped!
@@ -280,8 +290,8 @@ export class EnergyFlowSystem {
       } else if (id === 'gas') {
         // Gas: Flows towards boiler, stops when idle
         if (gasActive && gasKw > 0.05) {
-          const normalized = Math.min(gasKw / 2.0, 1.0);
-          speed = (0.25 + 0.75 * Math.sqrt(normalized)) * def.baseSpeed;
+          const ratio = Math.min(gasKw / 2.0, 2.5);
+          speed = Math.max(ratio * def.baseSpeed, 0.04);
           direction = 1; // Always towards boiler
         } else {
           speed = 0; // Frozen stopped!
@@ -323,7 +333,7 @@ export class EnergyFlowSystem {
     }
 
     // Dynamic mesh emissive glows
-    this.updateMeshGlows(solarKw, gridKw, evKw, isCharging, gasActive);
+    this.updateMeshGlows(solarKw, gridKw, evKw, evKw > 0.04, gasActive);
   }
 
   updateMeshGlows(solarKw, gridKw, evKw, isCharging, gasActive) {

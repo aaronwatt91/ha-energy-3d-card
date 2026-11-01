@@ -77,7 +77,9 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, {
       'Content-Type': mime,
       'Content-Length': stats.size,
-      'Cache-Control': ext === '.glb' ? 'public, max-age=86400' : 'no-cache'
+      'Cache-Control': ext === '.glb' ? 'public, max-age=86400' : 'no-store, no-cache, must-revalidate, max-age=0',
+      'Pragma': 'no-cache',
+      'Expires': '0'
     });
 
     const stream = fs.createReadStream(filePath);

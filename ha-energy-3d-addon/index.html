@@ -251,8 +251,8 @@
     }
   </style>
 
-  <!-- Load bundled custom card module -->
-  <script type="module" src="./dist/ha-energy-3d-card.js"></script>
+  <!-- Load bundled custom card module with cache-buster -->
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.0.5"></script>
 </head>
 <body>
 
@@ -430,7 +430,10 @@
     const lblEv = document.getElementById('val-ev-kw');
     const lblGas = document.getElementById('val-gas-kw');
 
+    let userIsTestingSliders = false;
+
     function syncSliders() {
+      userIsTestingSliders = true;
       const solarVal = parseFloat(inSolar.value);
       const gridVal = parseFloat(inGrid.value);
       const evVal = parseFloat(inEv.value);
@@ -443,6 +446,7 @@
       lblEv.innerText = `${evVal.toFixed(2)} kW (${socVal}%)`;
       lblGas.innerText = boilerActive ? 'Central Heating' : 'Standby';
 
+      // Update mock states
       currentHass.states['sensor.solax_pv_power_total'] = { state: solarVal.toString() };
       currentHass.states['sensor.octopus_home_mini_current_electricity_power'] = { state: gridVal.toString() };
       currentHass.states['sensor.myenergi_zappi_power'] = { state: evVal.toString() };
@@ -477,15 +481,24 @@
           connDot.style.background = '#10b981';
           connText.innerText = 'Home Assistant Live (Connected)';
           deckTitle.innerText = '🟢 Home Assistant Live Mode';
-          deckSubtitle.innerText = 'Sensors are streaming in real-time from your Solax, Octopus, myenergi & Peugeot integrations.';
+          deckSubtitle.innerText = 'Streaming from your Home Assistant. Click ⚙️ Sensors above to map your exact device sensor names!';
 
-          // Map HA array into states map
+          // Pass entities to the card for auto-detection dropdowns
           const statesMap = {};
           for (const s of data.states) {
             statesMap[s.entity_id] = s;
           }
-          currentHass = { states: statesMap };
-          card.hass = currentHass;
+
+          // If user is actively dragging simulation sliders, don't clobber their slider preview
+          if (!userIsTestingSliders) {
+            currentHass = { states: statesMap };
+            card.hass = currentHass;
+          } else {
+            // Still forward available entity keys to card for the sensor modal
+            if (card.hud) {
+              card.hud.setAvailableEntities(Object.keys(statesMap));
+            }
+          }
           return;
         }
       } catch (e) {
@@ -497,7 +510,6 @@
     }
 
     checkHALive();
-    // Poll every 3 seconds if in Home Assistant Add-on mode
     setInterval(checkHALive, 3000);
   </script>
 </body>
