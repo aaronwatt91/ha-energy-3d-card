@@ -60,6 +60,25 @@
       letter-spacing: 0.5px;
     }
 
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+    }
+
     .nav-links {
       display: flex;
       gap: 14px;
@@ -233,7 +252,7 @@
   </style>
 
   <!-- Load bundled custom card module -->
-  <script type="module" src="dist/ha-energy-3d-card.js"></script>
+  <script type="module" src="./dist/ha-energy-3d-card.js"></script>
 </head>
 <body>
 
@@ -244,15 +263,21 @@
       <div>
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="brand-title">Home Energy 3D Monitor</span>
-          <span class="brand-badge">Lovelace Card Preview</span>
+          <span class="brand-badge" id="app-mode-badge">App</span>
         </div>
         <div style="font-size: 11px; color: #64748b;">Taylor Wimpey Blair TK Semi-Detached House Model</div>
       </div>
     </div>
-    <div class="nav-links">
-      <a class="nav-link" href="#simulation">🎮 Live Simulator</a>
-      <a class="nav-link" href="#integrations">🔌 Supported Integrations</a>
-      <a class="nav-link" href="https://github.com/aaronwatt91/ha-energy-3d-card" target="_blank">📦 GitHub Repo</a>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div class="status-pill" id="ha-conn-pill">
+        <div class="status-dot" id="ha-conn-dot"></div>
+        <span id="ha-conn-text">Checking Home Assistant...</span>
+      </div>
+      <div class="nav-links">
+        <a class="nav-link" href="#simulation">🎮 Controls</a>
+        <a class="nav-link" href="#integrations">🔌 Integrations</a>
+        <a class="nav-link" href="https://github.com/aaronwatt91/ha-energy-3d-card" target="_blank">📦 GitHub</a>
+      </div>
     </div>
   </nav>
 
@@ -262,11 +287,13 @@
       <ha-energy-3d-card id="energy-card"></ha-energy-3d-card>
     </div>
 
-    <!-- Live Simulation Controllers -->
+    <!-- Live Simulation Controllers (Active in standalone/demo mode) -->
     <section class="sim-deck" id="simulation">
       <div class="sim-title">
-        <span>🎮 Interactive Energy Simulator</span>
-        <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">(Adjust sliders to watch 3D cables glow and energy pulse speeds dynamically react!)</span>
+        <span id="deck-title">🎮 Interactive Energy Simulator</span>
+        <span style="font-size: 11px; color: #94a3b8; font-weight: normal;" id="deck-subtitle">
+          (Adjust sliders to watch 3D cables glow and energy pulse speeds dynamically react!)
+        </span>
       </div>
 
       <div class="sim-grid">
@@ -348,7 +375,7 @@
     </section>
   </main>
 
-  <!-- Interactive Demo Script -->
+  <!-- Interactive & Live HA Polling Script -->
   <script type="module">
     const card = document.getElementById('energy-card');
 
@@ -359,8 +386,8 @@
       title: 'Taylor Wimpey Blair TK - Energy 3D'
     });
 
-    // Mock Home Assistant states object
-    const mockHass = {
+    // Mock Home Assistant states object for fallback
+    let currentHass = {
       states: {
         'sensor.solax_pv_power_total': { state: '2.85' },
         'sensor.solax_today_s_solar_energy': { state: '14.6' },
@@ -389,7 +416,7 @@
       }
     };
 
-    card.hass = mockHass;
+    card.hass = currentHass;
 
     // Simulation Slider Bindings
     const inSolar = document.getElementById('input-solar-kw');
@@ -403,7 +430,7 @@
     const lblEv = document.getElementById('val-ev-kw');
     const lblGas = document.getElementById('val-gas-kw');
 
-    function sync() {
+    function syncSliders() {
       const solarVal = parseFloat(inSolar.value);
       const gridVal = parseFloat(inGrid.value);
       const evVal = parseFloat(inEv.value);
@@ -416,22 +443,62 @@
       lblEv.innerText = `${evVal.toFixed(2)} kW (${socVal}%)`;
       lblGas.innerText = boilerActive ? 'Central Heating' : 'Standby';
 
-      // Update mock states
-      mockHass.states['sensor.solax_pv_power_total'].state = solarVal.toString();
-      mockHass.states['sensor.octopus_home_mini_current_electricity_power'].state = gridVal.toString();
-      mockHass.states['sensor.myenergi_zappi_power'].state = evVal.toString();
-      mockHass.states['sensor.e2008_battery_level'].state = socVal.toString();
-      mockHass.states['sensor.e2008_battery_range'].state = Math.round(socVal * 2.08).toString();
-      mockHass.states['sensor.boiler_status'].state = boilerActive ? 'Central Heating' : 'off';
+      currentHass.states['sensor.solax_pv_power_total'] = { state: solarVal.toString() };
+      currentHass.states['sensor.octopus_home_mini_current_electricity_power'] = { state: gridVal.toString() };
+      currentHass.states['sensor.myenergi_zappi_power'] = { state: evVal.toString() };
+      currentHass.states['sensor.e2008_battery_level'] = { state: socVal.toString() };
+      currentHass.states['sensor.e2008_battery_range'] = { state: Math.round(socVal * 2.08).toString() };
+      currentHass.states['sensor.boiler_status'] = { state: boilerActive ? 'Central Heating' : 'off' };
 
-      card.hass = { ...mockHass };
+      card.hass = { ...currentHass };
     }
 
-    inSolar.addEventListener('input', sync);
-    inGrid.addEventListener('input', sync);
-    inEv.addEventListener('input', sync);
-    inSoc.addEventListener('input', sync);
-    inBoiler.addEventListener('change', sync);
+    inSolar.addEventListener('input', syncSliders);
+    inGrid.addEventListener('input', syncSliders);
+    inEv.addEventListener('input', syncSliders);
+    inSoc.addEventListener('input', syncSliders);
+    inBoiler.addEventListener('change', syncSliders);
+
+    // Check Home Assistant Live API (Add-on Mode)
+    const connPill = document.getElementById('ha-conn-pill');
+    const connDot = document.getElementById('ha-conn-dot');
+    const connText = document.getElementById('ha-conn-text');
+    const deckTitle = document.getElementById('deck-title');
+    const deckSubtitle = document.getElementById('deck-subtitle');
+
+    async function checkHALive() {
+      try {
+        const res = await fetch('api/ha-states');
+        if (!res.ok) throw new Error('API unavailable');
+        const data = await res.json();
+
+        if (data.states && Array.isArray(data.states) && data.states.length > 0) {
+          // Connected to Home Assistant Live!
+          connDot.style.background = '#10b981';
+          connText.innerText = 'Home Assistant Live (Connected)';
+          deckTitle.innerText = '🟢 Home Assistant Live Mode';
+          deckSubtitle.innerText = 'Sensors are streaming in real-time from your Solax, Octopus, myenergi & Peugeot integrations.';
+
+          // Map HA array into states map
+          const statesMap = {};
+          for (const s of data.states) {
+            statesMap[s.entity_id] = s;
+          }
+          currentHass = { states: statesMap };
+          card.hass = currentHass;
+          return;
+        }
+      } catch (e) {
+        // Standalone or local preview mode
+      }
+
+      connDot.style.background = '#38bdf8';
+      connText.innerText = 'Simulator / Demo Mode';
+    }
+
+    checkHALive();
+    // Poll every 3 seconds if in Home Assistant Add-on mode
+    setInterval(checkHALive, 3000);
   </script>
 </body>
 </html>

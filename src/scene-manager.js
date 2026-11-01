@@ -72,8 +72,8 @@ export class SceneManager {
     // 6. Energy Flow Particle System
     this.energyFlow = new EnergyFlowSystem(this.scene);
 
-    // 7. Load GLTF 3D House Model
-    this.loadModel(this.options.modelUrl);
+    // 7. Load GLTF 3D House Model with smart fallback chain
+    this.loadModelWithFallbacks(this.options.modelUrl);
 
     // 8. Resize Listener
     this.handleResize = this.onResize.bind(this);
@@ -87,11 +87,9 @@ export class SceneManager {
   }
 
   initLighting() {
-    // Ambient Light
     this.ambientLight = new THREE.AmbientLight(0xffffff, this.nightMode ? 0.35 : 1.1);
     this.scene.add(this.ambientLight);
 
-    // Sun / Directional Light
     this.sunLight = new THREE.DirectionalLight(0xfffaed, this.nightMode ? 0.2 : 1.8);
     this.sunLight.position.set(16, 22, 12);
     this.sunLight.castShadow = true;
@@ -106,11 +104,9 @@ export class SceneManager {
     this.sunLight.shadow.bias = -0.0005;
     this.scene.add(this.sunLight);
 
-    // Hemisphere light for soft sky/ground bounce
     this.hemiLight = new THREE.HemisphereLight(0xbad7f2, 0x3d5a45, this.nightMode ? 0.2 : 0.6);
     this.scene.add(this.hemiLight);
 
-    // Accent Point Lights (especially useful in night mode)
     this.meterPointLight = new THREE.PointLight(0x00e5ff, 0.0, 4);
     this.meterPointLight.position.set(5.28, 1.4, -0.85);
     this.scene.add(this.meterPointLight);
@@ -132,7 +128,7 @@ export class SceneManager {
       this.meterPointLight.intensity = 1.2;
       this.carPointLight.intensity = 1.2;
     } else {
-      this.scene.background = new THREE.Color(0x0e1424); // Rich slate navy background
+      this.scene.background = new THREE.Color(0x0e1424);
       this.ambientLight.intensity = 1.1;
       this.sunLight.intensity = 1.7;
       this.sunLight.color.setHex(0xfffaed);
@@ -147,60 +143,79 @@ export class SceneManager {
     this.applyLightingMode();
   }
 
-  loadModel(url) {
+  loadModelWithFallbacks(initialUrl) {
+    const urlsToTry = [
+      initialUrl,
+      'Taylor_Wimpey_Blair.glb',
+      './Taylor_Wimpey_Blair.glb',
+      '/local/ha-energy-3d/Taylor_Wimpey_Blair.glb',
+      '/hacsfiles/ha-energy-3d-card/Taylor_Wimpey_Blair.glb',
+      'https://raw.githubusercontent.com/aaronwatt91/ha-energy-3d-card/main/Taylor_Wimpey_Blair.glb'
+    ].filter(Boolean);
+
+    // Remove duplicates
+    const uniqueUrls = [...new Set(urlsToTry)];
     const loader = new GLTFLoader();
-    loader.load(
-      url,
-      (gltf) => {
-        this.model = gltf.scene;
-        this.model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
 
-            // Track roof meshes for X-Ray cutaway
-            const name = child.name;
-            if (
-              name.includes('Roof_Main') ||
-              name.includes('Roof_Ridge_Tiles') ||
-              name.includes('First_Floor_Ceiling') ||
-              name.includes('Fascia_and_Soffits')
-            ) {
-              this.roofParts.push({
-                mesh: child,
-                originalMaterial: child.material,
-                ghostMaterial: new THREE.MeshStandardMaterial({
-                  color: 0x88aacc,
-                  transparent: true,
-                  opacity: 0.15,
-                  roughness: 0.2,
-                  metalness: 0.1,
-                  depthWrite: false
-                })
-              });
-            }
-          }
-        });
-
-        this.scene.add(this.model);
-
-        // Bind meshes into Energy Flow system for dynamic lighting
-        this.energyFlow.bindMeshes(this.model);
-
-        if (this.onModelLoaded) {
-          this.onModelLoaded();
-        }
-      },
-      (xhr) => {
-        // Progress
-        if (this.onProgress && xhr.total) {
-          this.onProgress(xhr.loaded / xhr.total);
-        }
-      },
-      (err) => {
-        console.warn('Error loading GLTF model from ' + url + ':', err);
+    const tryNext = (idx) => {
+      if (idx >= uniqueUrls.length) {
+        console.error('All model fallback URLs failed to load.');
+        return;
       }
-    );
+
+      const url = uniqueUrls[idx];
+      loader.load(
+        url,
+        (gltf) => {
+          this.model = gltf.scene;
+          this.model.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true;
+              child.receiveShadow = true;
+
+              const name = child.name;
+              if (
+                name.includes('Roof_Main') ||
+                name.includes('Roof_Ridge_Tiles') ||
+                name.includes('First_Floor_Ceiling') ||
+                name.includes('Fascia_and_Soffits')
+              ) {
+                this.roofParts.push({
+                  mesh: child,
+                  originalMaterial: child.material,
+                  ghostMaterial: new THREE.MeshStandardMaterial({
+                    color: 0x88aacc,
+                    transparent: true,
+                    opacity: 0.15,
+                    roughness: 0.2,
+                    metalness: 0.1,
+                    depthWrite: false
+                  })
+                });
+              }
+            }
+          });
+
+          this.scene.add(this.model);
+          this.energyFlow.bindMeshes(this.model);
+
+          if (this.onModelLoaded) {
+            this.onModelLoaded();
+          }
+        },
+        (xhr) => {
+          if (this.onProgress && xhr.total) {
+            this.onProgress(xhr.loaded / xhr.total);
+          }
+        },
+        (err) => {
+          console.warn(`Could not load GLB from ${url}, trying fallback...`, err);
+          tryNext(idx + 1);
+        }
+      );
+    };
+
+    tryNext(0);
   }
 
   setXRayRoof(enable) {
@@ -210,9 +225,6 @@ export class SceneManager {
     }
   }
 
-  /**
-   * Smooth camera move to predefined points of interest
-   */
   setCameraPreset(preset) {
     const presets = {
       overview: {
@@ -228,12 +240,12 @@ export class SceneManager {
       meter: {
         pos: new THREE.Vector3(7.2, 2.3, 0.5),
         target: new THREE.Vector3(5.28, 1.3, -0.85),
-        xray: true // Enable X-Ray so user can see into the meter cupboard
+        xray: true
       },
       boiler: {
         pos: new THREE.Vector3(-3.8, 3.2, -11.5),
         target: new THREE.Vector3(0.0, 1.4, -8.0),
-        xray: true // Enable X-Ray so user can see into kitchen boiler
+        xray: true
       },
       ev: {
         pos: new THREE.Vector3(7.5, 2.8, 4.8),
@@ -257,9 +269,6 @@ export class SceneManager {
     this.currentEnergyData = data;
   }
 
-  /**
-   * Project 3D Hotspot world coordinates to 2D screen pixels
-   */
   getProjectedHotspots() {
     const width = this.container.clientWidth || 800;
     const height = this.container.clientHeight || 500;
@@ -270,7 +279,6 @@ export class SceneManager {
       const v = spot.pos.clone();
       v.project(this.camera);
 
-      // Check if in front of camera
       const isVisible = v.z < 1.0;
       const x = v.x * halfW + halfW;
       const y = -(v.y * halfH) + halfH;
@@ -300,7 +308,6 @@ export class SceneManager {
 
     const delta = this.clock.getDelta();
 
-    // Smooth camera transition if target is set
     if (this.targetCameraPos && this.targetLookAt) {
       this.camera.position.lerp(this.targetCameraPos, 0.06);
       this.controls.target.lerp(this.targetLookAt, 0.06);
@@ -313,7 +320,6 @@ export class SceneManager {
 
     this.controls.update();
 
-    // Update energy pulse streams along cables
     if (this.energyFlow) {
       this.energyFlow.update(delta, this.currentEnergyData);
     }
