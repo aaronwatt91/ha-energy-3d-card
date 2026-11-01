@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Energy 3D Monitor - Solax, Octopus & Peugeot EV</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #030712;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    .top-nav {
+      background: #0b1120;
+      border-bottom: 1px solid #1e293b;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      font-size: 22px;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: -0.2px;
+    }
+
+    .brand-badge {
+      background: #0284c7;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 14px;
+      font-size: 13px;
+    }
+
+    .nav-link {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: #38bdf8;
+    }
+
+    /* Main Container */
+    .app-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 24px;
+      gap: 18px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* 3D Card Stage */
+    .card-stage {
+      background: #070b14;
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    /* Simulation Control Deck */
+    .sim-deck {
+      background: #0b1120;
+      border: 1px solid #1e293b;
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sim-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sim-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .sim-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sim-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .sim-card-val {
+      font-weight: 700;
+      font-feature-settings: "tnum";
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    .sim-toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .sim-switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+    }
+
+    .sim-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .switch-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #374151;
+      border-radius: 20px;
+      transition: 0.3s;
+    }
+
+    .switch-slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    input:checked + .switch-slider {
+      background-color: #10b981;
+    }
+
+    input:checked + .switch-slider:before {
+      transform: translateX(18px);
+    }
+
+    /* Integration Specs Banner */
+    .specs-banner {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 18px 22px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .spec-item strong {
+      color: #f1f5f9;
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+  </style>
+
+  <!-- Load bundled custom card module -->
+  <script type="module" src="dist/ha-energy-3d-card.js"></script>
+</head>
+<body>
+
+  <!-- Top Nav -->
+  <nav class="top-nav">
+    <div class="nav-brand">
+      <div class="brand-logo">🏡⚡</div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="brand-title">Home Energy 3D Monitor</span>
+          <span class="brand-badge">Lovelace Card Preview</span>
+        </div>
+        <div style="font-size: 11px; color: #64748b;">Taylor Wimpey Blair TK Semi-Detached House Model</div>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" href="#simulation">🎮 Live Simulator</a>
+      <a class="nav-link" href="#integrations">🔌 Supported Integrations</a>
+      <a class="nav-link" href="https://github.com/aaronwatt91/ha-energy-3d-card" target="_blank">📦 GitHub Repo</a>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <!-- 3D Lovelace Card Stage -->
+    <div class="card-stage">
+      <ha-energy-3d-card id="energy-card"></ha-energy-3d-card>
+    </div>
+
+    <!-- Live Simulation Controllers -->
+    <section class="sim-deck" id="simulation">
+      <div class="sim-title">
+        <span>🎮 Interactive Energy Simulator</span>
+        <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">(Adjust sliders to watch 3D cables glow and energy pulse speeds dynamically react!)</span>
+      </div>
+
+      <div class="sim-grid">
+        <!-- 1. Solax Solar Slider -->
+        <div class="sim-card">
+          <div class="sim-card-header">
+            <span>☀️ Solax Solar Generation</span>
+            <span class="sim-card-val" id="val-solar-kw" style="color: #f59e0b;">2.85 kW</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="input-solar-kw" min="0" max="6.5" step="0.05" value="2.85">
+          </div>
+          <div style="font-size: 11px; color: #64748b;">Solar panels glow & pulses flow from roof to entrance meter box</div>
+        </div>
+
+        <!-- 2. Octopus Grid Import/Export Slider -->
+        <div class="sim-card">
+          <div class="sim-card-header">
+            <span>⚡ Octopus Grid (Import / Export)</span>
+            <span class="sim-card-val" id="val-grid-kw" style="color: #0284c7;">+0.72 kW</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="input-grid-kw" min="-5.0" max="8.0" step="0.1" value="0.72">
+          </div>
+          <div style="font-size: 11px; color: #64748b;">Negative = Solar Export (Green pulses up to pylon). Positive = Import (Cyan down).</div>
+        </div>
+
+        <!-- 3. myenergi Zappi & Peugeot EV -->
+        <div class="sim-card">
+          <div class="sim-card-header">
+            <span>🚗 Peugeot e-2008 & Zappi EV</span>
+            <span class="sim-card-val" id="val-ev-kw" style="color: #06b6d4;">7.20 kW (68%)</span>
+          </div>
+          <div class="slider-row">
+            <input type="range" id="input-ev-kw" min="0" max="7.4" step="0.1" value="7.2">
+          </div>
+          <div class="slider-row" style="margin-top: 4px;">
+            <span style="font-size: 11px; color: #94a3b8;">Battery %:</span>
+            <input type="range" id="input-peugeot-soc" min="5" max="100" step="1" value="68">
+          </div>
+        </div>
+
+        <!-- 4. Octopus Gas & Boiler -->
+        <div class="sim-card">
+          <div class="sim-card-header">
+            <span>🔥 Octopus Gas & Combi Boiler</span>
+            <span class="sim-card-val" id="val-gas-kw" style="color: #f97316;">Central Heating</span>
+          </div>
+          <div class="sim-toggle-row">
+            <span>Boiler Firing (Heating/Hot Water)</span>
+            <label class="sim-switch">
+              <input type="checkbox" id="input-boiler-active" checked>
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <div style="font-size: 11px; color: #64748b;">Amber flame pulses flow from external LPG bulk tank to kitchen combi boiler</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Specifications Banner -->
+    <section class="specs-banner" id="integrations">
+      <div class="spec-item">
+        <strong>☀️ Solax Solar Integration</strong>
+        Monitors live generation (kW), Today, Week, Month, and Year (kWh). Animates DC cabling from rear roof 5-panel array through loft into entrance hall meter cupboard.
+      </div>
+      <div class="spec-item">
+        <strong>⚡ Octopus Electricity & Tariff Rate</strong>
+        Live import and export power with glowing catenary service drop from roadside utility pylon. Records current tariff rate (p/kWh), estimated monthly spend (£), and Octopus Home Mini 30-min readings.
+      </div>
+      <div class="spec-item">
+        <strong>🔥 Octopus Gas & Combi Boiler</strong>
+        Monitors combi boiler firing state, Octopus Home Mini 30-minute gas readings, day/week/month consumption, and lights up external LPG supply pipework.
+      </div>
+      <div class="spec-item">
+        <strong>🚗 myenergi Zappi & Peugeot e-2008</strong>
+        Shows live charging speed (kW), session energy added (kWh), and Peugeot battery percentage (% SoC) with remaining mileage range and glowing catenary EV cable.
+      </div>
+    </section>
+  </main>
+
+  <!-- Interactive Demo Script -->
+  <script type="module">
+    const card = document.getElementById('energy-card');
+
+    // Configure card with local model
+    card.setConfig({
+      model_url: 'Taylor_Wimpey_Blair.glb',
+      height: '620px',
+      title: 'Taylor Wimpey Blair TK - Energy 3D'
+    });
+
+    // Mock Home Assistant states object
+    const mockHass = {
+      states: {
+        'sensor.solax_pv_power_total': { state: '2.85' },
+        'sensor.solax_today_s_solar_energy': { state: '14.6' },
+        'sensor.solax_this_week_solar_energy': { state: '86.4' },
+        'sensor.solax_this_month_solar_energy': { state: '342.1' },
+        'sensor.solax_this_year_solar_energy': { state: '3820' },
+        'sensor.octopus_home_mini_current_electricity_power': { state: '0.72' },
+        'sensor.solax_feed_in_power': { state: '0.0' },
+        'sensor.octopus_energy_electricity_current_rate': { state: '24.85' },
+        'sensor.octopus_energy_electricity_current_month_cost': { state: '74.20' },
+        'sensor.octopus_home_mini_electricity_30min': { state: '0.36' },
+        'sensor.octopus_energy_electricity_day': { state: '8.4' },
+        'sensor.octopus_energy_electricity_week': { state: '54.2' },
+        'sensor.octopus_energy_electricity_month': { state: '218.6' },
+        'sensor.boiler_status': { state: 'Central Heating' },
+        'sensor.octopus_home_mini_gas_30min': { state: '0.72' },
+        'sensor.octopus_energy_gas_day': { state: '12.8' },
+        'sensor.octopus_energy_gas_week': { state: '78.5' },
+        'sensor.octopus_energy_gas_month': { state: '310.2' },
+        'sensor.octopus_energy_gas_current_rate': { state: '6.24' },
+        'sensor.octopus_energy_gas_current_month_cost': { state: '38.65' },
+        'sensor.myenergi_zappi_power': { state: '7.20' },
+        'sensor.myenergi_zappi_charge_added_session': { state: '22.4' },
+        'sensor.e2008_battery_level': { state: '68' },
+        'sensor.e2008_battery_range': { state: '142' }
+      }
+    };
+
+    card.hass = mockHass;
+
+    // Simulation Slider Bindings
+    const inSolar = document.getElementById('input-solar-kw');
+    const inGrid = document.getElementById('input-grid-kw');
+    const inEv = document.getElementById('input-ev-kw');
+    const inSoc = document.getElementById('input-peugeot-soc');
+    const inBoiler = document.getElementById('input-boiler-active');
+
+    const lblSolar = document.getElementById('val-solar-kw');
+    const lblGrid = document.getElementById('val-grid-kw');
+    const lblEv = document.getElementById('val-ev-kw');
+    const lblGas = document.getElementById('val-gas-kw');
+
+    function sync() {
+      const solarVal = parseFloat(inSolar.value);
+      const gridVal = parseFloat(inGrid.value);
+      const evVal = parseFloat(inEv.value);
+      const socVal = parseInt(inSoc.value);
+      const boilerActive = inBoiler.checked;
+
+      lblSolar.innerText = `${solarVal.toFixed(2)} kW`;
+      lblGrid.innerText = `${gridVal >= 0 ? '+' : ''}${gridVal.toFixed(2)} kW ${gridVal < 0 ? '(Export)' : '(Import)'}`;
+      lblGrid.style.color = gridVal < 0 ? '#10b981' : '#0284c7';
+      lblEv.innerText = `${evVal.toFixed(2)} kW (${socVal}%)`;
+      lblGas.innerText = boilerActive ? 'Central Heating' : 'Standby';
+
+      // Update mock states
+      mockHass.states['sensor.solax_pv_power_total'].state = solarVal.toString();
+      mockHass.states['sensor.octopus_home_mini_current_electricity_power'].state = gridVal.toString();
+      mockHass.states['sensor.myenergi_zappi_power'].state = evVal.toString();
+      mockHass.states['sensor.e2008_battery_level'].state = socVal.toString();
+      mockHass.states['sensor.e2008_battery_range'].state = Math.round(socVal * 2.08).toString();
+      mockHass.states['sensor.boiler_status'].state = boilerActive ? 'Central Heating' : 'off';
+
+      card.hass = { ...mockHass };
+    }
+
+    inSolar.addEventListener('input', sync);
+    inGrid.addEventListener('input', sync);
+    inEv.addEventListener('input', sync);
+    inSoc.addEventListener('input', sync);
+    inBoiler.addEventListener('change', sync);
+  </script>
+</body>
+</html>
