@@ -1,3 +1,14 @@
+function toKw(val) {
+  const num = parseFloat(val);
+  if (isNaN(num)) return 0;
+  // If domestic value >= 20.0, it is Watts (e.g. 50W, 800W, 2500W, 7200W). Divide by 1000.
+  // Values < 20.0 are kW (e.g. 0.45, 1.2, 2.85, 7.2).
+  if (Math.abs(num) >= 20.0) {
+    return num / 1000.0;
+  }
+  return num;
+}
+
 /**
  * HUDOverlay
  * High-tech glassmorphism HUD overlay with floating 3D hotspot badges,
@@ -896,7 +907,7 @@ export class HUDOverlay {
 
     if (this.activeTab === 'solar') {
       const s = data.solar || {};
-      const kw = Number(s.power_kw || 0);
+      const kw = toKw(s.power_kw);
       const isGenerating = kw > 0.04;
       content.innerHTML = `
         <div class="stat-grid">
@@ -925,8 +936,8 @@ export class HUDOverlay {
       `;
     } else if (this.activeTab === 'electric') {
       const o = data.octopus_electric || {};
-      const kw = Number(o.power_kw || 0);
-      const isExporting = kw < 0 || Boolean(o.is_exporting);
+      const kw = toKw(o.power_kw);
+      const isExporting = kw < -0.02 || Boolean(o.is_exporting);
       const isMoving = Math.abs(kw) > 0.03;
       content.innerHTML = `
         <div class="stat-grid">
@@ -1002,7 +1013,8 @@ export class HUDOverlay {
     } else if (this.activeTab === 'ev') {
       const ev = data.ev || {};
       const soc = Math.min(Math.max(Number(ev.battery_soc_pct || 0), 0), 100);
-      const isCharging = Boolean(ev.is_charging && Number(ev.charger_power_kw || 0) > 0.08);
+      const evKw = toKw(ev.charger_power_kw);
+      const isCharging = Boolean(ev.is_charging && evKw > 0.05);
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
@@ -1015,7 +1027,7 @@ export class HUDOverlay {
           </div>
           <div class="stat-card">
             <div class="stat-label">myenergi ZAPPI SPEED</div>
-            <div class="stat-val">${Number(ev.charger_power_kw || 0).toFixed(2)} <span class="stat-unit">kW</span></div>
+            <div class="stat-val">${evKw.toFixed(2)} <span class="stat-unit">kW</span></div>
             <div class="stat-subtext">Mode: ${ev.charger_mode || 'Eco+'}</div>
           </div>
           <div class="stat-card">
@@ -1030,10 +1042,10 @@ export class HUDOverlay {
   update(data, projectedHotspots = []) {
     this.lastData = data;
 
-    const solarKw = Number(data.solar?.power_kw || 0);
-    const gridKw = Number(data.octopus_electric?.power_kw || 0);
-    const evKw = Number(data.ev?.charger_power_kw || 0);
-    const isExporting = gridKw < 0 || Boolean(data.octopus_electric?.is_exporting);
+    const solarKw = toKw(data.solar?.power_kw);
+    const gridKw = toKw(data.octopus_electric?.power_kw);
+    const evKw = toKw(data.ev?.charger_power_kw);
+    const isExporting = gridKw < -0.02 || Boolean(data.octopus_electric?.is_exporting);
 
     const hdrSolar = this.el.querySelector('#hdr-solar-kw');
     const hdrGrid = this.el.querySelector('#hdr-grid-kw');

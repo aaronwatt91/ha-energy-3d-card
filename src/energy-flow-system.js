@@ -222,18 +222,20 @@ export class EnergyFlowSystem {
   update(delta, energyData) {
     if (!energyData) return;
 
-    // Normalize power values (auto-detect Watts > 50 vs kW)
-    let rawSolar = Number(energyData.solar?.power_kw || 0);
-    const solarKw = rawSolar > 50 ? rawSolar / 1000 : rawSolar;
+    // Normalize power values: Auto-figure Watts vs kW
+    // Domestic heuristic: Values >= 20.0 are Watts (e.g. 50W, 800W, 2500W, 7200W -> / 1000)
+    // Values < 20.0 are kW (e.g. 0.45 kW, 1.2 kW, 2.85 kW, 7.2 kW)
+    function autoKw(v) {
+      const num = Number(v || 0);
+      if (isNaN(num)) return 0;
+      if (Math.abs(num) >= 20.0) return num / 1000.0;
+      return num;
+    }
 
-    let rawGrid = Number(energyData.octopus_electric?.power_kw || 0);
-    const gridKw = Math.abs(rawGrid) > 50 ? rawGrid / 1000 : rawGrid;
-
-    let rawEv = Number(energyData.ev?.charger_power_kw || 0);
-    const evKw = rawEv > 50 ? rawEv / 1000 : rawEv;
-
-    let rawGas = Number(energyData.octopus_gas?.power_kw || 0);
-    const gasKw = rawGas > 50 ? rawGas / 1000 : rawGas;
+    const solarKw = autoKw(energyData.solar?.power_kw);
+    const gridKw = autoKw(energyData.octopus_electric?.power_kw);
+    const evKw = autoKw(energyData.ev?.charger_power_kw);
+    const gasKw = autoKw(energyData.octopus_gas?.power_kw);
 
     const gasActive = Boolean((energyData.octopus_gas?.is_active || gasKw > 0.05) && energyData.octopus_gas?.boiler_status !== 'off');
 

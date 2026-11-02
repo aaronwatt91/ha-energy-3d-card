@@ -3,6 +3,48 @@ import { HUDOverlay } from './hud-overlay.js';
 import { DEFAULT_ENERGY_DATA } from './mock-data.js';
 
 /**
+ * Helper to auto-figure if a value is in Watts vs Kilowatts.
+ * Domestic rule: No home or appliance draws 800 kW (it's Watts -> / 1000).
+ * 1.2 Watts is way too low, so numbers < 20 are kW.
+ */
+export function autoFigureKw(val, unit = '') {
+  const num = parseFloat(val);
+  if (isNaN(num)) return 0;
+
+  const u = (unit || '').toLowerCase().trim();
+  if (u === 'w' || u === 'va' || u === 'watt' || u === 'watts') {
+    return num / 1000.0;
+  }
+  if (u === 'kw' || u === 'kva' || u === 'kilowatt' || u === 'kilowatts') {
+    return num;
+  }
+
+  // Automatic heuristic:
+  // Domestic power: values >= 20.0 are Watts (e.g. 50W, 100W, 800W, 2400W, 7200W).
+  // Values < 20.0 are kW (e.g. 0.45 kW, 1.2 kW, 2.85 kW, 7.2 kW).
+  if (Math.abs(num) >= 20.0) {
+    return num / 1000.0;
+  }
+  return num;
+}
+
+export function autoFigureKwh(val, unit = '') {
+  const num = parseFloat(val);
+  if (isNaN(num)) return 0;
+
+  const u = (unit || '').toLowerCase().trim();
+  if (u === 'wh') return num / 1000.0;
+  if (u === 'kwh') return num;
+  if (u === 'mwh') return num * 1000.0;
+
+  // Daily totals >= 1000 are Wh (e.g. 4500 Wh -> 4.5 kWh)
+  if (Math.abs(num) >= 1000.0) {
+    return num / 1000.0;
+  }
+  return num;
+}
+
+/**
  * HaEnergy3DCard
  * Custom Home Assistant Lovelace Card Component
  */
@@ -16,7 +58,6 @@ export class HaEnergy3DCard extends HTMLElement {
     this.hud = null;
     this.energyData = JSON.parse(JSON.stringify(DEFAULT_ENERGY_DATA));
 
-    // Load any user-customized sensor mappings from localStorage
     try {
       const savedSensors = JSON.parse(localStorage.getItem('ha_energy_3d_custom_sensors') || '{}');
       this.customSensors = savedSensors;
@@ -170,6 +211,26 @@ export class HaEnergy3DCard extends HTMLElement {
     this.updateStatesFromHass();
   }
 
+  getPowerInKw(entityId, defaultKw = 0) {
+    if (!this._hass || !entityId) return defaultKw;
+    const stateObj = this._hass.states[entityId];
+    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
+      return defaultKw;
+    }
+    const unit = stateObj.attributes?.unit_of_measurement || '';
+    return autoFigureKw(stateObj.state, unit);
+  }
+
+  getEnergyInKwh(entityId, defaultKwh = 0) {
+    if (!this._hass || !entityId) return defaultKwh;
+    const stateObj = this._hass.states[entityId];
+    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
+      return defaultKwh;
+    }
+    const unit = stateObj.attributes?.unit_of_measurement || '';
+    return autoFigureKwh(stateObj.state, unit);
+  }
+
   getEntityNumericValue(entityId, defaultVal = 0) {
     if (!this._hass || !entityId) return defaultVal;
     const stateObj = this._hass.states[entityId];
@@ -193,26 +254,26 @@ export class HaEnergy3DCard extends HTMLElement {
     if (!this._hass) return;
     const cfg = { ...this._config, ...this.customSensors };
 
-    // 1. Solax Solar
-    const solaxPower = this.getEntityNumericValue(cfg.solax_power, this.energyData.solar.power_kw);
+    // 1. Solax Solar (Auto-figures Watts vs kW)
+    const solaxPower = this.getPowerInKw(cfg.solax_power, this.energyData.solar.power_kw);
     this.energyData.solar = {
       power_kw: solaxPower,
-      today_kwh: this.getEntityNumericValue(cfg.solax_today, this.energyData.solar.today_kwh),
-      week_kwh: this.getEntityNumericValue(cfg.solax_week, this.energyData.solar.week_kwh),
-      month_kwh: this.getEntityNumericValue(cfg.solax_month, this.energyData.solar.month_kwh),
-      year_kwh: this.getEntityNumericValue(cfg.solax_year, this.energyData.solar.year_kwh),
+      today_kwh: this.getEnergyInKwh(cfg.solax_today, this.energyData.solar.today_kwh),
+      week_kwh: this.getEnergyInKwh(cfg.solax_week, this.energyData.solar.week_kwh),
+      month_kwh: this.getEnergyInKwh(cfg.solax_month, this.energyData.solar.month_kwh),
+      year_kwh: this.getEnergyInKwh(cfg.solax_year, this.energyData.solar.year_kwh),
       status: solaxPower > 0.04 ? 'Generating' : 'Idle'
     };
 
-    // 2. Octopus Electricity & Grid
-    let electricKw = this.getEntityNumericValue(cfg.octopus_electric_power, this.energyData.octopus_electric.power_kw);
-    const exportKw = this.getEntityNumericValue(cfg.octopus_export_power, 0);
+    // 2. Octopus Electricity & Grid (Auto-figures Watts vs kW, Import vs Export)
+    let electricKw = this.getPowerInKw(cfg.octopus_electric_power, this.energyData.octopus_electric.power_kw);
+    const exportKw = this.getPowerInKw(cfg.octopus_export_power, 0);
     let isExporting = false;
 
     if (exportKw > 0.04) {
       electricKw = -exportKw;
       isExporting = true;
-    } else if (electricKw < 0) {
+    } else if (electricKw < -0.04) {
       isExporting = true;
     }
 
@@ -221,10 +282,10 @@ export class HaEnergy3DCard extends HTMLElement {
       is_exporting: isExporting,
       current_rate_p: this.getEntityNumericValue(cfg.octopus_rate, this.energyData.octopus_electric.current_rate_p),
       monthly_spend_gbp: this.getEntityNumericValue(cfg.octopus_monthly_spend, this.energyData.octopus_electric.monthly_spend_gbp),
-      reading_30min_kwh: this.getEntityNumericValue(cfg.octopus_electric_30min, this.energyData.octopus_electric.reading_30min_kwh),
-      day_kwh: this.getEntityNumericValue(cfg.octopus_electric_day, this.energyData.octopus_electric.day_kwh),
-      week_kwh: this.getEntityNumericValue(cfg.octopus_electric_week, this.energyData.octopus_electric.week_kwh),
-      month_kwh: this.getEntityNumericValue(cfg.octopus_electric_month, this.energyData.octopus_electric.month_kwh)
+      reading_30min_kwh: this.getEnergyInKwh(cfg.octopus_electric_30min, this.energyData.octopus_electric.reading_30min_kwh),
+      day_kwh: this.getEnergyInKwh(cfg.octopus_electric_day, this.energyData.octopus_electric.day_kwh),
+      week_kwh: this.getEnergyInKwh(cfg.octopus_electric_week, this.energyData.octopus_electric.week_kwh),
+      month_kwh: this.getEnergyInKwh(cfg.octopus_electric_month, this.energyData.octopus_electric.month_kwh)
     };
 
     // 3. Octopus Gas & Combi Boiler
@@ -235,21 +296,21 @@ export class HaEnergy3DCard extends HTMLElement {
       is_active: isGasActive,
       power_kw: isGasActive ? 1.45 : 0.0,
       boiler_status: isGasActive ? 'Central Heating' : 'Standby',
-      reading_30min_kwh: this.getEntityNumericValue(cfg.octopus_gas_30min, this.energyData.octopus_gas.reading_30min_kwh),
-      day_kwh: this.getEntityNumericValue(cfg.octopus_gas_day, this.energyData.octopus_gas.day_kwh),
-      week_kwh: this.getEntityNumericValue(cfg.octopus_gas_week, this.energyData.octopus_gas.week_kwh),
-      month_kwh: this.getEntityNumericValue(cfg.octopus_gas_month, this.energyData.octopus_gas.month_kwh),
+      reading_30min_kwh: this.getEnergyInKwh(cfg.octopus_gas_30min, this.energyData.octopus_gas.reading_30min_kwh),
+      day_kwh: this.getEnergyInKwh(cfg.octopus_gas_day, this.energyData.octopus_gas.day_kwh),
+      week_kwh: this.getEnergyInKwh(cfg.octopus_gas_week, this.energyData.octopus_gas.week_kwh),
+      month_kwh: this.getEnergyInKwh(cfg.octopus_gas_month, this.energyData.octopus_gas.month_kwh),
       current_rate_p: this.getEntityNumericValue(cfg.octopus_gas_rate, this.energyData.octopus_gas.current_rate_p),
       monthly_spend_gbp: this.getEntityNumericValue(cfg.octopus_gas_spend, this.energyData.octopus_gas.monthly_spend_gbp)
     };
 
-    // 4. myenergi Zappi & Peugeot e-2008
-    const evChargerKw = this.getEntityNumericValue(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
+    // 4. myenergi Zappi & Peugeot e-2008 (Auto-figures Watts vs kW, e.g. 7200W -> 7.2 kW)
+    const evChargerKw = this.getPowerInKw(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
     this.energyData.ev = {
-      is_charging: evChargerKw > 0.08,
+      is_charging: evChargerKw > 0.04,
       is_plugged: true,
       charger_power_kw: evChargerKw,
-      energy_added_kwh: this.getEntityNumericValue(cfg.myenergi_energy, this.energyData.ev.energy_added_kwh),
+      energy_added_kwh: this.getEnergyInKwh(cfg.myenergi_energy, this.energyData.ev.energy_added_kwh),
       charger_mode: evChargerKw > 3.0 ? 'Fast' : 'Eco+',
       battery_soc_pct: this.getEntityNumericValue(cfg.peugeot_battery, this.energyData.ev.battery_soc_pct),
       range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
