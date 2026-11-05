@@ -128,108 +128,6 @@
       gap: 16px;
     }
 
-    .sim-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #38bdf8;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .sim-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-    }
-
-    .sim-card {
-      background: #111827;
-      border: 1px solid #1f2937;
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .sim-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .sim-card-val {
-      font-weight: 700;
-      font-feature-settings: "tnum";
-    }
-
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .slider-row input[type="range"] {
-      flex: 1;
-      accent-color: #38bdf8;
-      cursor: pointer;
-    }
-
-    .sim-toggle-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    .sim-switch {
-      position: relative;
-      display: inline-block;
-      width: 38px;
-      height: 20px;
-    }
-
-    .sim-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .switch-slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background-color: #374151;
-      border-radius: 20px;
-      transition: 0.3s;
-    }
-
-    .switch-slider:before {
-      position: absolute;
-      content: "";
-      height: 14px;
-      width: 14px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      border-radius: 50%;
-      transition: 0.3s;
-    }
-
-    input:checked + .switch-slider {
-      background-color: #10b981;
-    }
-
-    input:checked + .switch-slider:before {
-      transform: translateX(18px);
-    }
-
     /* Integration Specs Banner */
     .specs-banner {
       background: #0f172a;
@@ -252,7 +150,7 @@
   </style>
 
   <!-- Load bundled custom card module with cache-buster -->
-  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.0.6"></script>
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.0.7"></script>
 </head>
 <body>
 
@@ -287,73 +185,6 @@
       <ha-energy-3d-card id="energy-card"></ha-energy-3d-card>
     </div>
 
-    <!-- Live Simulation Controllers (Active in standalone/demo mode) -->
-    <section class="sim-deck" id="simulation">
-      <div class="sim-title">
-        <span id="deck-title">🎮 Interactive Energy Simulator</span>
-        <span style="font-size: 11px; color: #94a3b8; font-weight: normal;" id="deck-subtitle">
-          (Adjust sliders to watch 3D cables glow and energy pulse speeds dynamically react!)
-        </span>
-      </div>
-
-      <div class="sim-grid">
-        <!-- 1. Solax Solar Slider -->
-        <div class="sim-card">
-          <div class="sim-card-header">
-            <span>☀️ Solax Solar Generation</span>
-            <span class="sim-card-val" id="val-solar-kw" style="color: #f59e0b;">2.85 kW</span>
-          </div>
-          <div class="slider-row">
-            <input type="range" id="input-solar-kw" min="0" max="6.5" step="0.05" value="2.85">
-          </div>
-          <div style="font-size: 11px; color: #64748b;">Solar panels glow & pulses flow from roof to entrance meter box</div>
-        </div>
-
-        <!-- 2. Octopus Grid Import/Export Slider -->
-        <div class="sim-card">
-          <div class="sim-card-header">
-            <span>⚡ Octopus Grid (Import / Export)</span>
-            <span class="sim-card-val" id="val-grid-kw" style="color: #0284c7;">+0.72 kW</span>
-          </div>
-          <div class="slider-row">
-            <input type="range" id="input-grid-kw" min="-5.0" max="8.0" step="0.1" value="0.72">
-          </div>
-          <div style="font-size: 11px; color: #64748b;">Negative = Solar Export (Green pulses up to pylon). Positive = Import (Cyan down).</div>
-        </div>
-
-        <!-- 3. myenergi Zappi & Peugeot EV -->
-        <div class="sim-card">
-          <div class="sim-card-header">
-            <span>🚗 Peugeot e-2008 & Zappi EV</span>
-            <span class="sim-card-val" id="val-ev-kw" style="color: #06b6d4;">7.20 kW (68%)</span>
-          </div>
-          <div class="slider-row">
-            <input type="range" id="input-ev-kw" min="0" max="7.4" step="0.1" value="7.2">
-          </div>
-          <div class="slider-row" style="margin-top: 4px;">
-            <span style="font-size: 11px; color: #94a3b8;">Battery %:</span>
-            <input type="range" id="input-peugeot-soc" min="5" max="100" step="1" value="68">
-          </div>
-        </div>
-
-        <!-- 4. Octopus Gas & Boiler -->
-        <div class="sim-card">
-          <div class="sim-card-header">
-            <span>🔥 Octopus Gas & Combi Boiler</span>
-            <span class="sim-card-val" id="val-gas-kw" style="color: #f97316;">Central Heating</span>
-          </div>
-          <div class="sim-toggle-row">
-            <span>Boiler Firing (Heating/Hot Water)</span>
-            <label class="sim-switch">
-              <input type="checkbox" id="input-boiler-active" checked>
-              <span class="switch-slider"></span>
-            </label>
-          </div>
-          <div style="font-size: 11px; color: #64748b;">Amber flame pulses flow from external LPG bulk tank to kitchen combi boiler</div>
-        </div>
-      </div>
-    </section>
-
     <!-- Specifications Banner -->
     <section class="specs-banner" id="integrations">
       <div class="spec-item">
@@ -365,8 +196,12 @@
         Live import and export power with glowing catenary service drop from roadside utility pylon. Records current tariff rate (p/kWh), estimated monthly spend (£), and Octopus Home Mini 30-min readings.
       </div>
       <div class="spec-item">
-        <strong>🔥 Octopus Gas & Combi Boiler</strong>
-        Monitors combi boiler firing state, Octopus Home Mini 30-minute gas readings, day/week/month consumption, and lights up external LPG supply pipework.
+        <strong>🔥 Octopus Gas, Heating & Thermostats</strong>
+        Monitors combi boiler firing state, upstairs & downstairs heating thermostats (°C target vs current), and lights up external LPG supply pipework.
+      </div>
+      <div class="spec-item">
+        <strong>💡 Interactive 3D Room Lights</strong>
+        Select and monitor lights for each of the 12 rooms. Turning lights on in Home Assistant illuminates the corresponding 3D room inside the model!
       </div>
       <div class="spec-item">
         <strong>🚗 myenergi Zappi & Peugeot e-2008</strong>
@@ -382,7 +217,7 @@
     // Configure card with local model
     card.setConfig({
       model_url: 'Taylor_Wimpey_Blair.glb',
-      height: '620px',
+      height: '640px',
       title: 'Taylor Wimpey Blair TK - Energy 3D'
     });
 
@@ -412,63 +247,39 @@
         'sensor.myenergi_zappi_power': { state: '7.20' },
         'sensor.myenergi_zappi_charge_added_session': { state: '22.4' },
         'sensor.e2008_battery_level': { state: '68' },
-        'sensor.e2008_battery_range': { state: '142' }
+        'sensor.e2008_battery_range': { state: '142' },
+
+        // Thermostats
+        'climate.downstairs': {
+          state: 'heat',
+          attributes: { current_temperature: 20.5, temperature: 21.0, hvac_action: 'heating' }
+        },
+        'climate.upstairs': {
+          state: 'heat',
+          attributes: { current_temperature: 19.4, temperature: 19.5, hvac_action: 'idle' }
+        },
+
+        // Room Lights
+        'light.living_room': { state: 'on', attributes: { brightness: 255 } },
+        'light.kitchen': { state: 'on', attributes: { brightness: 255 } },
+        'light.dining_room': { state: 'off', attributes: { brightness: 0 } },
+        'light.hallway': { state: 'on', attributes: { brightness: 200 } },
+        'light.downstairs_wc': { state: 'off', attributes: { brightness: 0 } },
+        'light.master_bedroom': { state: 'off', attributes: { brightness: 0 } },
+        'light.ensuite': { state: 'off', attributes: { brightness: 0 } },
+        'light.bedroom_2': { state: 'off', attributes: { brightness: 0 } },
+        'light.bedroom_3': { state: 'off', attributes: { brightness: 0 } },
+        'light.family_bathroom': { state: 'off', attributes: { brightness: 0 } },
+        'light.landing': { state: 'on', attributes: { brightness: 180 } },
+        'light.front_porch': { state: 'on', attributes: { brightness: 255 } }
       }
     };
 
     card.hass = currentHass;
 
-    // Simulation Slider Bindings
-    const inSolar = document.getElementById('input-solar-kw');
-    const inGrid = document.getElementById('input-grid-kw');
-    const inEv = document.getElementById('input-ev-kw');
-    const inSoc = document.getElementById('input-peugeot-soc');
-    const inBoiler = document.getElementById('input-boiler-active');
-
-    const lblSolar = document.getElementById('val-solar-kw');
-    const lblGrid = document.getElementById('val-grid-kw');
-    const lblEv = document.getElementById('val-ev-kw');
-    const lblGas = document.getElementById('val-gas-kw');
-
-    let userIsTestingSliders = false;
-
-    function syncSliders() {
-      userIsTestingSliders = true;
-      const solarVal = parseFloat(inSolar.value);
-      const gridVal = parseFloat(inGrid.value);
-      const evVal = parseFloat(inEv.value);
-      const socVal = parseInt(inSoc.value);
-      const boilerActive = inBoiler.checked;
-
-      lblSolar.innerText = `${solarVal.toFixed(2)} kW`;
-      lblGrid.innerText = `${gridVal >= 0 ? '+' : ''}${gridVal.toFixed(2)} kW ${gridVal < 0 ? '(Export)' : '(Import)'}`;
-      lblGrid.style.color = gridVal < 0 ? '#10b981' : '#0284c7';
-      lblEv.innerText = `${evVal.toFixed(2)} kW (${socVal}%)`;
-      lblGas.innerText = boilerActive ? 'Central Heating' : 'Standby';
-
-      // Update mock states
-      currentHass.states['sensor.solax_pv_power_total'] = { state: solarVal.toString() };
-      currentHass.states['sensor.octopus_home_mini_current_electricity_power'] = { state: gridVal.toString() };
-      currentHass.states['sensor.myenergi_zappi_power'] = { state: evVal.toString() };
-      currentHass.states['sensor.e2008_battery_level'] = { state: socVal.toString() };
-      currentHass.states['sensor.e2008_battery_range'] = { state: Math.round(socVal * 2.08).toString() };
-      currentHass.states['sensor.boiler_status'] = { state: boilerActive ? 'Central Heating' : 'off' };
-
-      card.hass = { ...currentHass };
-    }
-
-    inSolar.addEventListener('input', syncSliders);
-    inGrid.addEventListener('input', syncSliders);
-    inEv.addEventListener('input', syncSliders);
-    inSoc.addEventListener('input', syncSliders);
-    inBoiler.addEventListener('change', syncSliders);
-
     // Check Home Assistant Live API (Add-on Mode)
-    const connPill = document.getElementById('ha-conn-pill');
     const connDot = document.getElementById('ha-conn-dot');
     const connText = document.getElementById('ha-conn-text');
-    const deckTitle = document.getElementById('deck-title');
-    const deckSubtitle = document.getElementById('deck-subtitle');
 
     async function checkHALive() {
       try {
@@ -480,25 +291,14 @@
           // Connected to Home Assistant Live!
           connDot.style.background = '#10b981';
           connText.innerText = 'Home Assistant Live (Connected)';
-          deckTitle.innerText = '🟢 Home Assistant Live Mode';
-          deckSubtitle.innerText = 'Streaming from your Home Assistant. Click ⚙️ Sensors above to map your exact device sensor names!';
 
-          // Pass entities to the card for auto-detection dropdowns
           const statesMap = {};
           for (const s of data.states) {
             statesMap[s.entity_id] = s;
           }
 
-          // If user is actively dragging simulation sliders, don't clobber their slider preview
-          if (!userIsTestingSliders) {
-            currentHass = { states: statesMap };
-            card.hass = currentHass;
-          } else {
-            // Still forward available entity keys to card for the sensor modal
-            if (card.hud) {
-              card.hud.setAvailableEntities(Object.keys(statesMap));
-            }
-          }
+          currentHass = { states: statesMap };
+          card.hass = currentHass;
           return;
         }
       } catch (e) {
@@ -506,7 +306,7 @@
       }
 
       connDot.style.background = '#38bdf8';
-      connText.innerText = 'Simulator / Demo Mode';
+      connText.innerText = 'Demo / Standalone Mode';
     }
 
     checkHALive();

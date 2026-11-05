@@ -56,5 +56,41 @@ export const DEFAULT_ENERGY_DATA = {
   // Home Total Consumption
   home: {
     total_power_kw: 2.15     // Derived / calculated total home load
+  },
+
+  // Thermostats for Upstairs & Downstairs
+  thermostats: {
+    downstairs: {
+      entity_id: 'climate.downstairs',
+      current_temp: 20.5,
+      target_temp: 21.0,
+      state: 'heat',
+      hvac_action: 'heating',
+      is_heating: true
+    },
+    upstairs: {
+      entity_id: 'climate.upstairs',
+      current_temp: 19.2,
+      target_temp: 19.5,
+      state: 'heat',
+      hvac_action: 'idle',
+      is_heating: false
+    }
+  },
+
+  // Room Lights (Mapped to 3D rooms)
+  room_lights: {
+    lounge: { is_on: true, brightness: 255, entity_id: 'light.living_room' },
+    kitchen: { is_on: true, brightness: 255, entity_id: 'light.kitchen' },
+    dining: { is_on: false, brightness: 0, entity_id: 'light.dining_room' },
+    hallway: { is_on: true, brightness: 200, entity_id: 'light.hallway' },
+    wc: { is_on: false, brightness: 0, entity_id: 'light.downstairs_wc' },
+    master_bedroom: { is_on: false, brightness: 0, entity_id: 'light.master_bedroom' },
+    ensuite: { is_on: false, brightness: 0, entity_id: 'light.ensuite' },
+    bedroom2: { is_on: false, brightness: 0, entity_id: 'light.bedroom_2' },
+    bedroom3: { is_on: false, brightness: 0, entity_id: 'light.bedroom_3' },
+    bathroom: { is_on: false, brightness: 0, entity_id: 'light.family_bathroom' },
+    landing: { is_on: true, brightness: 180, entity_id: 'light.landing' },
+    exterior: { is_on: true, brightness: 255, entity_id: 'light.front_porch' }
   }
 };

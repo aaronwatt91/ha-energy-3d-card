@@ -25,6 +25,7 @@ export class HUDOverlay {
     this.onToggleXray = options.onToggleXray || (() => {});
     this.onToggleNight = options.onToggleNight || (() => {});
     this.onToggleRotate = options.onToggleRotate || (() => {});
+    this.onToggleLight = options.onToggleLight || (() => {});
     this.onSaveSensors = options.onSaveSensors || (() => {});
 
     this.initDOM();
@@ -429,6 +430,84 @@ export class HUDOverlay {
           border-color: #38bdf8;
         }
 
+        .sensor-grid-2 {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+        }
+
+        .light-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+          gap: 8px;
+          margin-top: 6px;
+        }
+
+        .light-card {
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 10px;
+          padding: 8px 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          transition: all 0.2s ease;
+        }
+
+        .light-card.active {
+          background: rgba(251, 191, 36, 0.12);
+          border-color: rgba(251, 191, 36, 0.4);
+          box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+        }
+
+        .light-card-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .light-name {
+          font-size: 11px;
+          font-weight: 600;
+          color: #f1f5f9;
+        }
+
+        .light-status-pill {
+          font-size: 9px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
+
+        .light-status-pill.on {
+          background: #f59e0b;
+          color: #000;
+        }
+
+        .light-status-pill.off {
+          background: rgba(255, 255, 255, 0.1);
+          color: #94a3b8;
+        }
+
+        .light-toggle-btn {
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #fff;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 5px;
+          border-radius: 6px;
+          cursor: pointer;
+          text-align: center;
+          pointer-events: auto;
+          transition: background 0.2s;
+        }
+
+        .light-toggle-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+
         .modal-footer {
           display: flex;
           justify-content: space-between;
@@ -522,6 +601,8 @@ export class HUDOverlay {
           <button class="drawer-nav-tab" data-tab="electric">⚡ Electric</button>
           <button class="drawer-nav-tab" data-tab="gas">🔥 Gas</button>
           <button class="drawer-nav-tab" data-tab="ev">🚗 EV</button>
+          <button class="drawer-nav-tab" data-tab="heating">🌡️ Heating</button>
+          <button class="drawer-nav-tab" data-tab="lights">💡 Lights</button>
         </div>
 
         <div id="drawer-content"></div>
@@ -638,6 +719,75 @@ export class HUDOverlay {
             <label>Peugeot Remaining Range (miles)</label>
             <input type="text" id="cfg-peugeot-range" placeholder="sensor.e2008_battery_range">
           </div>
+
+          <!-- Heating & Thermostats -->
+          <div class="sensor-group-title">🌡️ Heating & Thermostats (Upstairs & Downstairs)</div>
+          <div class="sensor-grid-2">
+            <div class="sensor-row">
+              <label>Downstairs Thermostat (climate / sensor)</label>
+              <input type="text" id="cfg-thermostat-downstairs" placeholder="climate.downstairs">
+            </div>
+            <div class="sensor-row">
+              <label>Upstairs Thermostat (climate / sensor)</label>
+              <input type="text" id="cfg-thermostat-upstairs" placeholder="climate.upstairs">
+            </div>
+          </div>
+
+          <!-- Room Lights -->
+          <div class="sensor-group-title">💡 Room Lights (12 Rooms in 3D Model)</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: -6px;">
+            Select light/switch entities for each room. When turned ON, the room glows in 3D!
+          </div>
+          <div class="sensor-grid-2">
+            <div class="sensor-row">
+              <label>🛋️ Living Room / Lounge</label>
+              <input type="text" id="cfg-light-lounge" placeholder="light.living_room">
+            </div>
+            <div class="sensor-row">
+              <label>🍳 Kitchen</label>
+              <input type="text" id="cfg-light-kitchen" placeholder="light.kitchen">
+            </div>
+            <div class="sensor-row">
+              <label>🍽️ Dining Area</label>
+              <input type="text" id="cfg-light-dining" placeholder="light.dining_room">
+            </div>
+            <div class="sensor-row">
+              <label>🚪 Entrance Hall & Stairs</label>
+              <input type="text" id="cfg-light-hallway" placeholder="light.hallway">
+            </div>
+            <div class="sensor-row">
+              <label>🚽 Downstairs WC / Cloakroom</label>
+              <input type="text" id="cfg-light-wc" placeholder="light.downstairs_wc">
+            </div>
+            <div class="sensor-row">
+              <label>🛏️ Master Bedroom</label>
+              <input type="text" id="cfg-light-master" placeholder="light.master_bedroom">
+            </div>
+            <div class="sensor-row">
+              <label>🚿 Master En-Suite</label>
+              <input type="text" id="cfg-light-ensuite" placeholder="light.ensuite">
+            </div>
+            <div class="sensor-row">
+              <label>🛏️ Bedroom 2 (Guestroom)</label>
+              <input type="text" id="cfg-light-bedroom2" placeholder="light.bedroom_2">
+            </div>
+            <div class="sensor-row">
+              <label>🧸 Bedroom 3 (Nursery / Office)</label>
+              <input type="text" id="cfg-light-bedroom3" placeholder="light.bedroom_3">
+            </div>
+            <div class="sensor-row">
+              <label>🛁 Family Bathroom</label>
+              <input type="text" id="cfg-light-bathroom" placeholder="light.family_bathroom">
+            </div>
+            <div class="sensor-row">
+              <label>🪜 Upstairs Landing</label>
+              <input type="text" id="cfg-light-landing" placeholder="light.landing">
+            </div>
+            <div class="sensor-row">
+              <label>🏡 Porch & Exterior Driveway</label>
+              <input type="text" id="cfg-light-exterior" placeholder="light.front_porch">
+            </div>
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -653,6 +803,8 @@ export class HUDOverlay {
         <button class="hud-btn" data-preset="meter">⚡ Meter</button>
         <button class="hud-btn" data-preset="boiler">🔥 Boiler</button>
         <button class="hud-btn" data-preset="ev">🚗 Peugeot</button>
+        <button class="hud-btn" data-preset="downstairs">🛋️ Downstairs</button>
+        <button class="hud-btn" data-preset="upstairs">🛏️ Upstairs</button>
         <div class="hud-btn-divider"></div>
         <button class="hud-btn" id="btn-xray">👁️ X-Ray</button>
         <button class="hud-btn" id="btn-night">🌙 Night</button>
@@ -794,6 +946,21 @@ export class HUDOverlay {
     setVal('#cfg-zappi-energy', cfg.myenergi_energy);
     setVal('#cfg-peugeot-battery', cfg.peugeot_battery);
     setVal('#cfg-peugeot-range', cfg.peugeot_range);
+
+    // Thermostats
+    setVal('#cfg-thermostat-downstairs', cfg.thermostat_downstairs);
+    setVal('#cfg-thermostat-upstairs', cfg.thermostat_upstairs);
+
+    // Room Lights
+    const rooms = [
+      'lounge', 'kitchen', 'dining', 'hallway', 'wc',
+      'master', 'ensuite', 'bedroom2', 'bedroom3',
+      'bathroom', 'landing', 'exterior'
+    ];
+    for (const r of rooms) {
+      const fieldKey = r === 'master' ? 'master_bedroom' : r;
+      setVal(`#cfg-light-${r}`, cfg[`light_${fieldKey}`] || cfg.room_lights?.[fieldKey]?.entity_id || cfg.room_lights?.[fieldKey]);
+    }
   }
 
   readSensorInputs() {
@@ -827,7 +994,25 @@ export class HUDOverlay {
       myenergi_power: getVal('#cfg-zappi-power'),
       myenergi_energy: getVal('#cfg-zappi-energy'),
       peugeot_battery: getVal('#cfg-peugeot-battery'),
-      peugeot_range: getVal('#cfg-peugeot-range')
+      peugeot_range: getVal('#cfg-peugeot-range'),
+
+      // Thermostats
+      thermostat_downstairs: getVal('#cfg-thermostat-downstairs'),
+      thermostat_upstairs: getVal('#cfg-thermostat-upstairs'),
+
+      // Room Lights
+      light_lounge: getVal('#cfg-light-lounge'),
+      light_kitchen: getVal('#cfg-light-kitchen'),
+      light_dining: getVal('#cfg-light-dining'),
+      light_hallway: getVal('#cfg-light-hallway'),
+      light_wc: getVal('#cfg-light-wc'),
+      light_master_bedroom: getVal('#cfg-light-master'),
+      light_ensuite: getVal('#cfg-light-ensuite'),
+      light_bedroom2: getVal('#cfg-light-bedroom2'),
+      light_bedroom3: getVal('#cfg-light-bedroom3'),
+      light_bathroom: getVal('#cfg-light-bathroom'),
+      light_landing: getVal('#cfg-light-landing'),
+      light_exterior: getVal('#cfg-light-exterior')
     };
   }
 
@@ -881,6 +1066,24 @@ export class HUDOverlay {
     setIfFound('#cfg-zappi-energy', 'charge_added_session', 'zappi_energy', 'zappi_today');
     setIfFound('#cfg-peugeot-battery', 'e2008_battery', 'peugeot_battery', 'battery_level', 'soc');
     setIfFound('#cfg-peugeot-range', 'e2008_range', 'peugeot_range', 'range');
+
+    // Thermostats auto-detection
+    setIfFound('#cfg-thermostat-downstairs', 'climate.downstairs', 'climate.ground_floor', 'climate.hallway', 'climate.living_room', 'downstairs_temperature');
+    setIfFound('#cfg-thermostat-upstairs', 'climate.upstairs', 'climate.first_floor', 'climate.landing', 'climate.master_bedroom', 'upstairs_temperature');
+
+    // Room Lights auto-detection
+    setIfFound('#cfg-light-lounge', 'light.living', 'light.lounge', 'light.sitting_room', 'switch.living');
+    setIfFound('#cfg-light-kitchen', 'light.kitchen', 'light.kitchen_lights', 'switch.kitchen');
+    setIfFound('#cfg-light-dining', 'light.dining', 'light.dining_room', 'switch.dining');
+    setIfFound('#cfg-light-hallway', 'light.hallway', 'light.hall', 'light.entrance', 'switch.hallway');
+    setIfFound('#cfg-light-wc', 'light.wc', 'light.cloakroom', 'light.downstairs_toilet', 'switch.wc');
+    setIfFound('#cfg-light-master', 'light.master', 'light.bedroom_1', 'light.main_bedroom', 'switch.master');
+    setIfFound('#cfg-light-ensuite', 'light.ensuite', 'light.en_suite', 'switch.ensuite');
+    setIfFound('#cfg-light-bedroom2', 'light.bedroom_2', 'light.bed_2', 'light.guest_room', 'switch.bedroom_2');
+    setIfFound('#cfg-light-bedroom3', 'light.bedroom_3', 'light.bed_3', 'light.nursery', 'light.office', 'switch.bedroom_3');
+    setIfFound('#cfg-light-bathroom', 'light.bathroom', 'light.family_bathroom', 'switch.bathroom');
+    setIfFound('#cfg-light-landing', 'light.landing', 'light.stairs', 'light.upstairs_hallway', 'switch.landing');
+    setIfFound('#cfg-light-exterior', 'light.front_porch', 'light.porch', 'light.outside', 'light.driveway', 'light.garden', 'switch.porch');
   }
 
   openDrawerTab(tab) {
@@ -1036,6 +1239,133 @@ export class HUDOverlay {
           </div>
         </div>
       `;
+    } else if (this.activeTab === 'heating') {
+      const thermo = data.thermostats || {};
+      const down = thermo.downstairs || {};
+      const up = thermo.upstairs || {};
+      const gas = data.octopus_gas || {};
+
+      const downTemp = Number(down.current_temp || 20.0);
+      const downTarget = Number(down.target_temp || 21.0);
+      const downHeating = Boolean(down.is_heating);
+
+      const upTemp = Number(up.current_temp || 19.5);
+      const upTarget = Number(up.target_temp || 19.5);
+      const upHeating = Boolean(up.is_heating);
+
+      content.innerHTML = `
+        <div class="stat-grid">
+          <div class="stat-card stat-card-full">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>
+                <div class="stat-label">DOWNSTAIRS HEATING & CLIMATE</div>
+                <div class="stat-val" style="color: ${downHeating ? '#f97316' : '#38bdf8'}; font-size: 26px;">
+                  ${downTemp.toFixed(1)} <span class="stat-unit">°C</span>
+                </div>
+                <div class="stat-subtext">
+                  Target Setpoint: ${downTarget.toFixed(1)}°C &bull; ${downHeating ? '🔥 Heating Active' : '❄️ Idle / At Temp'}
+                </div>
+              </div>
+              <button class="light-toggle-btn" style="padding:6px 12px;" id="btn-focus-down">🛋️ View Ground Floor</button>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card-full">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>
+                <div class="stat-label">UPSTAIRS HEATING & CLIMATE</div>
+                <div class="stat-val" style="color: ${upHeating ? '#f97316' : '#38bdf8'}; font-size: 26px;">
+                  ${upTemp.toFixed(1)} <span class="stat-unit">°C</span>
+                </div>
+                <div class="stat-subtext">
+                  Target Setpoint: ${upTarget.toFixed(1)}°C &bull; ${upHeating ? '🔥 Heating Active' : '❄️ Idle / At Temp'}
+                </div>
+              </div>
+              <button class="light-toggle-btn" style="padding:6px 12px;" id="btn-focus-up">🛏️ View First Floor</button>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">KITCHEN COMBI BOILER</div>
+            <div class="stat-val" style="color: #f97316;">${gas.boiler_status || 'Central Heating'}</div>
+            <div class="stat-subtext">Supply: External LPG Bulk Tank</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-label">GAS TODAY</div>
+            <div class="stat-val">${Number(gas.day_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
+            <div class="stat-subtext">30-min: ${Number(gas.reading_30min_kwh || 0).toFixed(2)} kWh</div>
+          </div>
+        </div>
+      `;
+
+      const btnDown = content.querySelector('#btn-focus-down');
+      if (btnDown) {
+        btnDown.addEventListener('click', () => this.onPresetClick('downstairs'));
+      }
+      const btnUp = content.querySelector('#btn-focus-up');
+      if (btnUp) {
+        btnUp.addEventListener('click', () => this.onPresetClick('upstairs'));
+      }
+    } else if (this.activeTab === 'lights') {
+      const roomLights = data.room_lights || {};
+      const roomList = [
+        { key: 'lounge', name: 'Living Room', icon: '🛋️' },
+        { key: 'kitchen', name: 'Kitchen', icon: '🍳' },
+        { key: 'dining', name: 'Dining Room', icon: '🍽️' },
+        { key: 'hallway', name: 'Hall & Stairs', icon: '🚪' },
+        { key: 'wc', name: 'Downstairs WC', icon: '🚽' },
+        { key: 'master_bedroom', name: 'Master Bedroom', icon: '🛏️' },
+        { key: 'ensuite', name: 'Master En-Suite', icon: '🚿' },
+        { key: 'bedroom2', name: 'Bedroom 2', icon: '🛏️' },
+        { key: 'bedroom3', name: 'Bedroom 3', icon: '🧸' },
+        { key: 'bathroom', name: 'Family Bathroom', icon: '🛁' },
+        { key: 'landing', name: 'Upstairs Landing', icon: '🪜' },
+        { key: 'exterior', name: 'Porch & Outside', icon: '🏡' }
+      ];
+
+      let cardsHtml = '';
+      for (const r of roomList) {
+        const item = roomLights[r.key] || {};
+        const isOn = Boolean(item.is_on);
+        const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : 100;
+        cardsHtml += `
+          <div class="light-card ${isOn ? 'active' : ''}">
+            <div class="light-card-top">
+              <span class="light-name">${r.icon} ${r.name}</span>
+              <span class="light-status-pill ${isOn ? 'on' : 'off'}">${isOn ? '💡 ON' : 'OFF'}</span>
+            </div>
+            <div style="font-size: 10px; color: #94a3b8;">${isOn ? `Brightness: ${bri}%` : 'Light is off'}</div>
+            <button class="light-toggle-btn" data-entity="${item.entity_id || ''}" data-room="${r.key}">
+              ${isOn ? 'Turn Off' : 'Turn On'}
+            </button>
+          </div>
+        `;
+      }
+
+      content.innerHTML = `
+        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
+          Interactive 3D Room Illumination &bull; Toggle lights to illuminate rooms in the model:
+        </div>
+        <div class="light-grid">
+          ${cardsHtml}
+        </div>
+      `;
+
+      const toggleBtns = content.querySelectorAll('.light-toggle-btn');
+      toggleBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const entId = btn.getAttribute('data-entity');
+          const roomKey = btn.getAttribute('data-room');
+          if (entId) {
+            this.onToggleLight(entId);
+          } else if (roomKey && data.room_lights?.[roomKey]) {
+            // Local fallback simulation
+            data.room_lights[roomKey].is_on = !data.room_lights[roomKey].is_on;
+            this.renderDrawerContent();
+          }
+        });
+      });
     }
   }
 
@@ -1080,6 +1410,16 @@ export class HUDOverlay {
         badgeHtml = `<span>🔥 Boiler</span> <span class="color-gas">${data.octopus_gas?.boiler_status || 'Active'}</span>`;
       } else if (spot.id === 'ev') {
         badgeHtml = `<span>🚗 Peugeot</span> <span class="color-ev">${data.ev?.battery_soc_pct || 68}%</span>`;
+      } else if (spot.id === 'thermostat_downstairs') {
+        const down = data.thermostats?.downstairs || {};
+        const tVal = Number(down.current_temp || 20.0).toFixed(1);
+        const isHeat = Boolean(down.is_heating);
+        badgeHtml = `<span>🌡️ Downstairs</span> <span style="color:${isHeat ? '#f97316' : '#38bdf8'};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${isHeat ? '🔥' : '❄️'}</span>`;
+      } else if (spot.id === 'thermostat_upstairs') {
+        const up = data.thermostats?.upstairs || {};
+        const tVal = Number(up.current_temp || 19.5).toFixed(1);
+        const isHeat = Boolean(up.is_heating);
+        badgeHtml = `<span>🌡️ Upstairs</span> <span style="color:${isHeat ? '#f97316' : '#38bdf8'};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${isHeat ? '🔥' : '❄️'}</span>`;
       }
 
       const badge = document.createElement('div');
@@ -1089,9 +1429,20 @@ export class HUDOverlay {
       badge.innerHTML = badgeHtml;
 
       badge.addEventListener('click', () => {
-        const tabMap = { solar: 'solar', grid: 'electric', boiler: 'gas', ev: 'ev' };
+        const tabMap = {
+          solar: 'solar',
+          grid: 'electric',
+          boiler: 'gas',
+          ev: 'ev',
+          thermostat_downstairs: 'heating',
+          thermostat_upstairs: 'heating'
+        };
+        const presetMap = {
+          thermostat_downstairs: 'downstairs',
+          thermostat_upstairs: 'upstairs'
+        };
         this.openDrawerTab(tabMap[spot.id] || 'solar');
-        this.onPresetClick(spot.id);
+        this.onPresetClick(presetMap[spot.id] || spot.id);
       });
 
       container.appendChild(badge);

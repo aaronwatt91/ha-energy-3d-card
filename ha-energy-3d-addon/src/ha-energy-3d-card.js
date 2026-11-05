@@ -99,7 +99,23 @@ export class HaEnergy3DCard extends HTMLElement {
       myenergi_power: 'sensor.myenergi_zappi_power',
       myenergi_energy: 'sensor.myenergi_zappi_charge_added_session',
       peugeot_battery: 'sensor.e2008_battery_level',
-      peugeot_range: 'sensor.e2008_battery_range'
+      peugeot_range: 'sensor.e2008_battery_range',
+      // Thermostats (Upstairs & Downstairs)
+      thermostat_downstairs: 'climate.downstairs',
+      thermostat_upstairs: 'climate.upstairs',
+      // Room Lights
+      light_lounge: 'light.living_room',
+      light_kitchen: 'light.kitchen',
+      light_dining: 'light.dining_room',
+      light_hallway: 'light.hallway',
+      light_wc: 'light.downstairs_wc',
+      light_master_bedroom: 'light.master_bedroom',
+      light_ensuite: 'light.ensuite',
+      light_bedroom2: 'light.bedroom_2',
+      light_bedroom3: 'light.bedroom_3',
+      light_bathroom: 'light.family_bathroom',
+      light_landing: 'light.landing',
+      light_exterior: 'light.front_porch'
     };
   }
 
@@ -185,6 +201,7 @@ export class HaEnergy3DCard extends HTMLElement {
       onToggleRotate: (enable) => {
         this.sceneManager.controls.autoRotate = enable;
       },
+      onToggleLight: (entityId) => this.toggleLightEntity(entityId),
       onSaveSensors: (customSensors) => {
         this.customSensors = customSensors;
         this._config = { ...this._config, ...customSensors };
@@ -316,8 +333,92 @@ export class HaEnergy3DCard extends HTMLElement {
       range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
     };
 
+    // 5. Thermostats (Upstairs & Downstairs Heating Monitoring)
+    this.energyData.thermostats = {
+      downstairs: this.getThermostatState(cfg.thermostat_downstairs, this.energyData.thermostats?.downstairs),
+      upstairs: this.getThermostatState(cfg.thermostat_upstairs, this.energyData.thermostats?.upstairs)
+    };
+
+    // 6. Room Lights (12 distinct rooms with live on/off & illumination)
+    const roomKeys = [
+      'lounge', 'kitchen', 'dining', 'hallway', 'wc',
+      'master_bedroom', 'ensuite', 'bedroom2', 'bedroom3',
+      'bathroom', 'landing', 'exterior'
+    ];
+    const lightsData = {};
+    for (const room of roomKeys) {
+      const entityKey = `light_${room}`;
+      const entityId = cfg[entityKey] || cfg.room_lights?.[room];
+      lightsData[room] = this.getLightState(entityId, this.energyData.room_lights?.[room]);
+    }
+    this.energyData.room_lights = lightsData;
+
     if (this.sceneManager) {
       this.sceneManager.updateEnergyData(this.energyData);
+      this.sceneManager.updateRoomLights(lightsData);
+    }
+  }
+
+  getThermostatState(entityId, defaultState = {}) {
+    const res = {
+      entity_id: entityId || defaultState?.entity_id || '',
+      current_temp: defaultState?.current_temp ?? 20.0,
+      target_temp: defaultState?.target_temp ?? 21.0,
+      hvac_action: defaultState?.hvac_action || 'idle',
+      is_heating: defaultState?.is_heating || false,
+      state: defaultState?.state || 'heat'
+    };
+    if (!this._hass || !entityId) return res;
+    const stateObj = this._hass.states[entityId];
+    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') return res;
+
+    res.state = stateObj.state;
+    const attr = stateObj.attributes || {};
+    if (attr.current_temperature !== undefined) {
+      res.current_temp = parseFloat(attr.current_temperature);
+    } else {
+      const num = parseFloat(stateObj.state);
+      if (!isNaN(num)) res.current_temp = num;
+    }
+
+    if (attr.temperature !== undefined) {
+      res.target_temp = parseFloat(attr.temperature);
+    } else if (attr.target_temp_high !== undefined) {
+      res.target_temp = parseFloat(attr.target_temp_high);
+    }
+
+    res.hvac_action = attr.hvac_action || (stateObj.state === 'heating' ? 'heating' : (stateObj.state === 'off' ? 'off' : 'idle'));
+    res.is_heating = res.hvac_action === 'heating' || (res.target_temp !== null && res.current_temp < res.target_temp && stateObj.state !== 'off');
+    return res;
+  }
+
+  getLightState(entityId, defaultState = {}) {
+    const res = {
+      entity_id: entityId || defaultState?.entity_id || '',
+      is_on: defaultState?.is_on || false,
+      brightness: defaultState?.brightness ?? (defaultState?.is_on ? 255 : 0),
+      rgb_color: defaultState?.rgb_color || null
+    };
+    if (!this._hass || !entityId) return res;
+    const stateObj = this._hass.states[entityId];
+    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') return res;
+
+    res.is_on = stateObj.state === 'on';
+    const attr = stateObj.attributes || {};
+    res.brightness = attr.brightness !== undefined ? attr.brightness : (res.is_on ? 255 : 0);
+    if (attr.rgb_color && Array.isArray(attr.rgb_color)) {
+      res.rgb_color = attr.rgb_color;
+    }
+    return res;
+  }
+
+  toggleLightEntity(entityId) {
+    if (!this._hass || !entityId) return;
+    const domain = entityId.split('.')[0] || 'light';
+    try {
+      this._hass.callService(domain, 'toggle', { entity_id: entityId });
+    } catch (e) {
+      console.warn('Call service error:', e);
     }
   }
 

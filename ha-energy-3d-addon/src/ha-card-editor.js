@@ -192,6 +192,70 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <input type="text" data-key="peugeot_range" value="${c.peugeot_range || 'sensor.e2008_battery_range'}">
           </div>
         </div>
+
+        <div class="section-title">🌡️ Heating & Thermostats</div>
+        <div class="grid-2">
+          <div class="input-row">
+            <label>Downstairs Thermostat (climate/sensor)</label>
+            <input type="text" data-key="thermostat_downstairs" value="${c.thermostat_downstairs || 'climate.downstairs'}">
+          </div>
+          <div class="input-row">
+            <label>Upstairs Thermostat (climate/sensor)</label>
+            <input type="text" data-key="thermostat_upstairs" value="${c.thermostat_upstairs || 'climate.upstairs'}">
+          </div>
+        </div>
+
+        <div class="section-title">💡 Room Lights (12 Rooms)</div>
+        <div class="grid-2">
+          <div class="input-row">
+            <label>Living Room / Lounge</label>
+            <input type="text" data-key="light_lounge" value="${c.light_lounge || 'light.living_room'}">
+          </div>
+          <div class="input-row">
+            <label>Kitchen</label>
+            <input type="text" data-key="light_kitchen" value="${c.light_kitchen || 'light.kitchen'}">
+          </div>
+          <div class="input-row">
+            <label>Dining Room</label>
+            <input type="text" data-key="light_dining" value="${c.light_dining || 'light.dining_room'}">
+          </div>
+          <div class="input-row">
+            <label>Entrance Hall & Stairs</label>
+            <input type="text" data-key="light_hallway" value="${c.light_hallway || 'light.hallway'}">
+          </div>
+          <div class="input-row">
+            <label>Downstairs WC</label>
+            <input type="text" data-key="light_wc" value="${c.light_wc || 'light.downstairs_wc'}">
+          </div>
+          <div class="input-row">
+            <label>Master Bedroom</label>
+            <input type="text" data-key="light_master_bedroom" value="${c.light_master_bedroom || 'light.master_bedroom'}">
+          </div>
+          <div class="input-row">
+            <label>Master En-Suite</label>
+            <input type="text" data-key="light_ensuite" value="${c.light_ensuite || 'light.ensuite'}">
+          </div>
+          <div class="input-row">
+            <label>Bedroom 2 (Guestroom)</label>
+            <input type="text" data-key="light_bedroom2" value="${c.light_bedroom2 || 'light.bedroom_2'}">
+          </div>
+          <div class="input-row">
+            <label>Bedroom 3 (Nursery / Office)</label>
+            <input type="text" data-key="light_bedroom3" value="${c.light_bedroom3 || 'light.bedroom_3'}">
+          </div>
+          <div class="input-row">
+            <label>Family Bathroom</label>
+            <input type="text" data-key="light_bathroom" value="${c.light_bathroom || 'light.family_bathroom'}">
+          </div>
+          <div class="input-row">
+            <label>Upstairs Landing</label>
+            <input type="text" data-key="light_landing" value="${c.light_landing || 'light.landing'}">
+          </div>
+          <div class="input-row">
+            <label>Porch & Outside Driveway</label>
+            <input type="text" data-key="light_exterior" value="${c.light_exterior || 'light.front_porch'}">
+          </div>
+        </div>
       </div>
     `;
 

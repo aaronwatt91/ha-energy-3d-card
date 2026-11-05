@@ -3,6 +3,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { EnergyFlowSystem } from './energy-flow-system.js';
 
+export const ROOM_LIGHT_CONFIGS = {
+  lounge: { name: 'Living Room', pos: new THREE.Vector3(1.88, 2.15, -2.35), range: 7.0, maxIntensity: 2.4, defaultColor: 0xffeaad },
+  kitchen: { name: 'Kitchen', pos: new THREE.Vector3(1.80, 2.15, -7.40), range: 6.5, maxIntensity: 2.6, defaultColor: 0xfff4e6 },
+  dining: { name: 'Dining Room', pos: new THREE.Vector3(4.30, 2.15, -7.40), range: 6.0, maxIntensity: 2.2, defaultColor: 0xffe6b8 },
+  hallway: { name: 'Hallway', pos: new THREE.Vector3(4.20, 2.15, -2.20), range: 5.5, maxIntensity: 2.0, defaultColor: 0xffedd5 },
+  wc: { name: 'Downstairs WC', pos: new THREE.Vector3(0.92, 2.15, -5.32), range: 4.0, maxIntensity: 1.8, defaultColor: 0xfff1dc },
+  master_bedroom: { name: 'Master Bedroom', pos: new THREE.Vector3(1.90, 4.55, -2.10), range: 6.8, maxIntensity: 2.4, defaultColor: 0xffeaad },
+  ensuite: { name: 'Master En-Suite', pos: new THREE.Vector3(4.40, 4.55, -1.22), range: 4.5, maxIntensity: 2.0, defaultColor: 0xfff6ea },
+  bedroom2: { name: 'Bedroom 2', pos: new THREE.Vector3(1.75, 4.55, -7.30), range: 6.0, maxIntensity: 2.2, defaultColor: 0xffeaad },
+  bedroom3: { name: 'Bedroom 3', pos: new THREE.Vector3(4.30, 4.55, -7.30), range: 6.0, maxIntensity: 2.2, defaultColor: 0xffeaad },
+  bathroom: { name: 'Family Bathroom', pos: new THREE.Vector3(1.22, 4.55, -4.95), range: 5.0, maxIntensity: 2.2, defaultColor: 0xfff8ee },
+  landing: { name: 'Landing & Stairs', pos: new THREE.Vector3(3.30, 4.55, -4.95), range: 5.5, maxIntensity: 2.0, defaultColor: 0xffedd5 },
+  exterior: { name: 'Porch & Outside', pos: new THREE.Vector3(4.80, 2.50, 0.50), range: 8.0, maxIntensity: 2.5, defaultColor: 0xfff1cc }
+};
+
 /**
  * SceneManager
  * Coordinates Three.js 3D viewport, camera controls, GLTF model,
@@ -22,10 +37,13 @@ export class SceneManager {
       { id: 'solar', name: 'Solax Solar PV', pos: new THREE.Vector3(2.80, 6.60, -6.80) },
       { id: 'grid', name: 'Octopus Grid & Meter', pos: new THREE.Vector3(5.30, 2.00, -0.85) },
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
-      { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) }
+      { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) },
+      { id: 'thermostat_downstairs', name: 'Downstairs Heating', pos: new THREE.Vector3(3.60, 1.45, -2.40) },
+      { id: 'thermostat_upstairs', name: 'Upstairs Heating', pos: new THREE.Vector3(3.30, 4.05, -4.95) }
     ];
 
     this.roofParts = [];
+    this.roomLights = {};
     this.xrayActive = false;
     this.nightMode = this.options.nightMode;
     this.targetCameraPos = null;
@@ -115,7 +133,78 @@ export class SceneManager {
     this.carPointLight.position.set(3.4, 1.2, 1.6);
     this.scene.add(this.carPointLight);
 
+    // Dedicated Room Lighting Container & Point Lights
+    this.roomLightsGroup = new THREE.Group();
+    this.scene.add(this.roomLightsGroup);
+
+    const fixtureGeom = new THREE.CylinderGeometry(0.14, 0.14, 0.04, 16);
+
+    for (const [roomId, cfg] of Object.entries(ROOM_LIGHT_CONFIGS)) {
+      const pLight = new THREE.PointLight(cfg.defaultColor, 0.0, cfg.range, 1.2);
+      pLight.position.copy(cfg.pos);
+
+      const fixMat = new THREE.MeshStandardMaterial({
+        color: 0xcccccc,
+        emissive: 0x111111,
+        roughness: 0.3,
+        metalness: 0.2
+      });
+      const fixtureMesh = new THREE.Mesh(fixtureGeom, fixMat);
+      fixtureMesh.position.copy(cfg.pos);
+
+      this.roomLightsGroup.add(pLight);
+      this.roomLightsGroup.add(fixtureMesh);
+
+      this.roomLights[roomId] = {
+        config: cfg,
+        light: pLight,
+        fixture: fixtureMesh,
+        isOn: false,
+        brightness: 0,
+        colorHex: cfg.defaultColor
+      };
+    }
+
     this.applyLightingMode();
+  }
+
+  updateRoomLights(lightsData) {
+    if (!lightsData) return;
+    for (const [roomId, info] of Object.entries(lightsData)) {
+      const room = this.roomLights[roomId];
+      if (!room) continue;
+
+      const isOn = Boolean(info.is_on || info.state === 'on');
+      const brightness = info.brightness !== undefined ? info.brightness : 255;
+      const rgb = info.rgb_color;
+
+      this.setRoomLightState(roomId, isOn, brightness, rgb);
+    }
+  }
+
+  setRoomLightState(roomId, isOn, brightness = 255, rgb = null) {
+    const room = this.roomLights[roomId];
+    if (!room) return;
+
+    room.isOn = isOn;
+    room.brightness = brightness;
+
+    if (isOn) {
+      const factor = Math.max(0.15, Math.min(1.0, brightness / 255.0));
+      if (Array.isArray(rgb) && rgb.length === 3) {
+        room.light.color.setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
+      } else {
+        room.light.color.setHex(room.config.defaultColor);
+      }
+      const nightMult = this.nightMode ? 1.35 : 1.0;
+      room.light.intensity = room.config.maxIntensity * factor * nightMult;
+      room.fixture.material.emissive.copy(room.light.color).multiplyScalar(factor * 2.2);
+      room.fixture.material.color.setHex(0xffffff);
+    } else {
+      room.light.intensity = 0.0;
+      room.fixture.material.emissive.setHex(0x111111);
+      room.fixture.material.color.setHex(0x444444);
+    }
   }
 
   applyLightingMode() {
@@ -251,6 +340,21 @@ export class SceneManager {
         pos: new THREE.Vector3(7.2, 2.2, 3.2),
         target: new THREE.Vector3(5.2, 0.95, 1.0),
         xray: false
+      },
+      downstairs: {
+        pos: new THREE.Vector3(2.8, 9.5, 4.0),
+        target: new THREE.Vector3(2.8, 1.2, -4.5),
+        xray: true
+      },
+      upstairs: {
+        pos: new THREE.Vector3(2.8, 11.5, 4.0),
+        target: new THREE.Vector3(2.8, 3.8, -4.5),
+        xray: true
+      },
+      heating: {
+        pos: new THREE.Vector3(7.8, 4.5, -2.5),
+        target: new THREE.Vector3(3.4, 2.5, -3.5),
+        xray: true
       }
     };
 
