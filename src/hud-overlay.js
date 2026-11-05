@@ -2071,7 +2071,8 @@ export class HUDOverlay {
 
     // Populate inputs
     this.el.querySelector('#custom-light-name').value = this.editingLight.name || '';
-    this.el.querySelector('#custom-light-entity').value = this.editingLight.entity_id || '';
+    const currentEntity = this.editingLight.entity_id || this.currentSensorConfig?.[`light_${this.editingLight.id}`] || (this.editingLight.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || '';
+    this.el.querySelector('#custom-light-entity').value = currentEntity;
 
     // Floor buttons
     const floor = this.editingLight.floor || (this.editingLight.pos.y > 3.0 ? 'first' : 'ground');
@@ -2505,11 +2506,12 @@ export class HUDOverlay {
       let cardsHtml = '';
       for (const lt of lights) {
         const item = roomLights[lt.id] || (lt.id === 'living_lamp' ? data.appliances?.living_lamp : {}) || {};
-        const isOn = Boolean(item.is_on);
-        const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : 100;
+        const isOn = Boolean(item.is_on || item.state === 'on');
+        const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : (isOn ? 100 : 0);
         const icon = lt.isFloorLamp || lt.name?.toLowerCase().includes('lamp') ? '🛋️' : '💡';
         const floorText = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0) ? '🛏️ Upstairs' : '🛋️ Downstairs';
         const posText = lt.pos ? `(${lt.pos.x.toFixed(1)}, ${lt.pos.y.toFixed(1)}, ${lt.pos.z.toFixed(1)})` : '';
+        const mappedEntity = lt.entity_id || this.currentSensorConfig?.[`light_${lt.id}`] || (lt.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || '';
 
         cardsHtml += `
           <div class="light-card ${isOn ? 'active' : ''}">
@@ -2521,8 +2523,13 @@ export class HUDOverlay {
               <span>${floorText}</span>
               <span style="font-size:9px;">${posText}</span>
             </div>
-            <div style="font-size:10px; color:#94a3b8;">${isOn ? `Brightness: ${bri}%` : 'Light is off'}</div>
-            <button class="light-toggle-btn" data-entity="${lt.entity_id || ''}" data-light-id="${lt.id}">
+            <div style="font-size:10px; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
+              <span>${isOn ? `Brightness: ${bri}%` : 'Light is off'}</span>
+              <span style="font-size:9px; color:#64748b; font-family:monospace; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${mappedEntity || 'Manual Toggle'}">
+                ${mappedEntity ? `🔗 ${mappedEntity}` : '⚪ Manual'}
+              </span>
+            </div>
+            <button class="light-toggle-btn" data-entity="${mappedEntity}" data-light-id="${lt.id}">
               ${isOn ? 'Turn Off' : 'Turn On'}
             </button>
             <div class="light-card-footer">
@@ -2557,19 +2564,34 @@ export class HUDOverlay {
       const toggleBtns = content.querySelectorAll('.light-toggle-btn');
       toggleBtns.forEach((btn) => {
         btn.addEventListener('click', () => {
-          const entId = btn.getAttribute('data-entity');
+          const entId = btn.getAttribute('data-entity')?.trim();
           const lightId = btn.getAttribute('data-light-id');
+          if (!lightId) return;
+
+          let lightInfo = data.room_lights?.[lightId];
+          if (lightId === 'living_lamp') {
+            lightInfo = data.appliances?.living_lamp || lightInfo;
+          }
+          const currentOn = Boolean(lightInfo?.is_on || lightInfo?.state === 'on');
+          const newIsOn = !currentOn;
+
+          if (data.room_lights?.[lightId]) {
+            data.room_lights[lightId].is_on = newIsOn;
+            data.room_lights[lightId].brightness = newIsOn ? (data.room_lights[lightId].brightness || 255) : 0;
+          }
+          if (lightId === 'living_lamp' && data.appliances?.living_lamp) {
+            data.appliances.living_lamp.is_on = newIsOn;
+            data.appliances.living_lamp.brightness = newIsOn ? (data.appliances.living_lamp.brightness || 255) : 0;
+          }
+
           if (entId) {
             this.onToggleLight(entId);
-          } else if (lightId) {
-            if (data.room_lights?.[lightId]) {
-              data.room_lights[lightId].is_on = !data.room_lights[lightId].is_on;
-            }
-            if (lightId === 'living_lamp' && data.appliances?.living_lamp) {
-              data.appliances.living_lamp.is_on = !data.appliances.living_lamp.is_on;
-            }
-            this.renderDrawerContent();
           }
+          if (this.options.onToggleRoomLight) {
+            this.options.onToggleRoomLight(lightId, newIsOn);
+          }
+
+          this.renderDrawerContent();
         });
       });
 

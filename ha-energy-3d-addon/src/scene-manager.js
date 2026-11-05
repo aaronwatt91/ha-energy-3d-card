@@ -1,21 +1,22 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { EnergyFlowSystem } from './energy-flow-system.js';
 
 export const DEFAULT_LIGHTS = [
-  { id: 'lounge', name: 'Living Room Ceiling', floor: 'ground', pos: { x: 1.88, y: 2.15, z: -2.35 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.living_room' },
-  { id: 'kitchen', name: 'Kitchen Ceiling', floor: 'ground', pos: { x: 1.80, y: 2.15, z: -7.40 }, range: 7.0, maxIntensity: 4.5, defaultColor: 0xfff0d6, entity_id: 'light.kitchen' },
-  { id: 'dining', name: 'Dining Room', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -7.40 }, range: 6.5, maxIntensity: 4.0, defaultColor: 0xffe6b8, entity_id: 'light.dining_room' },
-  { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.20, y: 2.15, z: -2.20 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.hallway' },
-  { id: 'wc', name: 'Downstairs WC', floor: 'ground', pos: { x: 0.92, y: 2.15, z: -5.32 }, range: 4.5, maxIntensity: 3.5, defaultColor: 0xfff1dc, entity_id: 'light.downstairs_wc' },
-  { id: 'living_lamp', name: 'Living Room Corner Lamp', floor: 'ground', pos: { x: 0.60, y: 1.58, z: -0.65 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xffd580, entity_id: 'light.living_room_lamp', isFloorLamp: true },
-  { id: 'master_bedroom', name: 'Master Bedroom', floor: 'first', pos: { x: 1.90, y: 4.55, z: -2.10 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.master_bedroom' },
-  { id: 'ensuite', name: 'Master En-Suite', floor: 'first', pos: { x: 4.40, y: 4.55, z: -1.22 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xfff6ea, entity_id: 'light.ensuite' },
-  { id: 'bedroom2', name: 'Bedroom 2 (Guestroom)', floor: 'first', pos: { x: 1.75, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: 'light.bedroom_2' },
-  { id: 'bedroom3', name: 'Bedroom 3 (Nursery / Office)', floor: 'first', pos: { x: 4.30, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: 'light.bedroom_3' },
-  { id: 'bathroom', name: 'Family Bathroom', floor: 'first', pos: { x: 1.22, y: 4.55, z: -4.95 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff8ee, entity_id: 'light.family_bathroom' },
-  { id: 'landing', name: 'Upstairs Landing', floor: 'first', pos: { x: 3.30, y: 4.55, z: -4.95 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.landing' }
+  { id: 'lounge', name: 'Living Room Ceiling', floor: 'ground', pos: { x: 1.88, y: 2.15, z: -2.35 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: '' },
+  { id: 'kitchen', name: 'Kitchen Ceiling', floor: 'ground', pos: { x: 1.80, y: 2.15, z: -7.40 }, range: 7.0, maxIntensity: 4.5, defaultColor: 0xfff0d6, entity_id: '' },
+  { id: 'dining', name: 'Dining Room', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -7.40 }, range: 6.5, maxIntensity: 4.0, defaultColor: 0xffe6b8, entity_id: '' },
+  { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -3.25 }, range: 7.5, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: '' },
+  { id: 'wc', name: 'Downstairs WC', floor: 'ground', pos: { x: 1.85, y: 2.15, z: -5.32 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff1dc, entity_id: '' },
+  { id: 'living_lamp', name: 'Living Room Lamp', floor: 'ground', pos: { x: 0.60, y: 1.58, z: -0.65 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xffd580, entity_id: 'light.living_room_lamp', isFloorLamp: true },
+  { id: 'master_bedroom', name: 'Master Bedroom', floor: 'first', pos: { x: 1.90, y: 4.55, z: -2.10 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: '' },
+  { id: 'ensuite', name: 'Master En-Suite', floor: 'first', pos: { x: 4.40, y: 4.55, z: -1.22 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xfff6ea, entity_id: '' },
+  { id: 'bedroom2', name: 'Bedroom 2 (Guestroom)', floor: 'first', pos: { x: 1.75, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: '' },
+  { id: 'bedroom3', name: 'Bedroom 3 (Nursery / Office)', floor: 'first', pos: { x: 4.30, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: '' },
+  { id: 'bathroom', name: 'Family Bathroom', floor: 'first', pos: { x: 1.22, y: 4.55, z: -4.95 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff8ee, entity_id: '' },
+  { id: 'landing', name: 'Upstairs Landing', floor: 'first', pos: { x: 3.30, y: 4.55, z: -4.95 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: '' }
 ];
 
 export const ROOM_LIGHT_CONFIGS = {
@@ -48,21 +49,21 @@ export const ROOM_LIGHT_CONFIGS = {
   },
   hallway: {
     name: 'Hallway',
-    pos: new THREE.Vector3(4.20, 2.15, -2.20),
-    range: 6.0,
+    pos: new THREE.Vector3(4.30, 2.15, -3.25),
+    range: 7.5,
     maxIntensity: 3.8,
     defaultColor: 0xffedd5,
-    boxCenter: new THREE.Vector3(4.35, 1.20, -2.35),
-    boxSize: new THREE.Vector3(1.85, 2.35, 4.05)
+    boxCenter: new THREE.Vector3(4.37, 1.20, -3.275),
+    boxSize: new THREE.Vector3(1.98, 2.40, 6.00)
   },
   wc: {
     name: 'Downstairs WC',
-    pos: new THREE.Vector3(0.92, 2.15, -5.32),
-    range: 4.5,
-    maxIntensity: 3.5,
+    pos: new THREE.Vector3(1.85, 2.15, -5.32),
+    range: 5.5,
+    maxIntensity: 3.8,
     defaultColor: 0xfff1dc,
-    boxCenter: new THREE.Vector3(0.92, 1.20, -5.32),
-    boxSize: new THREE.Vector3(1.22, 2.35, 1.82)
+    boxCenter: new THREE.Vector3(1.85, 1.20, -5.32),
+    boxSize: new THREE.Vector3(3.08, 2.35, 1.82)
   },
   master_bedroom: {
     name: 'Master Bedroom',
@@ -70,8 +71,8 @@ export const ROOM_LIGHT_CONFIGS = {
     range: 7.5,
     maxIntensity: 4.2,
     defaultColor: 0xffe299,
-    boxCenter: new THREE.Vector3(1.88, 3.85, -2.08),
-    boxSize: new THREE.Vector3(3.10, 2.25, 3.52)
+    boxCenter: new THREE.Vector3(2.325, 3.85, -2.075),
+    boxSize: new THREE.Vector3(4.10, 2.40, 3.62)
   },
   ensuite: {
     name: 'Master En-Suite',
@@ -88,8 +89,8 @@ export const ROOM_LIGHT_CONFIGS = {
     range: 6.8,
     maxIntensity: 4.0,
     defaultColor: 0xffe299,
-    boxCenter: new THREE.Vector3(1.75, 3.85, -7.31),
-    boxSize: new THREE.Vector3(2.85, 2.25, 2.48)
+    boxCenter: new THREE.Vector3(1.775, 3.85, -7.315),
+    boxSize: new THREE.Vector3(3.00, 2.40, 2.60)
   },
   bedroom3: {
     name: 'Bedroom 3',
@@ -97,8 +98,8 @@ export const ROOM_LIGHT_CONFIGS = {
     range: 6.8,
     maxIntensity: 4.0,
     defaultColor: 0xffe299,
-    boxCenter: new THREE.Vector3(4.32, 3.85, -7.31),
-    boxSize: new THREE.Vector3(2.00, 2.25, 2.48)
+    boxCenter: new THREE.Vector3(4.295, 3.85, -7.315),
+    boxSize: new THREE.Vector3(2.15, 2.40, 2.60)
   },
   bathroom: {
     name: 'Family Bathroom',
@@ -140,16 +141,20 @@ export class SceneManager {
       { id: 'grid', name: 'Octopus Grid & Meter', pos: new THREE.Vector3(5.30, 2.00, -0.85) },
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
       { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) },
+      { id: 'ev_charger', name: 'myenergi Zappi Charger', pos: new THREE.Vector3(5.20, 1.45, 0.05) },
       { id: 'thermostat_downstairs', name: 'Downstairs Heating', pos: new THREE.Vector3(3.60, 1.45, -2.40) },
       { id: 'thermostat_upstairs', name: 'Upstairs Heating', pos: new THREE.Vector3(3.30, 4.05, -4.95) },
-      { id: 'appliance_fridge', name: 'Kitchen Fridge Freezer', pos: new THREE.Vector3(2.95, 1.45, -8.15) },
-      { id: 'appliance_tv', name: 'Living Room TV', pos: new THREE.Vector3(3.35, 1.40, -3.10) },
-      { id: 'light_living_lamp', name: 'Living Room Corner Lamp', pos: new THREE.Vector3(0.60, 1.65, -0.65) }
+      { id: 'appliance_fridge', name: 'Kitchen Fridge Freezer', pos: new THREE.Vector3(2.45, 1.45, -6.65) },
+      { id: 'appliance_washer', name: 'Kitchen Washing Machine', pos: new THREE.Vector3(2.15, 0.90, -8.20) },
+      { id: 'appliance_tv', name: 'Living Room TV', pos: new THREE.Vector3(3.35, 1.40, -3.10) }
     ];
 
     this.roofParts = [];
     this.topFloorMeshes = [];
     this.cuttableMeshes = [];
+    this.occludingMeshes = [];
+    this.tvRaycaster = new THREE.Raycaster();
+    this.tvTargetPos = new THREE.Vector3(3.34, 1.35, -3.10);
     this.cutawayMode = 'normal';
     this.customLights = this.options.customLights || DEFAULT_LIGHTS;
     this.roomLights = {};
@@ -185,6 +190,18 @@ export class SceneManager {
     this.renderer.localClippingEnabled = true;
     this.downstairsClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.52);
     this.container.appendChild(this.renderer.domElement);
+
+    // 3b. CSS3D Renderer for Interactive Elements (e.g., Living Room TV YouTube stream)
+    this.css3dScene = new THREE.Scene();
+    this.css3dRenderer = new CSS3DRenderer();
+    this.css3dRenderer.setSize(width, height);
+    this.css3dRenderer.domElement.style.position = 'absolute';
+    this.css3dRenderer.domElement.style.top = '0';
+    this.css3dRenderer.domElement.style.left = '0';
+    this.css3dRenderer.domElement.style.width = '100%';
+    this.css3dRenderer.domElement.style.height = '100%';
+    this.css3dRenderer.domElement.style.pointerEvents = 'none';
+    this.container.appendChild(this.css3dRenderer.domElement);
 
     // 4. Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -293,6 +310,9 @@ export class SceneManager {
       });
       const fixtureMesh = new THREE.Mesh(fixtureGeom, fixMat);
       fixtureMesh.position.copy(vec);
+      if (cfg.isFloorLamp || cfg.id === 'living_lamp') {
+        fixtureMesh.visible = false;
+      }
 
       const container = new THREE.Group();
       container.add(pLight);
@@ -342,6 +362,12 @@ export class SceneManager {
       obj.fixture.position.set(x, y, z);
       obj.config.pos = { x, y, z };
       obj.floor = y > 3.0 ? 'first' : 'ground';
+    }
+    if (lightId === 'living_lamp' && this.applianceLamp) {
+      this.applianceLamp.position.set(x, 0.0, z);
+      if (this.applianceLampLight) {
+        this.applianceLampLight.position.set(x, y, z);
+      }
     }
     if (this.beaconGroup && this.beaconGroup.visible) {
       this.setEditingLightBeacon(lightId, new THREE.Vector3(x, y, z));
@@ -434,6 +460,7 @@ export class SceneManager {
 
   updateRoomLights(lightsData) {
     if (!lightsData) return;
+    this.lastLightsData = lightsData;
     for (const [roomId, info] of Object.entries(lightsData)) {
       const room = this.roomLights[roomId];
       if (!room) continue;
@@ -443,6 +470,38 @@ export class SceneManager {
       const rgb = info.rgb_color;
 
       this.setRoomLightState(roomId, isOn, brightness, rgb);
+    }
+
+    // Living Room illumination: if either living ceiling light OR living room lamp is ON, light up living room
+    const loungeRoom = this.roomLights['lounge'];
+    if (loungeRoom && loungeRoom.shadeMesh) {
+      const isLoungeOn = Boolean(lightsData['lounge']?.is_on || lightsData['lounge']?.state === 'on');
+      const isLampOn = Boolean(lightsData['living_lamp']?.is_on || lightsData['living_lamp']?.state === 'on');
+      const isLivingRoomLit = isLoungeOn || isLampOn;
+      loungeRoom.shadeMesh.visible = !isLivingRoomLit;
+    }
+
+    // Dedicated 3D physical floor standing lamp illumination
+    if (this.applianceLampShade && this.applianceLampLight) {
+      const lampInfo = lightsData['living_lamp'];
+      const isLampOn = Boolean(lampInfo?.is_on || lampInfo?.state === 'on');
+      const bri = lampInfo?.brightness !== undefined ? lampInfo.brightness : 255;
+      const ratio = Math.max(0.1, bri / 255.0);
+
+      if (isLampOn) {
+        let col = new THREE.Color(0xffd580);
+        if (lampInfo?.rgb_color && Array.isArray(lampInfo.rgb_color) && lampInfo.rgb_color.length === 3) {
+          col.setRGB(lampInfo.rgb_color[0] / 255, lampInfo.rgb_color[1] / 255, lampInfo.rgb_color[2] / 255);
+        }
+        this.applianceLampShade.material.emissive.copy(col);
+        this.applianceLampShade.material.emissiveIntensity = 2.4 * ratio;
+        this.applianceLampLight.color.copy(col);
+        this.applianceLampLight.intensity = 3.6 * ratio;
+      } else {
+        this.applianceLampShade.material.emissive.setHex(0x000000);
+        this.applianceLampShade.material.emissiveIntensity = 0.0;
+        this.applianceLampLight.intensity = 0.0;
+      }
     }
   }
 
@@ -454,7 +513,9 @@ export class SceneManager {
     // 1. Kitchen Fridge Freezer (Modern Freestanding French Door)
     // ==========================================
     const fridgeGroup = new THREE.Group();
-    fridgeGroup.position.set(2.95, 0.0, -8.15);
+    // Moved to opposite partition wall (backing on wall z = -6.30, facing into kitchen)
+    fridgeGroup.position.set(2.45, 0.0, -6.65);
+    fridgeGroup.rotation.y = Math.PI;
 
     // Main Fridge Cabinet
     const cabinetGeom = new THREE.BoxGeometry(0.70, 1.84, 0.65);
@@ -546,6 +607,38 @@ export class SceneManager {
     this.appliancesGroup.add(tvGroup);
     this.applianceTv = tvGroup;
 
+    // YouTube Video Player Screen (CSS3D interactive iframe)
+    const tvIframeContainer = document.createElement('div');
+    tvIframeContainer.style.width = '640px';
+    tvIframeContainer.style.height = '366px';
+    tvIframeContainer.style.backgroundColor = '#000000';
+    tvIframeContainer.style.overflow = 'hidden';
+    tvIframeContainer.style.borderRadius = '3px';
+
+    const tvIframe = document.createElement('iframe');
+    tvIframe.id = 'tv-youtube-iframe';
+    tvIframe.style.width = '100%';
+    tvIframe.style.height = '100%';
+    tvIframe.style.border = 'none';
+    tvIframe.style.pointerEvents = 'auto';
+    tvIframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    tvIframe.referrerPolicy = 'strict-origin-when-cross-origin';
+    tvIframe.setAttribute('allowfullscreen', 'true');
+    tvIframeContainer.appendChild(tvIframe);
+
+    this.tvIframe = tvIframe;
+    this.tvIframeContainer = tvIframeContainer;
+    this.isTvMuted = true;
+    this.isTvPlaying = false;
+
+    this.tvCss3dObject = new CSS3DObject(tvIframeContainer);
+    this.tvCss3dObject.position.set(3.360, 1.35, -3.10);
+    this.tvCss3dObject.rotation.y = -Math.PI / 2;
+    const tvScale = 1.17 / 640;
+    this.tvCss3dObject.scale.set(tvScale, tvScale, tvScale);
+    this.tvCss3dObject.visible = false;
+    this.css3dScene.add(this.tvCss3dObject);
+
     // ==========================================
     // 3. Living Room Corner Floor Standing Lamp
     // ==========================================
@@ -589,49 +682,176 @@ export class SceneManager {
 
     this.appliancesGroup.add(lampGroup);
     this.applianceLamp = lampGroup;
+
+    // ==========================================
+    // 4. Kitchen Washing Machine (Opposite side from Fridge Freezer)
+    // ==========================================
+    const washerGroup = new THREE.Group();
+    // Placed on opposite wall (under counter at z = -8.20, x = 2.15, facing +Z towards fridge freezer)
+    washerGroup.position.set(2.15, 0.0, -8.20);
+
+    // Main Washer Cabinet
+    const washerBodyGeom = new THREE.BoxGeometry(0.58, 0.85, 0.58);
+    const washerBodyMat = new THREE.MeshStandardMaterial({
+      color: 0xf1f5f9,
+      roughness: 0.35,
+      metalness: 0.25
+    });
+    const washerBody = new THREE.Mesh(washerBodyGeom, washerBodyMat);
+    washerBody.position.y = 0.425;
+    washerBody.castShadow = true;
+    washerBody.receiveShadow = true;
+    washerGroup.add(washerBody);
+
+    // Front Chrome/Gloss Porthole Door Rim
+    const doorRimGeom = new THREE.TorusGeometry(0.19, 0.024, 16, 36);
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      metalness: 0.90,
+      roughness: 0.18
+    });
+    const doorRim = new THREE.Mesh(doorRimGeom, chromeMat);
+    doorRim.position.set(0.0, 0.42, 0.295);
+    washerGroup.add(doorRim);
+
+    // Smoked Porthole Glass Window
+    const glassGeom = new THREE.CircleGeometry(0.175, 32);
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.1,
+      metalness: 0.6,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide
+    });
+    this.applianceWasherGlass = new THREE.Mesh(glassGeom, glassMat);
+    this.applianceWasherGlass.position.set(0.0, 0.42, 0.298);
+    washerGroup.add(this.applianceWasherGlass);
+
+    // Inner Stainless Steel Drum Lines
+    const innerRimGeom = new THREE.TorusGeometry(0.14, 0.012, 12, 28);
+    const innerRim = new THREE.Mesh(innerRimGeom, chromeMat);
+    innerRim.position.set(0.0, 0.42, 0.296);
+    washerGroup.add(innerRim);
+
+    // Top Control Panel Inset
+    const panelGeom = new THREE.PlaneGeometry(0.54, 0.14);
+    const panelMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.4,
+      metalness: 0.5,
+      side: THREE.DoubleSide
+    });
+    const panel = new THREE.Mesh(panelGeom, panelMat);
+    panel.position.set(0.0, 0.74, 0.295);
+    washerGroup.add(panel);
+
+    // Detergent Drawer Handle (Left)
+    const drawerGeom = new THREE.BoxGeometry(0.14, 0.08, 0.015);
+    const drawerMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.3
+    });
+    const drawer = new THREE.Mesh(drawerGeom, drawerMat);
+    drawer.position.set(-0.17, 0.74, 0.30);
+    washerGroup.add(drawer);
+
+    // Rotary Selector Dial (Center)
+    const dialGeom = new THREE.CylinderGeometry(0.032, 0.032, 0.018, 20);
+    const dial = new THREE.Mesh(dialGeom, chromeMat);
+    dial.rotation.x = Math.PI / 2;
+    dial.position.set(0.0, 0.74, 0.302);
+    washerGroup.add(dial);
+
+    // Digital LED Display (Right)
+    const washerDispGeom = new THREE.PlaneGeometry(0.12, 0.05);
+    const washerDispMat = new THREE.MeshBasicMaterial({
+      color: 0x00f59b,
+      side: THREE.DoubleSide
+    });
+    this.applianceWasherDisplay = new THREE.Mesh(washerDispGeom, washerDispMat);
+    this.applianceWasherDisplay.position.set(0.17, 0.74, 0.302);
+    washerGroup.add(this.applianceWasherDisplay);
+
+    // Status LED Indicator
+    const washerLedGeom = new THREE.SphereGeometry(0.006, 8, 8);
+    this.applianceWasherLed = new THREE.Mesh(washerLedGeom, new THREE.MeshBasicMaterial({ color: 0x64748b }));
+    this.applianceWasherLed.position.set(0.24, 0.77, 0.304);
+    washerGroup.add(this.applianceWasherLed);
+
+    // Internal Drum Ambient Light (Glows when running cycle)
+    this.applianceWasherLight = new THREE.PointLight(0x00f59b, 0.0, 2.0, 1.4);
+    this.applianceWasherLight.position.set(2.15, 0.45, -7.95);
+    this.appliancesGroup.add(this.applianceWasherLight);
+
+    this.appliancesGroup.add(washerGroup);
+    this.applianceWasher = washerGroup;
   }
 
   updateAppliances(appliances) {
     if (!appliances) return;
 
-    // 1. Living Room TV Screen & Glow
+    // 1. Living Room TV Screen, YouTube Video Stream & Glow
     if (this.applianceTvScreen && this.applianceTvLight) {
       const isTvOn = Boolean(appliances.tv?.is_on || appliances.tv?.state === 'on');
+      this.isTvPlaying = isTvOn;
+
       if (isTvOn) {
         this.applianceTvScreen.material.emissive.setHex(0x5ca8f5);
         this.applianceTvScreen.material.emissiveIntensity = 1.8;
         this.applianceTvLight.intensity = 1.6;
         if (this.applianceTvLed) this.applianceTvLed.material.color.setHex(0x22c55e);
+
+        const ytUrl = 'https://www.youtube.com/embed/-m0iWqgyvKQ?autoplay=1&mute=1&loop=1&playlist=-m0iWqgyvKQ&enablejsapi=1';
+        if (this.tvIframe && (!this.tvIframe.src || !this.tvIframe.src.includes('-m0iWqgyvKQ'))) {
+          this.tvIframe.src = ytUrl;
+        }
       } else {
         this.applianceTvScreen.material.emissive.setHex(0x000000);
         this.applianceTvScreen.material.emissiveIntensity = 0.0;
         this.applianceTvLight.intensity = 0.0;
         if (this.applianceTvLed) this.applianceTvLed.material.color.setHex(0xef4444);
-      }
-    }
 
-    // 2. Living Room Corner Lamp Illumination
-    if (this.applianceLampShade && this.applianceLampLight) {
-      const lamp = appliances.living_lamp;
-      const isLampOn = Boolean(lamp?.is_on || lamp?.state === 'on');
-      const brightness = lamp?.brightness !== undefined ? lamp.brightness : 255;
-      const ratio = Math.max(0.1, brightness / 255.0);
-
-      if (isLampOn) {
-        let col = new THREE.Color(0xffd580);
-        if (lamp?.rgb_color && Array.isArray(lamp.rgb_color) && lamp.rgb_color.length === 3) {
-          col.setRGB(lamp.rgb_color[0] / 255, lamp.rgb_color[1] / 255, lamp.rgb_color[2] / 255);
+        if (this.tvIframe && this.tvIframe.src) {
+          this.tvIframe.src = '';
         }
-        this.applianceLampShade.material.emissive.copy(col);
-        this.applianceLampShade.material.emissiveIntensity = 2.2 * ratio;
-        this.applianceLampLight.color.copy(col);
-        this.applianceLampLight.intensity = 3.6 * ratio;
-      } else {
-        this.applianceLampShade.material.emissive.setHex(0x000000);
-        this.applianceLampShade.material.emissiveIntensity = 0.0;
-        this.applianceLampLight.intensity = 0.0;
+        if (this.tvCss3dObject) {
+          this.tvCss3dObject.visible = false;
+        }
       }
     }
+
+    // 2. Kitchen Washing Machine Drum & Status
+    if (this.applianceWasher && this.applianceWasherLight) {
+      const washer = appliances.washer || {};
+      const isWasherActive = Boolean(washer.is_active || (washer.power_w && washer.power_w > 10));
+
+      if (isWasherActive) {
+        if (this.applianceWasherLed) this.applianceWasherLed.material.color.setHex(0x22c55e); // Active green
+        if (this.applianceWasherDisplay) this.applianceWasherDisplay.material.color.setHex(0x00f59b);
+        if (this.applianceWasherGlass) {
+          this.applianceWasherGlass.material.emissive.setHex(0x00f59b);
+          this.applianceWasherGlass.material.emissiveIntensity = 0.8;
+        }
+        this.applianceWasherLight.intensity = 1.4;
+      } else {
+        if (this.applianceWasherLed) this.applianceWasherLed.material.color.setHex(0x64748b); // Standby grey
+        if (this.applianceWasherDisplay) this.applianceWasherDisplay.material.color.setHex(0x334155);
+        if (this.applianceWasherGlass) {
+          this.applianceWasherGlass.material.emissive.setHex(0x000000);
+          this.applianceWasherGlass.material.emissiveIntensity = 0.0;
+        }
+        this.applianceWasherLight.intensity = 0.0;
+      }
+    }
+  }
+
+  toggleTvAudio() {
+    if (!this.tvIframe || !this.tvIframe.contentWindow) return false;
+    this.isTvMuted = !this.isTvMuted;
+    const cmd = this.isTvMuted ? 'mute' : 'unMute';
+    this.tvIframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: '' }), '*');
+    return !this.isTvMuted;
   }
 
   setRoomLightState(roomId, isOn, brightness = 255, rgb = null) {
@@ -684,6 +904,9 @@ export class SceneManager {
   setNightMode(active) {
     this.nightMode = active;
     this.applyLightingMode();
+    if (this.lastLightsData) {
+      this.updateRoomLights(this.lastLightsData);
+    }
   }
 
   loadModelWithFallbacks(initialUrl) {
@@ -748,6 +971,7 @@ export class SceneManager {
                 name.includes('Interior_Walls_First') ||
                 name.includes('Landing_Carpet') ||
                 name.includes('Carpet_') ||
+                name.includes('Room_Labels_3D') ||
                 name.includes('Solar_PV_')
               ) {
                 this.topFloorMeshes.push({
@@ -756,15 +980,33 @@ export class SceneManager {
                 });
               }
 
-              // Exterior walls, party wall, windows, exterior doors (Sliced at ground ceiling line when viewing downstairs)
+              // Sliced meshes (Cut off cleanly at Y=2.52 downstairs ceiling level when downstairs preset is chosen)
+              // This removes upstairs doors, upper toilets, upper baths/sinks, upper window glass, party wall, exterior walls.
+              // Note: Staircase is NOT cuttable, so staircase remains intact leading up from the hallway!
               if (
                 name.includes('Exterior_Walls') ||
                 name.includes('Separating_Party_Wall') ||
                 name.includes('Windows_') ||
                 name.includes('Front_Entrance_Door') ||
-                name.includes('Rear_French_Doors')
+                name.includes('Rear_French_Doors') ||
+                name.includes('Interior_Doors') ||
+                name.includes('Sanitaryware') ||
+                name.includes('Exterior_Hardware_Chrome') ||
+                name.includes('Solar_PV_Cabling')
               ) {
                 this.cuttableMeshes.push(child);
+              }
+
+              // Occluding house structure meshes for TV visibility line-of-sight test
+              if (
+                name.includes('Exterior_Walls') ||
+                name.includes('Separating_Party_Wall') ||
+                name.includes('Interior_Walls_') ||
+                name.includes('First_Floor_') ||
+                name.includes('Roof_') ||
+                name.includes('Front_Entrance_Door')
+              ) {
+                this.occludingMeshes.push(child);
               }
             }
           });
@@ -826,7 +1068,15 @@ export class SceneManager {
         if (lightObj.container) lightObj.container.visible = !isDownstairs;
         if (lightObj.fixture) lightObj.fixture.visible = !isDownstairs;
         if (lightObj.shadeMesh) lightObj.shadeMesh.visible = !isDownstairs;
-        if (isDownstairs && lightObj.light) lightObj.light.intensity = 0;
+        if (lightObj.light) {
+          if (isDownstairs) {
+            lightObj.light.intensity = 0;
+          } else if (lightObj.isOn) {
+            const factor = Math.max(0.20, Math.min(1.0, (lightObj.brightness || 255) / 255.0));
+            const nightMult = this.nightMode ? 1.4 : 1.0;
+            lightObj.light.intensity = (lightObj.config?.maxIntensity || 4.0) * factor * nightMult;
+          }
+        }
       }
     }
   }
@@ -856,6 +1106,11 @@ export class SceneManager {
       ev: {
         pos: new THREE.Vector3(7.2, 2.2, 3.2),
         target: new THREE.Vector3(5.2, 0.95, 1.0),
+        xray: false
+      },
+      charger: {
+        pos: new THREE.Vector3(7.4, 2.2, 0.4),
+        target: new THREE.Vector3(5.20, 1.25, 0.05),
         xray: false
       },
       downstairs: {
@@ -938,6 +1193,9 @@ export class SceneManager {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    if (this.css3dRenderer) {
+      this.css3dRenderer.setSize(width, height);
+    }
   }
 
   animate() {
@@ -964,6 +1222,43 @@ export class SceneManager {
 
     this.renderer.render(this.scene, this.camera);
 
+    // Update TV YouTube stream visibility & render CSS3D scene
+    if (this.tvCss3dObject) {
+      if (this.isTvPlaying) {
+        // Camera must be facing the front of the screen (west / -X direction into living room)
+        const isFacing = this.camera.position.x < 3.32;
+        let isOccluded = false;
+
+        // Verify line-of-sight: if any wall, floor, or roof blocks the ray from camera to TV, hide the TV
+        if (isFacing && this.occludingMeshes && this.occludingMeshes.length > 0) {
+          const rayDir = new THREE.Vector3().subVectors(this.tvTargetPos, this.camera.position);
+          const distToTv = rayDir.length();
+          rayDir.normalize();
+          this.tvRaycaster.set(this.camera.position, rayDir);
+          this.tvRaycaster.near = 0.1;
+          this.tvRaycaster.far = distToTv;
+
+          const visibleOccluders = this.occludingMeshes.filter(m => m.visible);
+          const hits = this.tvRaycaster.intersectObjects(visibleOccluders, false);
+          for (const hit of hits) {
+            if (hit.distance < distToTv - 0.20) {
+              isOccluded = true;
+              break;
+            }
+          }
+        }
+
+        const isGroundVisible = this.cutawayMode === 'downstairs' || this.xrayActive || this.camera.position.distanceTo(new THREE.Vector3(3.38, 1.35, -3.10)) < 4.5;
+        this.tvCss3dObject.visible = isFacing && isGroundVisible && !isOccluded;
+      } else {
+        this.tvCss3dObject.visible = false;
+      }
+    }
+
+    if (this.css3dRenderer && this.css3dScene) {
+      this.css3dRenderer.render(this.css3dScene, this.camera);
+    }
+
     if (this.onFrame) {
       this.onFrame();
     }
@@ -972,6 +1267,12 @@ export class SceneManager {
   destroy() {
     this.isRunning = false;
     window.removeEventListener('resize', this.handleResize);
+    if (this.tvIframe) {
+      this.tvIframe.src = '';
+    }
+    if (this.css3dRenderer?.domElement?.parentElement) {
+      this.css3dRenderer.domElement.parentElement.removeChild(this.css3dRenderer.domElement);
+    }
     if (this.renderer?.domElement?.parentElement) {
       this.renderer.domElement.parentElement.removeChild(this.renderer.domElement);
     }

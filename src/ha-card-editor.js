@@ -229,51 +229,51 @@ export class HaEnergy3DCardEditor extends HTMLElement {
         <div class="grid-2">
           <div class="input-row">
             <label>Living Room / Lounge Ceiling</label>
-            <input type="text" data-key="light_lounge" value="${c.light_lounge || 'light.living_room'}">
+            <input type="text" data-key="light_lounge" value="${c.light_lounge || ''}" placeholder="e.g. light.living_room">
           </div>
           <div class="input-row">
             <label>Living Room Lamp</label>
-            <input type="text" data-key="light_living_lamp" value="${c.light_living_lamp || 'light.living_room_lamp'}">
+            <input type="text" data-key="light_living_lamp" value="${c.light_living_lamp || 'light.living_room_lamp'}" placeholder="e.g. light.living_room_lamp">
           </div>
           <div class="input-row">
             <label>Kitchen</label>
-            <input type="text" data-key="light_kitchen" value="${c.light_kitchen || 'light.kitchen'}">
+            <input type="text" data-key="light_kitchen" value="${c.light_kitchen || ''}" placeholder="e.g. light.kitchen">
           </div>
           <div class="input-row">
             <label>Dining Room</label>
-            <input type="text" data-key="light_dining" value="${c.light_dining || 'light.dining_room'}">
+            <input type="text" data-key="light_dining" value="${c.light_dining || ''}" placeholder="e.g. light.dining_room">
           </div>
           <div class="input-row">
             <label>Entrance Hall & Stairs</label>
-            <input type="text" data-key="light_hallway" value="${c.light_hallway || 'light.hallway'}">
+            <input type="text" data-key="light_hallway" value="${c.light_hallway || ''}" placeholder="e.g. light.hallway">
           </div>
           <div class="input-row">
             <label>Downstairs WC</label>
-            <input type="text" data-key="light_wc" value="${c.light_wc || 'light.downstairs_wc'}">
+            <input type="text" data-key="light_wc" value="${c.light_wc || ''}" placeholder="e.g. light.downstairs_wc">
           </div>
           <div class="input-row">
             <label>Master Bedroom</label>
-            <input type="text" data-key="light_master_bedroom" value="${c.light_master_bedroom || 'light.master_bedroom'}">
+            <input type="text" data-key="light_master_bedroom" value="${c.light_master_bedroom || ''}" placeholder="e.g. light.master_bedroom">
           </div>
           <div class="input-row">
             <label>Master En-Suite</label>
-            <input type="text" data-key="light_ensuite" value="${c.light_ensuite || 'light.ensuite'}">
+            <input type="text" data-key="light_ensuite" value="${c.light_ensuite || ''}" placeholder="e.g. light.ensuite">
           </div>
           <div class="input-row">
             <label>Bedroom 2 (Guestroom)</label>
-            <input type="text" data-key="light_bedroom2" value="${c.light_bedroom2 || 'light.bedroom_2'}">
+            <input type="text" data-key="light_bedroom2" value="${c.light_bedroom2 || ''}" placeholder="e.g. light.bedroom_2">
           </div>
           <div class="input-row">
             <label>Bedroom 3 (Nursery / Office)</label>
-            <input type="text" data-key="light_bedroom3" value="${c.light_bedroom3 || 'light.bedroom_3'}">
+            <input type="text" data-key="light_bedroom3" value="${c.light_bedroom3 || ''}" placeholder="e.g. light.bedroom_3">
           </div>
           <div class="input-row">
             <label>Family Bathroom</label>
-            <input type="text" data-key="light_bathroom" value="${c.light_bathroom || ''}">
+            <input type="text" data-key="light_bathroom" value="${c.light_bathroom || ''}" placeholder="e.g. light.family_bathroom">
           </div>
           <div class="input-row">
             <label>Upstairs Landing</label>
-            <input type="text" data-key="light_landing" value="${c.light_landing || ''}">
+            <input type="text" data-key="light_landing" value="${c.light_landing || ''}" placeholder="e.g. light.landing">
           </div>
         </div>
       </div>

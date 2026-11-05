@@ -87,7 +87,25 @@ export class HaEnergy3DCard extends HTMLElement {
 
     try {
       const savedLights = JSON.parse(localStorage.getItem('ha_energy_3d_custom_lights') || 'null');
-      this.customLights = savedLights && Array.isArray(savedLights) && savedLights.length ? savedLights : JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
+      if (savedLights && Array.isArray(savedLights) && savedLights.length) {
+        // Clean out legacy dummy entity IDs that prevent lights from working
+        const dummyEntities = new Set([
+          'light.living_room', 'light.kitchen', 'light.dining_room', 'light.downstairs_wc',
+          'light.master_bedroom', 'light.ensuite', 'light.bedroom_2', 'light.bedroom_3',
+          'light.family_bathroom', 'light.landing'
+        ]);
+        for (const l of savedLights) {
+          if (l.id !== 'living_lamp' && dummyEntities.has(l.entity_id)) {
+            l.entity_id = this.customSensors[`light_${l.id}`] || this.customSensors[`light_${l.id === 'master_bedroom' ? 'master' : l.id}`] || '';
+          }
+          if (l.id === 'living_lamp' && (l.name === 'Living Room Corner Lamp' || !l.name)) {
+            l.name = 'Living Room Lamp';
+          }
+        }
+        this.customLights = savedLights;
+      } else {
+        this.customLights = JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
+      }
     } catch (e) {
       this.customLights = JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
     }
@@ -124,6 +142,7 @@ export class HaEnergy3DCard extends HTMLElement {
       octopus_gas_spend: 'sensor.octopus_energy_gas_current_month_cost',
       // myenergi & Peugeot EV
       myenergi_power: 'sensor.myenergi_zappi_power',
+      myenergi_status: 'sensor.myenergi_zappi_status',
       myenergi_energy: 'sensor.myenergi_zappi_charge_added_session',
       peugeot_battery: 'sensor.e2008_battery_level',
       peugeot_range: 'sensor.e2008_battery_range',
@@ -132,6 +151,7 @@ export class HaEnergy3DCard extends HTMLElement {
       thermostat_upstairs: 'climate.upstairs',
       // Appliances & Living Room Devices
       sensor_fridge: 'sensor.fridge_power',
+      sensor_washer: 'sensor.washing_machine_power',
       sensor_tv: 'media_player.living_room_tv',
       light_living_lamp: 'light.living_room_lamp',
       // Room Lights (Unset by default: strictly OFF until user maps a sensor)
@@ -234,15 +254,70 @@ export class HaEnergy3DCard extends HTMLElement {
         this.sceneManager.controls.autoRotate = enable;
       },
       onToggleLight: (entityId) => this.toggleLightEntity(entityId),
+      onToggleRoomLight: (lightId, isOn) => {
+        if (!this.energyData.room_lights) this.energyData.room_lights = {};
+        if (!this.energyData.room_lights[lightId]) {
+          this.energyData.room_lights[lightId] = { entity_id: '', is_on: isOn, brightness: isOn ? 255 : 0, rgb_color: null };
+        } else {
+          this.energyData.room_lights[lightId].is_on = isOn;
+          this.energyData.room_lights[lightId].brightness = isOn ? (this.energyData.room_lights[lightId].brightness || 255) : 0;
+        }
+        if (lightId === 'living_lamp') {
+          if (!this.energyData.appliances) this.energyData.appliances = {};
+          this.energyData.appliances.living_lamp = this.energyData.room_lights[lightId];
+        }
+        if (this.sceneManager) {
+          this.sceneManager.updateRoomLights(this.energyData.room_lights);
+        }
+      },
+      onToggleTvAudio: () => this.sceneManager.toggleTvAudio(),
       onSaveSensors: (customSensors) => {
         this.customSensors = customSensors;
         this._config = { ...this._config, ...customSensors };
+        // Sync customLights entity_id with the saved sensor config
+        for (const light of this.customLights) {
+          let cfgVal = customSensors[`light_${light.id}`];
+          if (cfgVal === undefined && light.id === 'master_bedroom') {
+            cfgVal = customSensors.light_master_bedroom || customSensors.light_master;
+          }
+          if (cfgVal === undefined && light.id === 'living_lamp') {
+            cfgVal = customSensors.light_living_lamp;
+          }
+          if (cfgVal !== undefined) {
+            light.entity_id = cfgVal;
+          }
+        }
+        try {
+          localStorage.setItem('ha_energy_3d_custom_lights', JSON.stringify(this.customLights));
+        } catch (e) {}
+        this.sceneManager.rebuildCustomLights(this.customLights);
         this.updateStatesFromHass();
+        if (this.hud) {
+          this.hud.setCustomLights(this.customLights);
+          this.hud.renderDrawerContent();
+        }
       },
       onSaveCustomLights: (lights) => {
         this.customLights = lights;
         try {
           localStorage.setItem('ha_energy_3d_custom_lights', JSON.stringify(lights));
+        } catch (e) {}
+        // Also sync back into customSensors
+        for (const light of lights) {
+          if (light.id === 'living_lamp') {
+            this.customSensors.light_living_lamp = light.entity_id || '';
+            this._config.light_living_lamp = light.entity_id || '';
+          } else {
+            this.customSensors[`light_${light.id}`] = light.entity_id || '';
+            this._config[`light_${light.id}`] = light.entity_id || '';
+            if (light.id === 'master_bedroom') {
+              this.customSensors.light_master = light.entity_id || '';
+              this._config.light_master = light.entity_id || '';
+            }
+          }
+        }
+        try {
+          localStorage.setItem('ha_energy_3d_custom_sensors', JSON.stringify(this.customSensors));
         } catch (e) {}
         this.sceneManager.rebuildCustomLights(lights);
         this.updateStatesFromHass();
@@ -287,7 +362,7 @@ export class HaEnergy3DCard extends HTMLElement {
     if (!this._hass || !entityId) return defaultKw;
     const stateObj = this._hass.states[entityId];
     if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      return defaultKw;
+      return 0;
     }
     const unit = stateObj.attributes?.unit_of_measurement || '';
     return autoFigureKw(stateObj.state, unit);
@@ -297,7 +372,7 @@ export class HaEnergy3DCard extends HTMLElement {
     if (!this._hass || !entityId) return defaultKwh;
     const stateObj = this._hass.states[entityId];
     if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      return defaultKwh;
+      return 0;
     }
     const unit = stateObj.attributes?.unit_of_measurement || '';
     return autoFigureKwh(stateObj.state, unit);
@@ -307,7 +382,7 @@ export class HaEnergy3DCard extends HTMLElement {
     if (!this._hass || !entityId) return defaultVal;
     const stateObj = this._hass.states[entityId];
     if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      return defaultVal;
+      return 0;
     }
     const val = parseFloat(stateObj.state);
     return isNaN(val) ? defaultVal : val;
@@ -342,10 +417,16 @@ export class HaEnergy3DCard extends HTMLElement {
     const exportKw = this.getPowerInKw(cfg.octopus_export_power, 0);
     let isExporting = false;
 
-    if (exportKw > 0.04) {
-      electricKw = -exportKw;
+    // Strict rule:
+    // If electricKw > 0.02: House is IMPORTING from Octopus grid -> positive kW, flow moves towards house.
+    // If electricKw < -0.02: House is EXPORTING (negative) -> flow moves away from house towards pylon.
+    if (electricKw < -0.02) {
       isExporting = true;
-    } else if (electricKw < -0.04) {
+    } else if (electricKw > 0.02) {
+      isExporting = false;
+    } else if (exportKw > 0.04) {
+      // Only when main electricity power is ~0 and dedicated export sensor reports export
+      electricKw = -exportKw;
       isExporting = true;
     }
 
@@ -397,9 +478,44 @@ export class HaEnergy3DCard extends HTMLElement {
 
     // 5. myenergi Zappi & Peugeot e-2008 (Auto-figures Watts vs kW, e.g. 7200W -> 7.2 kW)
     const evChargerKw = this.getPowerInKw(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
+    const evStatusRaw = this.getEntityState(cfg.myenergi_status, '').toLowerCase();
+
+    let isConnected = true;
+    let statusText = 'Connected';
+
+    if (evStatusRaw) {
+      if (evStatusRaw.includes('charg')) {
+        isConnected = true;
+        statusText = 'Charging';
+      } else if (evStatusRaw.includes('connect') || evStatusRaw.includes('wait') || evStatusRaw.includes('pause') || evStatusRaw.includes('plug') || evStatusRaw.includes('complete')) {
+        isConnected = true;
+        statusText = 'Connected (Idle)';
+      } else if (evStatusRaw.includes('disconn') || evStatusRaw === 'off') {
+        isConnected = false;
+        statusText = 'Disconnected';
+      } else {
+        statusText = evStatusRaw.charAt(0).toUpperCase() + evStatusRaw.slice(1);
+      }
+    } else {
+      if (evChargerKw > 0.04) {
+        isConnected = true;
+        statusText = 'Charging';
+      } else {
+        const hasCar = this.getEntityNumericValue(cfg.peugeot_battery, 0) > 0;
+        isConnected = hasCar;
+        statusText = hasCar ? 'Connected (Idle)' : 'Disconnected';
+      }
+    }
+
+    const isCharging = evChargerKw > 0.04;
+    if (isCharging) {
+      statusText = `Charging @ ${evChargerKw.toFixed(1)} kW`;
+    }
+
     this.energyData.ev = {
-      is_charging: evChargerKw > 0.04,
-      is_plugged: true,
+      is_charging: isCharging,
+      is_connected: isConnected,
+      status_text: statusText,
       charger_power_kw: evChargerKw,
       energy_added_kwh: this.getEnergyInKwh(cfg.myenergi_energy, this.energyData.ev.energy_added_kwh),
       charger_mode: evChargerKw > 3.0 ? 'Fast' : 'Eco+',
@@ -407,18 +523,51 @@ export class HaEnergy3DCard extends HTMLElement {
       range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
     };
 
-    // 6. Customizable 3D Lights (Mapped to Home Assistant entities)
+    // 6. Customizable 3D Lights (Mapped to Home Assistant entities or manual toggle)
     const lightsData = {};
     for (const light of this.customLights) {
-      const entityId = light.entity_id || cfg[`light_${light.id}`] || cfg.room_lights?.[light.id];
+      let entityId = cfg[`light_${light.id}`];
+      if (entityId === undefined && light.id === 'master_bedroom') {
+        entityId = cfg.light_master_bedroom || cfg.light_master;
+      }
+      if (entityId === undefined && light.id === 'living_lamp') {
+        entityId = cfg.light_living_lamp;
+      }
+      if (!entityId && light.entity_id) {
+        entityId = light.entity_id;
+      }
+
+      // If still no entityId, check if HA states has a direct match
+      if (!entityId && this._hass?.states) {
+        const potential = [
+          `light.${light.id}`,
+          `switch.${light.id}`,
+          `light.${light.id.replace('_bedroom', '')}`,
+          `light.${light.id.replace('bedroom', 'bed_')}`
+        ];
+        for (const pot of potential) {
+          if (this._hass.states[pot]) {
+            entityId = pot;
+            break;
+          }
+        }
+      }
+
       lightsData[light.id] = this.getLightState(entityId, this.energyData.room_lights?.[light.id]);
     }
     this.energyData.room_lights = lightsData;
 
     // 7. Kitchen Fridge Freezer, Living Room TV, and Corner Lamp
-    const fridgePower = this.getPowerInKw(cfg.sensor_fridge, this.energyData.appliances?.fridge?.power_kw ?? 0.085);
-    const fridgeRawState = this.getEntityState(cfg.sensor_fridge, '');
-    const isFridgeActive = fridgePower > 0.005 || fridgeRawState === 'on';
+    const fridgeStateObj = cfg.sensor_fridge && this._hass ? this._hass.states[cfg.sensor_fridge] : null;
+    const fridgeRawState = (fridgeStateObj ? fridgeStateObj.state : this.getEntityState(cfg.sensor_fridge, '')).toLowerCase();
+    const isFridgeUnavailable = fridgeStateObj && (fridgeRawState === 'unavailable' || fridgeRawState === 'unknown');
+    let fridgePower = 0.0;
+    if (isFridgeUnavailable) {
+      fridgePower = 0.0;
+    } else {
+      fridgePower = this.getPowerInKw(cfg.sensor_fridge, this.energyData.appliances?.fridge?.power_kw ?? 0.085);
+    }
+    const isFridgeActive = !isFridgeUnavailable && (fridgePower > 0.005 || fridgeRawState === 'on');
 
     const tvStateObj = cfg.sensor_tv && this._hass ? this._hass.states[cfg.sensor_tv] : null;
     let isTvOn = false;
@@ -437,6 +586,17 @@ export class HaEnergy3DCard extends HTMLElement {
       tvPower = this.energyData.appliances.tv.power_kw;
     }
 
+    const washerStateObj = cfg.sensor_washer && this._hass ? this._hass.states[cfg.sensor_washer] : null;
+    const washerRawState = (washerStateObj ? washerStateObj.state : this.getEntityState(cfg.sensor_washer, '')).toLowerCase();
+    const isWasherUnavailable = washerStateObj && (washerRawState === 'unavailable' || washerRawState === 'unknown');
+    let washerPower = 0.0;
+    if (isWasherUnavailable) {
+      washerPower = 0.0;
+    } else {
+      washerPower = this.getPowerInKw(cfg.sensor_washer, this.energyData.appliances?.washer?.power_kw ?? 0.0);
+    }
+    const isWasherActive = !isWasherUnavailable && (washerPower > 0.010 || washerRawState === 'on' || washerRawState === 'running');
+
     const lampEntity = cfg.light_living_lamp || this.customLights.find(l => l.id === 'living_lamp' || l.name?.toLowerCase().includes('corner lamp'))?.entity_id;
     const lampData = this.getLightState(lampEntity, this.energyData.appliances?.living_lamp);
 
@@ -444,9 +604,16 @@ export class HaEnergy3DCard extends HTMLElement {
       fridge: {
         entity_id: cfg.sensor_fridge || '',
         power_kw: fridgePower,
-        power_w: Math.round(fridgePower * 1000),
+        power_w: isFridgeUnavailable ? 0 : Math.round(fridgePower * 1000),
         is_active: isFridgeActive,
-        state: isFridgeActive ? 'Running' : 'Standby'
+        state: isFridgeUnavailable ? 'Unavailable' : (isFridgeActive ? 'Running' : 'Standby')
+      },
+      washer: {
+        entity_id: cfg.sensor_washer || '',
+        power_kw: washerPower,
+        power_w: isWasherUnavailable ? 0 : Math.round(washerPower * 1000),
+        is_active: isWasherActive,
+        state: isWasherUnavailable ? 'Unavailable' : (isWasherActive ? 'Running' : 'Standby')
       },
       tv: {
         entity_id: cfg.sensor_tv || '',
@@ -500,28 +667,34 @@ export class HaEnergy3DCard extends HTMLElement {
   }
 
   getLightState(entityId, defaultState = {}) {
-    // If no sensor is set/configured for a light, it must be strictly OFF
-    if (!entityId || typeof entityId !== 'string' || !entityId.trim()) {
-      return {
-        entity_id: '',
-        is_on: false,
-        brightness: 0,
-        rgb_color: null
-      };
-    }
+    const cleanId = (entityId || '').trim();
+    const prevOn = Boolean(defaultState?.is_on || defaultState?.state === 'on');
+    const prevBri = defaultState?.brightness !== undefined ? defaultState.brightness : (prevOn ? 255 : 0);
+    const prevRgb = defaultState?.rgb_color || null;
 
-    const cleanId = entityId.trim();
     const res = {
       entity_id: cleanId,
-      is_on: false,
-      brightness: 0,
-      rgb_color: null
+      is_on: prevOn,
+      brightness: prevBri,
+      rgb_color: prevRgb
     };
+
+    if (!cleanId) {
+      // Unmapped entity: respect current/manual toggle state
+      return res;
+    }
 
     if (!this._hass) return res;
     const stateObj = this._hass.states[cleanId];
-    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      return res; // Remains OFF if unavailable or unknown
+    if (!stateObj) {
+      // Entity not found in this HA instance: retain current/manual toggle state
+      return res;
+    }
+
+    if (stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
+      res.is_on = false;
+      res.brightness = 0;
+      return res;
     }
 
     res.is_on = stateObj.state === 'on';

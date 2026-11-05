@@ -44,6 +44,8 @@ export const DEFAULT_ENERGY_DATA = {
   // myenergi Zappi EV Charger & Peugeot e-2008
   ev: {
     is_charging: true,       // EV is plugged in and actively charging
+    is_connected: true,      // Cable connected
+    status_text: 'Charging @ 7.2 kW',
     is_plugged: true,
     charger_power_kw: 7.20,  // Live charging power from Zappi
     energy_added_kwh: 22.4,  // Session / today energy added to car
@@ -90,7 +92,8 @@ export const DEFAULT_ENERGY_DATA = {
     bedroom2: { is_on: false, brightness: 0, entity_id: '' },
     bedroom3: { is_on: false, brightness: 0, entity_id: '' },
     bathroom: { is_on: false, brightness: 0, entity_id: '' },
-    landing: { is_on: false, brightness: 0, entity_id: '' }
+    landing: { is_on: false, brightness: 0, entity_id: '' },
+    living_lamp: { is_on: true, brightness: 220, entity_id: 'light.living_room_lamp' }
   },
 
   // Dedicated Appliances & Living Room Lamp
@@ -98,6 +101,12 @@ export const DEFAULT_ENERGY_DATA = {
     fridge: {
       entity_id: 'sensor.fridge_power',
       power_kw: 0.065, // ~65W typical compressor cycle
+      is_active: true
+    },
+    washer: {
+      entity_id: 'sensor.washing_machine_power',
+      power_kw: 0.450, // ~450W active wash cycle
+      power_w: 450,
       is_active: true
     },
     tv: {

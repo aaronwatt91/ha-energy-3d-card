@@ -40,6 +40,7 @@ export class HUDOverlay {
     this.onToggleNight = options.onToggleNight || (() => {});
     this.onToggleRotate = options.onToggleRotate || (() => {});
     this.onToggleLight = options.onToggleLight || (() => {});
+    this.onToggleTvAudio = options.onToggleTvAudio || (() => {});
     this.onSaveSensors = options.onSaveSensors || (() => {});
     this.customLights = options.customLights || [];
     this.onSaveCustomLights = options.onSaveCustomLights || (() => {});
@@ -1161,10 +1162,17 @@ export class HUDOverlay {
           <!-- EV -->
           <div class="sensor-group-title">🚗 myenergi Zappi & Peugeot e-2008</div>
           <div class="sensor-row">
-            <label>Zappi Charging Speed (kW)</label>
+            <label>Zappi Charging Speed (kW / Watts)</label>
             <div class="sensor-input-wrap">
               <input type="text" list="ha-entities-datalist" id="cfg-zappi-power" placeholder="sensor.myenergi_zappi_power">
               <button type="button" class="btn-entity-browse" data-target="#cfg-zappi-power">📋 Select</button>
+            </div>
+          </div>
+          <div class="sensor-row">
+            <label>Zappi Connection Status (climate/sensor/binary_sensor)</label>
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-zappi-status" placeholder="sensor.myenergi_zappi_status">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-zappi-status">📋 Select</button>
             </div>
           </div>
           <div class="sensor-row">
@@ -1191,26 +1199,26 @@ export class HUDOverlay {
 
           <!-- Appliances & Furniture -->
           <div class="sensor-group-title">🍽️ Appliances & Living Room Devices</div>
-          <div class="sensor-row">
-            <label>Kitchen Fridge Freezer (power sensor in Watts or kW)</label>
-            <div class="sensor-input-wrap">
-              <input type="text" list="ha-entities-datalist" id="cfg-sensor-fridge" placeholder="sensor.fridge_power">
-              <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-fridge">📋 Select</button>
-            </div>
-          </div>
           <div class="sensor-grid-2">
             <div class="sensor-row">
-              <label>📺 Living Room TV (media_player/switch/power)</label>
+              <label>Kitchen Fridge Freezer (power sensor)</label>
               <div class="sensor-input-wrap">
-                <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="media_player.living_room_tv">
-                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-tv">📋 Select</button>
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-fridge" placeholder="sensor.fridge_power">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-fridge">📋 Select</button>
               </div>
             </div>
             <div class="sensor-row">
-              <label>🛋️ Living Room Corner Floor Lamp (light/switch)</label>
+              <label>Kitchen Washing Machine (power sensor)</label>
               <div class="sensor-input-wrap">
-                <input type="text" list="ha-entities-datalist" id="cfg-light-living-lamp" placeholder="light.living_room_lamp">
-                <button type="button" class="btn-entity-browse" data-target="#cfg-light-living-lamp">📋 Select</button>
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-washer" placeholder="sensor.washing_machine_power">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-washer">📋 Select</button>
+              </div>
+            </div>
+            <div class="sensor-row">
+              <label>📺 Living Room TV (media_player/switch)</label>
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="media_player.living_room_tv">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-tv">📋 Select</button>
               </div>
             </div>
           </div>
@@ -1788,6 +1796,7 @@ export class HUDOverlay {
     setVal('#cfg-gas-month', cfg.octopus_gas_month);
 
     setVal('#cfg-zappi-power', cfg.myenergi_power);
+    setVal('#cfg-zappi-status', cfg.myenergi_status);
     setVal('#cfg-zappi-energy', cfg.myenergi_energy);
     setVal('#cfg-peugeot-battery', cfg.peugeot_battery);
     setVal('#cfg-peugeot-range', cfg.peugeot_range);
@@ -1798,6 +1807,7 @@ export class HUDOverlay {
 
     // Appliances & Living Room Devices
     setVal('#cfg-sensor-fridge', cfg.sensor_fridge);
+    setVal('#cfg-sensor-washer', cfg.sensor_washer);
     setVal('#cfg-sensor-tv', cfg.sensor_tv);
     setVal('#cfg-light-living-lamp', cfg.light_living_lamp);
 
@@ -1842,6 +1852,7 @@ export class HUDOverlay {
       octopus_gas_month: getVal('#cfg-gas-month'),
 
       myenergi_power: getVal('#cfg-zappi-power'),
+      myenergi_status: getVal('#cfg-zappi-status'),
       myenergi_energy: getVal('#cfg-zappi-energy'),
       peugeot_battery: getVal('#cfg-peugeot-battery'),
       peugeot_range: getVal('#cfg-peugeot-range'),
@@ -1852,6 +1863,7 @@ export class HUDOverlay {
 
       // Appliances & Living Room Devices
       sensor_fridge: getVal('#cfg-sensor-fridge'),
+      sensor_washer: getVal('#cfg-sensor-washer'),
       sensor_tv: getVal('#cfg-sensor-tv'),
       light_living_lamp: getVal('#cfg-light-living-lamp'),
 
@@ -2059,7 +2071,8 @@ export class HUDOverlay {
 
     // Populate inputs
     this.el.querySelector('#custom-light-name').value = this.editingLight.name || '';
-    this.el.querySelector('#custom-light-entity').value = this.editingLight.entity_id || '';
+    const currentEntity = this.editingLight.entity_id || this.currentSensorConfig?.[`light_${this.editingLight.id}`] || (this.editingLight.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || '';
+    this.el.querySelector('#custom-light-entity').value = currentEntity;
 
     // Floor buttons
     const floor = this.editingLight.floor || (this.editingLight.pos.y > 3.0 ? 'first' : 'ground');
@@ -2180,6 +2193,7 @@ export class HUDOverlay {
     setIfFound('#cfg-gas-month', 'gas_month');
 
     setIfFound('#cfg-zappi-power', 'zappi_power', 'myenergi_power', 'ev_power', 'charger_power');
+    setIfFound('#cfg-zappi-status', 'zappi_status', 'zappi_plug_status', 'myenergi_status', 'charger_status');
     setIfFound('#cfg-zappi-energy', 'charge_added_session', 'zappi_energy', 'zappi_today');
     setIfFound('#cfg-peugeot-battery', 'e2008_battery', 'peugeot_battery', 'battery_level', 'soc');
     setIfFound('#cfg-peugeot-range', 'e2008_range', 'peugeot_range', 'range');
@@ -2190,6 +2204,7 @@ export class HUDOverlay {
 
     // Appliances auto-detection
     setIfFound('#cfg-sensor-fridge', 'fridge', 'refrigerator', 'freezer', 'fridge_power', 'kitchen_fridge');
+    setIfFound('#cfg-sensor-washer', 'washer_power', 'washing_machine_power', 'washing_machine', 'washer', 'laundry_power', 'laundry');
     setIfFound('#cfg-sensor-tv', 'living_room_tv', 'lounge_tv', 'media_player.tv', 'media_player.living_room', 'switch.tv');
     setIfFound('#cfg-light-living-lamp', 'living_room_lamp', 'corner_lamp', 'living_lamp', 'floor_lamp', 'standard_lamp', 'lamp');
 
@@ -2296,6 +2311,13 @@ export class HUDOverlay {
             <div class="stat-label">THIS MONTH</div>
             <div class="stat-val">${Number(o.month_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
           </div>
+          <div class="stat-card">
+            <div class="stat-label">KITCHEN WASHING MACHINE</div>
+            <div class="stat-val" style="color:${data.appliances?.washer?.is_active ? '#00f59b' : '#94a3b8'};">
+              ${data.appliances?.washer?.power_w || 0} <span class="stat-unit">W</span>
+            </div>
+            <div class="stat-subtext">Status: ${data.appliances?.washer?.state || 'Standby'}</div>
+          </div>
         </div>
       `;
     } else if (this.activeTab === 'gas') {
@@ -2338,28 +2360,57 @@ export class HUDOverlay {
       const ev = data.ev || {};
       const soc = Math.min(Math.max(Number(ev.battery_soc_pct || 0), 0), 100);
       const evKw = toKw(ev.charger_power_kw);
-      const isCharging = Boolean(ev.is_charging && evKw > 0.05);
+      const isCharging = Boolean(ev.is_charging && evKw > 0.04);
+      const isConnected = ev.is_connected !== false;
+      const statusText = ev.status_text || (isCharging ? `Charging @ ${evKw.toFixed(1)} kW` : (isConnected ? 'Connected (Idle)' : 'Disconnected'));
+
       content.innerHTML = `
         <div class="stat-grid">
+          <div class="stat-card stat-card-full">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div>
+                <div class="stat-label">⚡ myenergi ZAPPI EV CHARGER</div>
+                <div class="stat-val color-ev" style="font-size:24px;">
+                  ${isCharging ? `${evKw.toFixed(2)} <span class="stat-unit">kW</span>` : (isConnected ? 'Connected' : 'Disconnected')}
+                  <span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,0.08); color: ${isCharging ? '#00f59b' : (isConnected ? '#38bdf8' : '#94a3b8')}; vertical-align: middle; margin-left: 6px;">
+                    ${isCharging ? '⚡ CHARGING' : (isConnected ? '🔌 CONNECTED' : 'DISCONNECTED')}
+                  </span>
+                </div>
+                <div class="stat-subtext" style="margin-top: 4px;">
+                  Connection: <strong style="color:${isConnected ? (isCharging ? '#00f59b' : '#38bdf8') : '#94a3b8'};">${isConnected ? 'Plugged In & Connected' : 'Disconnected'}</strong> &bull;
+                  Charging Rate: <strong style="color:${isCharging ? '#00f59b' : '#94a3b8'};">${isCharging ? `${evKw.toFixed(2)} kW` : '0.00 kW (Idle)'}</strong>
+                </div>
+              </div>
+              <button class="light-toggle-btn" style="padding:6px 12px;" id="btn-focus-charger">⚡ View Charger</button>
+            </div>
+          </div>
+
           <div class="stat-card stat-card-full">
             <div class="stat-label">PEUGEOT e-2008 BATTERY</div>
             <div class="stat-val color-ev">${soc}% <span class="stat-unit">(${Number(ev.range_miles || 0)} miles)</span></div>
             <div class="battery-bar-container">
               <div class="battery-bar-fill" style="width: ${soc}%"></div>
             </div>
-            <div class="stat-subtext" style="margin-top: 6px;">Charging Cable: ${isCharging ? '⚡ Flowing Charger to Car' : 'Frozen (Not Charging)'}</div>
+            <div class="stat-subtext" style="margin-top: 6px;">Charging Cable: ${isCharging ? '⚡ Flowing to Car (5 Pulses)' : (isConnected ? '🔌 Plugged In (Idle)' : 'Disconnected')}</div>
           </div>
+
           <div class="stat-card">
-            <div class="stat-label">myenergi ZAPPI SPEED</div>
+            <div class="stat-label">CHARGING SPEED</div>
             <div class="stat-val">${evKw.toFixed(2)} <span class="stat-unit">kW</span></div>
             <div class="stat-subtext">Mode: ${ev.charger_mode || 'Eco+'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">SESSION ENERGY ADDED</div>
             <div class="stat-val">${Number(ev.energy_added_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
+            <div class="stat-subtext">Source: Solax PV & Grid</div>
           </div>
         </div>
       `;
+
+      const btnFocus = content.querySelector('#btn-focus-charger');
+      if (btnFocus) {
+        btnFocus.addEventListener('click', () => this.onPresetClick('charger'));
+      }
     } else if (this.activeTab === 'heating') {
       const thermo = data.thermostats || {};
       const down = thermo.downstairs || {};
@@ -2455,11 +2506,12 @@ export class HUDOverlay {
       let cardsHtml = '';
       for (const lt of lights) {
         const item = roomLights[lt.id] || (lt.id === 'living_lamp' ? data.appliances?.living_lamp : {}) || {};
-        const isOn = Boolean(item.is_on);
-        const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : 100;
+        const isOn = Boolean(item.is_on || item.state === 'on');
+        const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : (isOn ? 100 : 0);
         const icon = lt.isFloorLamp || lt.name?.toLowerCase().includes('lamp') ? '🛋️' : '💡';
         const floorText = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0) ? '🛏️ Upstairs' : '🛋️ Downstairs';
         const posText = lt.pos ? `(${lt.pos.x.toFixed(1)}, ${lt.pos.y.toFixed(1)}, ${lt.pos.z.toFixed(1)})` : '';
+        const mappedEntity = lt.entity_id || this.currentSensorConfig?.[`light_${lt.id}`] || (lt.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || '';
 
         cardsHtml += `
           <div class="light-card ${isOn ? 'active' : ''}">
@@ -2471,8 +2523,13 @@ export class HUDOverlay {
               <span>${floorText}</span>
               <span style="font-size:9px;">${posText}</span>
             </div>
-            <div style="font-size:10px; color:#94a3b8;">${isOn ? `Brightness: ${bri}%` : 'Light is off'}</div>
-            <button class="light-toggle-btn" data-entity="${lt.entity_id || ''}" data-light-id="${lt.id}">
+            <div style="font-size:10px; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
+              <span>${isOn ? `Brightness: ${bri}%` : 'Light is off'}</span>
+              <span style="font-size:9px; color:#64748b; font-family:monospace; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${mappedEntity || 'Manual Toggle'}">
+                ${mappedEntity ? `🔗 ${mappedEntity}` : '⚪ Manual'}
+              </span>
+            </div>
+            <button class="light-toggle-btn" data-entity="${mappedEntity}" data-light-id="${lt.id}">
               ${isOn ? 'Turn Off' : 'Turn On'}
             </button>
             <div class="light-card-footer">
@@ -2507,19 +2564,34 @@ export class HUDOverlay {
       const toggleBtns = content.querySelectorAll('.light-toggle-btn');
       toggleBtns.forEach((btn) => {
         btn.addEventListener('click', () => {
-          const entId = btn.getAttribute('data-entity');
+          const entId = btn.getAttribute('data-entity')?.trim();
           const lightId = btn.getAttribute('data-light-id');
+          if (!lightId) return;
+
+          let lightInfo = data.room_lights?.[lightId];
+          if (lightId === 'living_lamp') {
+            lightInfo = data.appliances?.living_lamp || lightInfo;
+          }
+          const currentOn = Boolean(lightInfo?.is_on || lightInfo?.state === 'on');
+          const newIsOn = !currentOn;
+
+          if (data.room_lights?.[lightId]) {
+            data.room_lights[lightId].is_on = newIsOn;
+            data.room_lights[lightId].brightness = newIsOn ? (data.room_lights[lightId].brightness || 255) : 0;
+          }
+          if (lightId === 'living_lamp' && data.appliances?.living_lamp) {
+            data.appliances.living_lamp.is_on = newIsOn;
+            data.appliances.living_lamp.brightness = newIsOn ? (data.appliances.living_lamp.brightness || 255) : 0;
+          }
+
           if (entId) {
             this.onToggleLight(entId);
-          } else if (lightId) {
-            if (data.room_lights?.[lightId]) {
-              data.room_lights[lightId].is_on = !data.room_lights[lightId].is_on;
-            }
-            if (lightId === 'living_lamp' && data.appliances?.living_lamp) {
-              data.appliances.living_lamp.is_on = !data.appliances.living_lamp.is_on;
-            }
-            this.renderDrawerContent();
           }
+          if (this.options.onToggleRoomLight) {
+            this.options.onToggleRoomLight(lightId, newIsOn);
+          }
+
+          this.renderDrawerContent();
         });
       });
 
@@ -2592,6 +2664,18 @@ export class HUDOverlay {
         badgeHtml = `<span>🔥 Boiler</span> <span class="color-gas">${data.octopus_gas?.is_active ? 'Heating' : 'Standby'}</span>`;
       } else if (spot.id === 'ev') {
         badgeHtml = `<span>🚗 Peugeot</span> <span class="color-ev">${data.ev?.battery_soc_pct || 68}%</span>`;
+      } else if (spot.id === 'ev_charger') {
+        const ev = data.ev || {};
+        const isCharging = Boolean(ev.is_charging);
+        const isConnected = ev.is_connected !== false;
+        const evKw = Number(ev.charger_power_kw || 0);
+        let rateText = 'Disconnected';
+        if (isCharging) {
+          rateText = `⚡ ${evKw.toFixed(1)} kW`;
+        } else if (isConnected) {
+          rateText = 'Connected';
+        }
+        badgeHtml = `<span>⚡ Zappi</span> <span style="color:${isCharging ? '#00f59b' : (isConnected ? '#38bdf8' : '#94a3b8')};font-weight:700;">${rateText}</span>`;
       } else if (spot.id === 'thermostat_downstairs') {
         const down = data.thermostats?.downstairs || {};
         const tVal = Number(down.current_temp || 20.0).toFixed(1);
@@ -2606,18 +2690,18 @@ export class HUDOverlay {
         badgeHtml = `<span>🌡️ Upstairs</span> <span style="color:${comfort.color};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${comfort.icon}</span> ${isHeat ? '<span style="color:#f97316;font-size:9px;font-weight:700;">HEATING</span>' : ''}`;
       } else if (spot.id === 'appliance_fridge') {
         const fridge = data.appliances?.fridge || {};
-        const pVal = fridge.power_w !== undefined ? `${fridge.power_w} W` : `${((fridge.power_kw || 0.085) * 1000).toFixed(0)} W`;
+        const pVal = fridge.power_w !== undefined ? `${fridge.power_w} W` : '0 W';
         const isRun = Boolean(fridge.is_active);
         badgeHtml = `<span>🧊 Fridge</span> <span style="color:#38bdf8;font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isRun ? '#10b981' : '#64748b'}">●</span>`;
+      } else if (spot.id === 'appliance_washer') {
+        const washer = data.appliances?.washer || {};
+        const isRun = Boolean(washer.is_active);
+        const pVal = washer.power_w !== undefined ? `${washer.power_w} W` : (isRun ? 'Running' : '0 W');
+        badgeHtml = `<span>🫧 Washer</span> <span style="color:${isRun ? '#00f59b' : '#94a3b8'};font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isRun ? '#10b981' : '#64748b'}">●</span>`;
       } else if (spot.id === 'appliance_tv') {
         const tv = data.appliances?.tv || {};
         const isTvOn = Boolean(tv.is_on);
-        const tvW = tv.power_w ? `${tv.power_w} W` : (isTvOn ? 'ON' : 'OFF');
-        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${tvW}</span> <span style="font-size:9px;color:${isTvOn ? '#10b981' : '#ef4444'}">●</span>`;
-      } else if (spot.id === 'light_living_lamp') {
-        const lamp = data.appliances?.living_lamp || {};
-        const isLampOn = Boolean(lamp.is_on);
-        badgeHtml = `<span>🛋️ Corner Lamp</span> <span style="color:${isLampOn ? '#fbbf24' : '#94a3b8'};font-weight:700;">${isLampOn ? '💡 ON' : 'OFF'}</span>`;
+        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${isTvOn ? '▶ Playing' : 'OFF'}</span> ${isTvOn ? '<button class="btn-tv-audio" style="margin-left:4px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,0.2);border:none;color:#fff;cursor:pointer;font-size:9px;">🔊 Sound</button>' : ''}`;
       }
 
       const badge = document.createElement('div');
@@ -2626,26 +2710,33 @@ export class HUDOverlay {
       badge.style.top = `${spot.y}px`;
       badge.innerHTML = badgeHtml;
 
-      badge.addEventListener('click', () => {
-        if (spot.id === 'light_living_lamp') {
-          const lamp = data.appliances?.living_lamp;
-          if (lamp?.entity_id) {
-            this.onToggleLight(lamp.entity_id);
-          } else if (lamp) {
-            lamp.is_on = !lamp.is_on;
-            this.renderDrawerContent();
+      badge.addEventListener('click', (e) => {
+        if (spot.id === 'appliance_tv') {
+          if (e.target.closest('.btn-tv-audio')) {
+            e.stopPropagation();
+            if (this.onToggleTvAudio) this.onToggleTvAudio();
+            return;
           }
-          return;
-        } else if (spot.id === 'appliance_tv') {
           const tv = data.appliances?.tv;
           if (tv?.entity_id) {
             this.onToggleLight(tv.entity_id);
+          } else if (tv) {
+            tv.is_on = !tv.is_on;
+            this.updateData(data);
           }
           this.onPresetClick('downstairs');
           return;
         } else if (spot.id === 'appliance_fridge') {
           this.openDrawerTab('electric');
           this.onPresetClick('downstairs');
+          return;
+        } else if (spot.id === 'appliance_washer') {
+          this.openDrawerTab('electric');
+          this.onPresetClick('downstairs');
+          return;
+        } else if (spot.id === 'ev_charger') {
+          this.openDrawerTab('ev');
+          this.onPresetClick('charger');
           return;
         }
 
