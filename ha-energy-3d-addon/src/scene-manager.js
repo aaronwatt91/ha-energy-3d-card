@@ -4,18 +4,114 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { EnergyFlowSystem } from './energy-flow-system.js';
 
 export const ROOM_LIGHT_CONFIGS = {
-  lounge: { name: 'Living Room', pos: new THREE.Vector3(1.88, 2.15, -2.35), range: 7.0, maxIntensity: 2.4, defaultColor: 0xffeaad },
-  kitchen: { name: 'Kitchen', pos: new THREE.Vector3(1.80, 2.15, -7.40), range: 6.5, maxIntensity: 2.6, defaultColor: 0xfff4e6 },
-  dining: { name: 'Dining Room', pos: new THREE.Vector3(4.30, 2.15, -7.40), range: 6.0, maxIntensity: 2.2, defaultColor: 0xffe6b8 },
-  hallway: { name: 'Hallway', pos: new THREE.Vector3(4.20, 2.15, -2.20), range: 5.5, maxIntensity: 2.0, defaultColor: 0xffedd5 },
-  wc: { name: 'Downstairs WC', pos: new THREE.Vector3(0.92, 2.15, -5.32), range: 4.0, maxIntensity: 1.8, defaultColor: 0xfff1dc },
-  master_bedroom: { name: 'Master Bedroom', pos: new THREE.Vector3(1.90, 4.55, -2.10), range: 6.8, maxIntensity: 2.4, defaultColor: 0xffeaad },
-  ensuite: { name: 'Master En-Suite', pos: new THREE.Vector3(4.40, 4.55, -1.22), range: 4.5, maxIntensity: 2.0, defaultColor: 0xfff6ea },
-  bedroom2: { name: 'Bedroom 2', pos: new THREE.Vector3(1.75, 4.55, -7.30), range: 6.0, maxIntensity: 2.2, defaultColor: 0xffeaad },
-  bedroom3: { name: 'Bedroom 3', pos: new THREE.Vector3(4.30, 4.55, -7.30), range: 6.0, maxIntensity: 2.2, defaultColor: 0xffeaad },
-  bathroom: { name: 'Family Bathroom', pos: new THREE.Vector3(1.22, 4.55, -4.95), range: 5.0, maxIntensity: 2.2, defaultColor: 0xfff8ee },
-  landing: { name: 'Landing & Stairs', pos: new THREE.Vector3(3.30, 4.55, -4.95), range: 5.5, maxIntensity: 2.0, defaultColor: 0xffedd5 },
-  exterior: { name: 'Porch & Outside', pos: new THREE.Vector3(4.80, 2.50, 0.50), range: 8.0, maxIntensity: 2.5, defaultColor: 0xfff1cc }
+  lounge: {
+    name: 'Living Room',
+    pos: new THREE.Vector3(1.88, 2.15, -2.35),
+    range: 7.5,
+    maxIntensity: 4.2,
+    defaultColor: 0xffe299,
+    boxCenter: new THREE.Vector3(1.88, 1.20, -2.35),
+    boxSize: new THREE.Vector3(3.10, 2.35, 4.05)
+  },
+  kitchen: {
+    name: 'Kitchen',
+    pos: new THREE.Vector3(1.80, 2.15, -7.40),
+    range: 7.0,
+    maxIntensity: 4.5,
+    defaultColor: 0xfff0d6,
+    boxCenter: new THREE.Vector3(1.80, 1.20, -7.41),
+    boxSize: new THREE.Vector3(2.95, 2.35, 2.30)
+  },
+  dining: {
+    name: 'Dining Room',
+    pos: new THREE.Vector3(4.30, 2.15, -7.40),
+    range: 6.5,
+    maxIntensity: 4.0,
+    defaultColor: 0xffe6b8,
+    boxCenter: new THREE.Vector3(4.32, 1.20, -7.41),
+    boxSize: new THREE.Vector3(2.00, 2.35, 2.30)
+  },
+  hallway: {
+    name: 'Hallway',
+    pos: new THREE.Vector3(4.20, 2.15, -2.20),
+    range: 6.0,
+    maxIntensity: 3.8,
+    defaultColor: 0xffedd5,
+    boxCenter: new THREE.Vector3(4.35, 1.20, -2.35),
+    boxSize: new THREE.Vector3(1.85, 2.35, 4.05)
+  },
+  wc: {
+    name: 'Downstairs WC',
+    pos: new THREE.Vector3(0.92, 2.15, -5.32),
+    range: 4.5,
+    maxIntensity: 3.5,
+    defaultColor: 0xfff1dc,
+    boxCenter: new THREE.Vector3(0.92, 1.20, -5.32),
+    boxSize: new THREE.Vector3(1.22, 2.35, 1.82)
+  },
+  master_bedroom: {
+    name: 'Master Bedroom',
+    pos: new THREE.Vector3(1.90, 4.55, -2.10),
+    range: 7.5,
+    maxIntensity: 4.2,
+    defaultColor: 0xffe299,
+    boxCenter: new THREE.Vector3(1.88, 3.85, -2.08),
+    boxSize: new THREE.Vector3(3.10, 2.25, 3.52)
+  },
+  ensuite: {
+    name: 'Master En-Suite',
+    pos: new THREE.Vector3(4.40, 4.55, -1.22),
+    range: 5.0,
+    maxIntensity: 3.6,
+    defaultColor: 0xfff6ea,
+    boxCenter: new THREE.Vector3(4.38, 3.85, -1.23),
+    boxSize: new THREE.Vector3(1.85, 2.25, 1.82)
+  },
+  bedroom2: {
+    name: 'Bedroom 2',
+    pos: new THREE.Vector3(1.75, 4.55, -7.30),
+    range: 6.8,
+    maxIntensity: 4.0,
+    defaultColor: 0xffe299,
+    boxCenter: new THREE.Vector3(1.75, 3.85, -7.31),
+    boxSize: new THREE.Vector3(2.85, 2.25, 2.48)
+  },
+  bedroom3: {
+    name: 'Bedroom 3',
+    pos: new THREE.Vector3(4.30, 4.55, -7.30),
+    range: 6.8,
+    maxIntensity: 4.0,
+    defaultColor: 0xffe299,
+    boxCenter: new THREE.Vector3(4.32, 3.85, -7.31),
+    boxSize: new THREE.Vector3(2.00, 2.25, 2.48)
+  },
+  bathroom: {
+    name: 'Family Bathroom',
+    pos: new THREE.Vector3(1.22, 4.55, -4.95),
+    range: 5.5,
+    maxIntensity: 3.8,
+    defaultColor: 0xfff8ee,
+    boxCenter: new THREE.Vector3(1.22, 3.85, -4.95),
+    boxSize: new THREE.Vector3(1.82, 2.25, 2.18)
+  },
+  landing: {
+    name: 'Landing & Stairs',
+    pos: new THREE.Vector3(3.30, 4.55, -4.95),
+    range: 6.0,
+    maxIntensity: 3.8,
+    defaultColor: 0xffedd5,
+    boxCenter: new THREE.Vector3(3.30, 3.85, -4.95),
+    boxSize: new THREE.Vector3(2.25, 2.25, 2.18)
+  },
+  exterior: {
+    name: 'Porch & Outside',
+    pos: new THREE.Vector3(4.80, 2.50, 0.50),
+    range: 9.0,
+    maxIntensity: 4.5,
+    defaultColor: 0xfff1cc,
+    boxCenter: null,
+    boxSize: null
+  }
 };
 
 /**
@@ -155,10 +251,27 @@ export class SceneManager {
       this.roomLightsGroup.add(pLight);
       this.roomLightsGroup.add(fixtureMesh);
 
+      // Unlit Room Darkness Shade Box (Makes unlit rooms visibly dark & shadowed)
+      let shadeMesh = null;
+      if (cfg.boxCenter && cfg.boxSize) {
+        const shadeGeom = new THREE.BoxGeometry(cfg.boxSize.x, cfg.boxSize.y, cfg.boxSize.z);
+        const shadeMat = new THREE.MeshBasicMaterial({
+          color: 0x040814,
+          transparent: true,
+          opacity: 0.65,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        });
+        shadeMesh = new THREE.Mesh(shadeGeom, shadeMat);
+        shadeMesh.position.copy(cfg.boxCenter);
+        this.roomLightsGroup.add(shadeMesh);
+      }
+
       this.roomLights[roomId] = {
         config: cfg,
         light: pLight,
         fixture: fixtureMesh,
+        shadeMesh,
         isOn: false,
         brightness: 0,
         colorHex: cfg.defaultColor
@@ -190,38 +303,40 @@ export class SceneManager {
     room.brightness = brightness;
 
     if (isOn) {
-      const factor = Math.max(0.15, Math.min(1.0, brightness / 255.0));
+      if (room.shadeMesh) room.shadeMesh.visible = false;
+      const factor = Math.max(0.20, Math.min(1.0, brightness / 255.0));
       if (Array.isArray(rgb) && rgb.length === 3) {
         room.light.color.setRGB(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255);
       } else {
         room.light.color.setHex(room.config.defaultColor);
       }
-      const nightMult = this.nightMode ? 1.35 : 1.0;
+      const nightMult = this.nightMode ? 1.4 : 1.0;
       room.light.intensity = room.config.maxIntensity * factor * nightMult;
-      room.fixture.material.emissive.copy(room.light.color).multiplyScalar(factor * 2.2);
+      room.fixture.material.emissive.copy(room.light.color).multiplyScalar(factor * 2.8);
       room.fixture.material.color.setHex(0xffffff);
     } else {
+      if (room.shadeMesh) room.shadeMesh.visible = true;
       room.light.intensity = 0.0;
-      room.fixture.material.emissive.setHex(0x111111);
-      room.fixture.material.color.setHex(0x444444);
+      room.fixture.material.emissive.setHex(0x0a0a0a);
+      room.fixture.material.color.setHex(0x222222);
     }
   }
 
   applyLightingMode() {
     if (this.nightMode) {
-      this.scene.background = new THREE.Color(0x070b14);
-      this.ambientLight.intensity = 0.35;
-      this.sunLight.intensity = 0.15;
+      this.scene.background = new THREE.Color(0x050811);
+      this.ambientLight.intensity = 0.12;
+      this.sunLight.intensity = 0.10;
       this.sunLight.color.setHex(0x385585);
-      this.hemiLight.intensity = 0.25;
+      this.hemiLight.intensity = 0.10;
       this.meterPointLight.intensity = 1.2;
       this.carPointLight.intensity = 1.2;
     } else {
       this.scene.background = new THREE.Color(0x0e1424);
-      this.ambientLight.intensity = 1.1;
-      this.sunLight.intensity = 1.7;
+      this.ambientLight.intensity = 0.35;
+      this.sunLight.intensity = 1.8;
       this.sunLight.color.setHex(0xfffaed);
-      this.hemiLight.intensity = 0.6;
+      this.hemiLight.intensity = 0.28;
       this.meterPointLight.intensity = 0.4;
       this.carPointLight.intensity = 0.4;
     }
