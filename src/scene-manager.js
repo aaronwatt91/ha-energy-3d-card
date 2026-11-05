@@ -102,15 +102,6 @@ export const ROOM_LIGHT_CONFIGS = {
     defaultColor: 0xffedd5,
     boxCenter: new THREE.Vector3(3.30, 3.85, -4.95),
     boxSize: new THREE.Vector3(2.25, 2.25, 2.18)
-  },
-  exterior: {
-    name: 'Porch & Outside',
-    pos: new THREE.Vector3(4.80, 2.50, 0.50),
-    range: 9.0,
-    maxIntensity: 4.5,
-    defaultColor: 0xfff1cc,
-    boxCenter: null,
-    boxSize: null
   }
 };
 

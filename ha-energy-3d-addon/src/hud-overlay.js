@@ -797,10 +797,6 @@ export class HUDOverlay {
               <label>🪜 Upstairs Landing</label>
               <input type="text" id="cfg-light-landing" placeholder="light.landing">
             </div>
-            <div class="sensor-row">
-              <label>🏡 Porch & Exterior Driveway</label>
-              <input type="text" id="cfg-light-exterior" placeholder="light.front_porch">
-            </div>
           </div>
         </div>
 
@@ -965,11 +961,11 @@ export class HUDOverlay {
     setVal('#cfg-thermostat-downstairs', cfg.thermostat_downstairs);
     setVal('#cfg-thermostat-upstairs', cfg.thermostat_upstairs);
 
-    // Room Lights
+    // Room Lights (11 Interior Rooms)
     const rooms = [
       'lounge', 'kitchen', 'dining', 'hallway', 'wc',
       'master', 'ensuite', 'bedroom2', 'bedroom3',
-      'bathroom', 'landing', 'exterior'
+      'bathroom', 'landing'
     ];
     for (const r of rooms) {
       const fieldKey = r === 'master' ? 'master_bedroom' : r;
@@ -1025,8 +1021,7 @@ export class HUDOverlay {
       light_bedroom2: getVal('#cfg-light-bedroom2'),
       light_bedroom3: getVal('#cfg-light-bedroom3'),
       light_bathroom: getVal('#cfg-light-bathroom'),
-      light_landing: getVal('#cfg-light-landing'),
-      light_exterior: getVal('#cfg-light-exterior')
+      light_landing: getVal('#cfg-light-landing')
     };
   }
 
@@ -1097,7 +1092,6 @@ export class HUDOverlay {
     setIfFound('#cfg-light-bedroom3', 'light.bedroom_3', 'light.bed_3', 'light.nursery', 'light.office', 'switch.bedroom_3');
     setIfFound('#cfg-light-bathroom', 'light.bathroom', 'light.family_bathroom', 'switch.bathroom');
     setIfFound('#cfg-light-landing', 'light.landing', 'light.stairs', 'light.upstairs_hallway', 'switch.landing');
-    setIfFound('#cfg-light-exterior', 'light.front_porch', 'light.porch', 'light.outside', 'light.driveway', 'light.garden', 'switch.porch');
   }
 
   openDrawerTab(tab) {
@@ -1354,8 +1348,7 @@ export class HUDOverlay {
         { key: 'bedroom2', name: 'Bedroom 2', icon: '🛏️' },
         { key: 'bedroom3', name: 'Bedroom 3', icon: '🧸' },
         { key: 'bathroom', name: 'Family Bathroom', icon: '🛁' },
-        { key: 'landing', name: 'Upstairs Landing', icon: '🪜' },
-        { key: 'exterior', name: 'Porch & Outside', icon: '🏡' }
+        { key: 'landing', name: 'Upstairs Landing', icon: '🪜' }
       ];
 
       let cardsHtml = '';

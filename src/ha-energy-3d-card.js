@@ -123,19 +123,18 @@ export class HaEnergy3DCard extends HTMLElement {
       // Thermostats (Upstairs & Downstairs)
       thermostat_downstairs: 'climate.downstairs',
       thermostat_upstairs: 'climate.upstairs',
-      // Room Lights
-      light_lounge: 'light.living_room',
-      light_kitchen: 'light.kitchen',
-      light_dining: 'light.dining_room',
-      light_hallway: 'light.hallway',
-      light_wc: 'light.downstairs_wc',
-      light_master_bedroom: 'light.master_bedroom',
-      light_ensuite: 'light.ensuite',
-      light_bedroom2: 'light.bedroom_2',
-      light_bedroom3: 'light.bedroom_3',
-      light_bathroom: 'light.family_bathroom',
-      light_landing: 'light.landing',
-      light_exterior: 'light.front_porch'
+      // Room Lights (Unset by default: strictly OFF until user maps a sensor)
+      light_lounge: '',
+      light_kitchen: '',
+      light_dining: '',
+      light_hallway: '',
+      light_wc: '',
+      light_master_bedroom: '',
+      light_ensuite: '',
+      light_bedroom2: '',
+      light_bedroom3: '',
+      light_bathroom: '',
+      light_landing: ''
     };
   }
 
@@ -372,11 +371,11 @@ export class HaEnergy3DCard extends HTMLElement {
       range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
     };
 
-    // 6. Room Lights (12 distinct rooms with live on/off & illumination)
+    // 6. Room Lights (11 interior rooms with live on/off & illumination)
     const roomKeys = [
       'lounge', 'kitchen', 'dining', 'hallway', 'wc',
       'master_bedroom', 'ensuite', 'bedroom2', 'bedroom3',
-      'bathroom', 'landing', 'exterior'
+      'bathroom', 'landing'
     ];
     const lightsData = {};
     for (const room of roomKeys) {
@@ -427,15 +426,29 @@ export class HaEnergy3DCard extends HTMLElement {
   }
 
   getLightState(entityId, defaultState = {}) {
+    // If no sensor is set/configured for a light, it must be strictly OFF
+    if (!entityId || typeof entityId !== 'string' || !entityId.trim()) {
+      return {
+        entity_id: '',
+        is_on: false,
+        brightness: 0,
+        rgb_color: null
+      };
+    }
+
+    const cleanId = entityId.trim();
     const res = {
-      entity_id: entityId || defaultState?.entity_id || '',
-      is_on: defaultState?.is_on || false,
-      brightness: defaultState?.brightness ?? (defaultState?.is_on ? 255 : 0),
-      rgb_color: defaultState?.rgb_color || null
+      entity_id: cleanId,
+      is_on: false,
+      brightness: 0,
+      rgb_color: null
     };
-    if (!this._hass || !entityId) return res;
-    const stateObj = this._hass.states[entityId];
-    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') return res;
+
+    if (!this._hass) return res;
+    const stateObj = this._hass.states[cleanId];
+    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
+      return res; // Remains OFF if unavailable or unknown
+    }
 
     res.is_on = stateObj.state === 'on';
     const attr = stateObj.attributes || {};

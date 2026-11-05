@@ -245,15 +245,11 @@ export class HaEnergy3DCardEditor extends HTMLElement {
           </div>
           <div class="input-row">
             <label>Family Bathroom</label>
-            <input type="text" data-key="light_bathroom" value="${c.light_bathroom || 'light.family_bathroom'}">
+            <input type="text" data-key="light_bathroom" value="${c.light_bathroom || ''}">
           </div>
           <div class="input-row">
             <label>Upstairs Landing</label>
-            <input type="text" data-key="light_landing" value="${c.light_landing || 'light.landing'}">
-          </div>
-          <div class="input-row">
-            <label>Porch & Outside Driveway</label>
-            <input type="text" data-key="light_exterior" value="${c.light_exterior || 'light.front_porch'}">
+            <input type="text" data-key="light_landing" value="${c.light_landing || ''}">
           </div>
         </div>
       </div>

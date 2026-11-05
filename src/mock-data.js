@@ -78,19 +78,18 @@ export const DEFAULT_ENERGY_DATA = {
     }
   },
 
-  // Room Lights (Mapped to 3D rooms)
+  // Room Lights (Mapped to 3D rooms, strictly OFF if no sensor configured)
   room_lights: {
-    lounge: { is_on: true, brightness: 255, entity_id: 'light.living_room' },
-    kitchen: { is_on: true, brightness: 255, entity_id: 'light.kitchen' },
-    dining: { is_on: false, brightness: 0, entity_id: 'light.dining_room' },
-    hallway: { is_on: true, brightness: 200, entity_id: 'light.hallway' },
-    wc: { is_on: false, brightness: 0, entity_id: 'light.downstairs_wc' },
-    master_bedroom: { is_on: false, brightness: 0, entity_id: 'light.master_bedroom' },
-    ensuite: { is_on: false, brightness: 0, entity_id: 'light.ensuite' },
-    bedroom2: { is_on: false, brightness: 0, entity_id: 'light.bedroom_2' },
-    bedroom3: { is_on: false, brightness: 0, entity_id: 'light.bedroom_3' },
-    bathroom: { is_on: false, brightness: 0, entity_id: 'light.family_bathroom' },
-    landing: { is_on: true, brightness: 180, entity_id: 'light.landing' },
-    exterior: { is_on: true, brightness: 255, entity_id: 'light.front_porch' }
+    lounge: { is_on: false, brightness: 0, entity_id: '' },
+    kitchen: { is_on: false, brightness: 0, entity_id: '' },
+    dining: { is_on: false, brightness: 0, entity_id: '' },
+    hallway: { is_on: false, brightness: 0, entity_id: '' },
+    wc: { is_on: false, brightness: 0, entity_id: '' },
+    master_bedroom: { is_on: false, brightness: 0, entity_id: '' },
+    ensuite: { is_on: false, brightness: 0, entity_id: '' },
+    bedroom2: { is_on: false, brightness: 0, entity_id: '' },
+    bedroom3: { is_on: false, brightness: 0, entity_id: '' },
+    bathroom: { is_on: false, brightness: 0, entity_id: '' },
+    landing: { is_on: false, brightness: 0, entity_id: '' }
   }
 };
