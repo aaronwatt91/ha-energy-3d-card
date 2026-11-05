@@ -100,7 +100,8 @@ export class EnergyFlowSystem {
         curve: this.paths.ev,
         color: new THREE.Color(0x00f59b), // Vibrant EV turquoise / green
         baseSpeed: 0.44,
-        size: 0.060
+        size: 0.060,
+        particleCount: 5 // Reduced to ~10% (was 48, now 5 clean spaced pulses along cable)
       },
       gas: {
         curve: this.paths.gas,
@@ -123,7 +124,7 @@ export class EnergyFlowSystem {
         blending: THREE.AdditiveBlending
       });
 
-      const count = this.particleCountPerStream;
+      const count = def.particleCount || this.particleCountPerStream;
       const instancedMesh = new THREE.InstancedMesh(sphereGeo, mat, count);
       instancedMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       instancedMesh.renderOrder = 999;
@@ -316,7 +317,7 @@ export class EnergyFlowSystem {
       if (stream.offset > 1.0) stream.offset -= 1.0;
       if (stream.offset < 0.0) stream.offset += 1.0;
 
-      const count = this.particleCountPerStream;
+      const count = def.particleCount || this.particleCountPerStream;
       for (let i = 0; i < count; i++) {
         let t = (i / count + stream.offset) % 1.0;
         if (t < 0) t += 1.0;

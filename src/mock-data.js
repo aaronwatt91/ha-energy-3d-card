@@ -44,6 +44,8 @@ export const DEFAULT_ENERGY_DATA = {
   // myenergi Zappi EV Charger & Peugeot e-2008
   ev: {
     is_charging: true,       // EV is plugged in and actively charging
+    is_connected: true,      // Cable connected
+    status_text: 'Charging @ 7.2 kW',
     is_plugged: true,
     charger_power_kw: 7.20,  // Live charging power from Zappi
     energy_added_kwh: 22.4,  // Session / today energy added to car

@@ -180,6 +180,10 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <input type="text" data-key="myenergi_power" value="${c.myenergi_power || 'sensor.myenergi_zappi_power'}">
           </div>
           <div class="input-row">
+            <label>Zappi Connection Status</label>
+            <input type="text" data-key="myenergi_status" value="${c.myenergi_status || 'sensor.myenergi_zappi_status'}">
+          </div>
+          <div class="input-row">
             <label>Zappi Session Energy (kWh)</label>
             <input type="text" data-key="myenergi_energy" value="${c.myenergi_energy || 'sensor.myenergi_zappi_charge_added_session'}">
           </div>

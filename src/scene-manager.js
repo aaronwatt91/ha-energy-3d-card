@@ -141,6 +141,7 @@ export class SceneManager {
       { id: 'grid', name: 'Octopus Grid & Meter', pos: new THREE.Vector3(5.30, 2.00, -0.85) },
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
       { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) },
+      { id: 'ev_charger', name: 'myenergi Zappi Charger', pos: new THREE.Vector3(5.20, 1.45, 0.05) },
       { id: 'thermostat_downstairs', name: 'Downstairs Heating', pos: new THREE.Vector3(3.60, 1.45, -2.40) },
       { id: 'thermostat_upstairs', name: 'Upstairs Heating', pos: new THREE.Vector3(3.30, 4.05, -4.95) },
       { id: 'appliance_fridge', name: 'Kitchen Fridge Freezer', pos: new THREE.Vector3(2.45, 1.45, -6.65) },
@@ -834,6 +835,7 @@ export class SceneManager {
                 name.includes('Interior_Walls_First') ||
                 name.includes('Landing_Carpet') ||
                 name.includes('Carpet_') ||
+                name.includes('Room_Labels_3D') ||
                 name.includes('Solar_PV_')
               ) {
                 this.topFloorMeshes.push({
@@ -842,13 +844,19 @@ export class SceneManager {
                 });
               }
 
-              // Exterior walls, party wall, windows, exterior doors (Sliced at ground ceiling line when viewing downstairs)
+              // Sliced meshes (Cut off cleanly at Y=2.52 downstairs ceiling level when downstairs preset is chosen)
+              // This removes upstairs doors, upper toilets, upper baths/sinks, upper window glass, party wall, exterior walls.
+              // Note: Staircase is NOT cuttable, so staircase remains intact leading up from the hallway!
               if (
                 name.includes('Exterior_Walls') ||
                 name.includes('Separating_Party_Wall') ||
                 name.includes('Windows_') ||
                 name.includes('Front_Entrance_Door') ||
-                name.includes('Rear_French_Doors')
+                name.includes('Rear_French_Doors') ||
+                name.includes('Interior_Doors') ||
+                name.includes('Sanitaryware') ||
+                name.includes('Exterior_Hardware_Chrome') ||
+                name.includes('Solar_PV_Cabling')
               ) {
                 this.cuttableMeshes.push(child);
               }
@@ -942,6 +950,11 @@ export class SceneManager {
       ev: {
         pos: new THREE.Vector3(7.2, 2.2, 3.2),
         target: new THREE.Vector3(5.2, 0.95, 1.0),
+        xray: false
+      },
+      charger: {
+        pos: new THREE.Vector3(7.4, 2.2, 0.4),
+        target: new THREE.Vector3(5.20, 1.25, 0.05),
         xray: false
       },
       downstairs: {

@@ -128,6 +128,7 @@ export class HaEnergy3DCard extends HTMLElement {
       octopus_gas_spend: 'sensor.octopus_energy_gas_current_month_cost',
       // myenergi & Peugeot EV
       myenergi_power: 'sensor.myenergi_zappi_power',
+      myenergi_status: 'sensor.myenergi_zappi_status',
       myenergi_energy: 'sensor.myenergi_zappi_charge_added_session',
       peugeot_battery: 'sensor.e2008_battery_level',
       peugeot_range: 'sensor.e2008_battery_range',
@@ -402,9 +403,44 @@ export class HaEnergy3DCard extends HTMLElement {
 
     // 5. myenergi Zappi & Peugeot e-2008 (Auto-figures Watts vs kW, e.g. 7200W -> 7.2 kW)
     const evChargerKw = this.getPowerInKw(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
+    const evStatusRaw = this.getEntityState(cfg.myenergi_status, '').toLowerCase();
+
+    let isConnected = true;
+    let statusText = 'Connected';
+
+    if (evStatusRaw) {
+      if (evStatusRaw.includes('charg')) {
+        isConnected = true;
+        statusText = 'Charging';
+      } else if (evStatusRaw.includes('connect') || evStatusRaw.includes('wait') || evStatusRaw.includes('pause') || evStatusRaw.includes('plug') || evStatusRaw.includes('complete')) {
+        isConnected = true;
+        statusText = 'Connected (Idle)';
+      } else if (evStatusRaw.includes('disconn') || evStatusRaw === 'off') {
+        isConnected = false;
+        statusText = 'Disconnected';
+      } else {
+        statusText = evStatusRaw.charAt(0).toUpperCase() + evStatusRaw.slice(1);
+      }
+    } else {
+      if (evChargerKw > 0.04) {
+        isConnected = true;
+        statusText = 'Charging';
+      } else {
+        const hasCar = this.getEntityNumericValue(cfg.peugeot_battery, 0) > 0;
+        isConnected = hasCar;
+        statusText = hasCar ? 'Connected (Idle)' : 'Disconnected';
+      }
+    }
+
+    const isCharging = evChargerKw > 0.04;
+    if (isCharging) {
+      statusText = `Charging @ ${evChargerKw.toFixed(1)} kW`;
+    }
+
     this.energyData.ev = {
-      is_charging: evChargerKw > 0.04,
-      is_plugged: true,
+      is_charging: isCharging,
+      is_connected: isConnected,
+      status_text: statusText,
       charger_power_kw: evChargerKw,
       energy_added_kwh: this.getEnergyInKwh(cfg.myenergi_energy, this.energyData.ev.energy_added_kwh),
       charger_mode: evChargerKw > 3.0 ? 'Fast' : 'Eco+',
