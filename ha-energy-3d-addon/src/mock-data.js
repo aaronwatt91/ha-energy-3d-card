@@ -38,7 +38,7 @@ export const DEFAULT_ENERGY_DATA = {
     month_kwh: 310.2,        // Gas consumed this month
     current_rate_p: 6.24,    // Gas unit rate in p/kWh
     monthly_spend_gbp: 38.65,// Gas monthly spend in £
-    boiler_status: 'Central Heating' // 'Central Heating', 'Hot Water', 'Standby'
+    boiler_status: 'Heating' // 'Heating', 'Standby'
   },
 
   // myenergi Zappi EV Charger & Peugeot e-2008

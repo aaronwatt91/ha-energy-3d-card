@@ -1,4 +1,4 @@
-import { SceneManager } from './scene-manager.js';
+import { SceneManager, DEFAULT_LIGHTS } from './scene-manager.js';
 import { HUDOverlay } from './hud-overlay.js';
 import { DEFAULT_ENERGY_DATA } from './mock-data.js';
 
@@ -83,6 +83,13 @@ export class HaEnergy3DCard extends HTMLElement {
       this.customSensors = savedSensors;
     } catch (e) {
       this.customSensors = {};
+    }
+
+    try {
+      const savedLights = JSON.parse(localStorage.getItem('ha_energy_3d_custom_lights') || 'null');
+      this.customLights = savedLights && Array.isArray(savedLights) && savedLights.length ? savedLights : JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
+    } catch (e) {
+      this.customLights = JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
     }
   }
 
@@ -212,12 +219,14 @@ export class HaEnergy3DCard extends HTMLElement {
     this.sceneManager = new SceneManager(viewport, {
       modelUrl: this._config.model_url,
       nightMode: this._config.night_mode,
-      autoRotate: this._config.auto_rotate
+      autoRotate: this._config.auto_rotate,
+      customLights: this.customLights
     });
 
     // Initialize HUD Overlay inside viewport container
     this.hud = new HUDOverlay(this.wrapper, {
       currentSensorConfig: this._config,
+      customLights: this.customLights,
       onPresetClick: (preset) => this.sceneManager.setCameraPreset(preset),
       onToggleXray: (enable) => this.sceneManager.setXRayRoof(enable),
       onToggleNight: (enable) => this.sceneManager.setNightMode(enable),
@@ -229,6 +238,29 @@ export class HaEnergy3DCard extends HTMLElement {
         this.customSensors = customSensors;
         this._config = { ...this._config, ...customSensors };
         this.updateStatesFromHass();
+      },
+      onSaveCustomLights: (lights) => {
+        this.customLights = lights;
+        try {
+          localStorage.setItem('ha_energy_3d_custom_lights', JSON.stringify(lights));
+        } catch (e) {}
+        this.sceneManager.rebuildCustomLights(lights);
+        this.updateStatesFromHass();
+      },
+      onUpdateLightPosition: (id, x, y, z) => {
+        this.sceneManager.updateLightPosition(id, x, y, z);
+      },
+      onBeaconFocus: (id, pos) => {
+        this.sceneManager.setEditingLightBeacon(id, pos);
+      },
+      onBeaconClear: () => {
+        this.sceneManager.clearEditingLightBeacon();
+      },
+      onEnableClickToPlace: (cb) => {
+        this.sceneManager.enableClickToPlace(cb);
+      },
+      onDisableClickToPlace: () => {
+        this.sceneManager.disableClickToPlace();
       }
     });
 
@@ -349,7 +381,7 @@ export class HaEnergy3DCard extends HTMLElement {
     }
 
     const isGasActive = eitherThermostatHeating || explicitBoilerActive;
-    const boilerStatus = isGasActive ? 'Central Heating' : 'Standby / Off';
+    const boilerStatus = isGasActive ? 'Heating' : 'Standby';
 
     this.energyData.octopus_gas = {
       is_active: isGasActive,
@@ -375,17 +407,11 @@ export class HaEnergy3DCard extends HTMLElement {
       range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
     };
 
-    // 6. Room Lights (11 interior rooms with live on/off & illumination)
-    const roomKeys = [
-      'lounge', 'kitchen', 'dining', 'hallway', 'wc',
-      'master_bedroom', 'ensuite', 'bedroom2', 'bedroom3',
-      'bathroom', 'landing'
-    ];
+    // 6. Customizable 3D Lights (Mapped to Home Assistant entities)
     const lightsData = {};
-    for (const room of roomKeys) {
-      const entityKey = `light_${room}`;
-      const entityId = cfg[entityKey] || cfg.room_lights?.[room];
-      lightsData[room] = this.getLightState(entityId, this.energyData.room_lights?.[room]);
+    for (const light of this.customLights) {
+      const entityId = light.entity_id || cfg[`light_${light.id}`] || cfg.room_lights?.[light.id];
+      lightsData[light.id] = this.getLightState(entityId, this.energyData.room_lights?.[light.id]);
     }
     this.energyData.room_lights = lightsData;
 
@@ -411,7 +437,8 @@ export class HaEnergy3DCard extends HTMLElement {
       tvPower = this.energyData.appliances.tv.power_kw;
     }
 
-    const lampData = this.getLightState(cfg.light_living_lamp, this.energyData.appliances?.living_lamp);
+    const lampEntity = cfg.light_living_lamp || this.customLights.find(l => l.id === 'living_lamp' || l.name?.toLowerCase().includes('corner lamp'))?.entity_id;
+    const lampData = this.getLightState(lampEntity, this.energyData.appliances?.living_lamp);
 
     this.energyData.appliances = {
       fridge: {

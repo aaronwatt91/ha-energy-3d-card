@@ -3,6 +3,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { EnergyFlowSystem } from './energy-flow-system.js';
 
+export const DEFAULT_LIGHTS = [
+  { id: 'lounge', name: 'Living Room Ceiling', floor: 'ground', pos: { x: 1.88, y: 2.15, z: -2.35 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.living_room' },
+  { id: 'kitchen', name: 'Kitchen Ceiling', floor: 'ground', pos: { x: 1.80, y: 2.15, z: -7.40 }, range: 7.0, maxIntensity: 4.5, defaultColor: 0xfff0d6, entity_id: 'light.kitchen' },
+  { id: 'dining', name: 'Dining Room', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -7.40 }, range: 6.5, maxIntensity: 4.0, defaultColor: 0xffe6b8, entity_id: 'light.dining_room' },
+  { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.20, y: 2.15, z: -2.20 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.hallway' },
+  { id: 'wc', name: 'Downstairs WC', floor: 'ground', pos: { x: 0.92, y: 2.15, z: -5.32 }, range: 4.5, maxIntensity: 3.5, defaultColor: 0xfff1dc, entity_id: 'light.downstairs_wc' },
+  { id: 'living_lamp', name: 'Living Room Corner Lamp', floor: 'ground', pos: { x: 0.60, y: 1.58, z: -0.65 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xffd580, entity_id: 'light.living_room_lamp', isFloorLamp: true },
+  { id: 'master_bedroom', name: 'Master Bedroom', floor: 'first', pos: { x: 1.90, y: 4.55, z: -2.10 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.master_bedroom' },
+  { id: 'ensuite', name: 'Master En-Suite', floor: 'first', pos: { x: 4.40, y: 4.55, z: -1.22 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xfff6ea, entity_id: 'light.ensuite' },
+  { id: 'bedroom2', name: 'Bedroom 2 (Guestroom)', floor: 'first', pos: { x: 1.75, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: 'light.bedroom_2' },
+  { id: 'bedroom3', name: 'Bedroom 3 (Nursery / Office)', floor: 'first', pos: { x: 4.30, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: 'light.bedroom_3' },
+  { id: 'bathroom', name: 'Family Bathroom', floor: 'first', pos: { x: 1.22, y: 4.55, z: -4.95 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff8ee, entity_id: 'light.family_bathroom' },
+  { id: 'landing', name: 'Upstairs Landing', floor: 'first', pos: { x: 3.30, y: 4.55, z: -4.95 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.landing' }
+];
+
 export const ROOM_LIGHT_CONFIGS = {
   lounge: {
     name: 'Living Room',
@@ -133,11 +148,17 @@ export class SceneManager {
     ];
 
     this.roofParts = [];
+    this.topFloorMeshes = [];
+    this.cuttableMeshes = [];
+    this.cutawayMode = 'normal';
+    this.customLights = this.options.customLights || DEFAULT_LIGHTS;
     this.roomLights = {};
     this.xrayActive = false;
     this.nightMode = this.options.nightMode;
     this.targetCameraPos = null;
     this.targetLookAt = null;
+    this.clickToPlaceCallback = null;
+    this.boundOnClickToPlace = null;
 
     this.init();
   }
@@ -161,6 +182,8 @@ export class SceneManager {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
+    this.renderer.localClippingEnabled = true;
+    this.downstairsClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.52);
     this.container.appendChild(this.renderer.domElement);
 
     // 4. Controls
@@ -230,11 +253,37 @@ export class SceneManager {
     this.roomLightsGroup = new THREE.Group();
     this.scene.add(this.roomLightsGroup);
 
+    this.rebuildCustomLights(this.customLights);
+
+    this.applyLightingMode();
+  }
+
+  rebuildCustomLights(lightsList) {
+    if (!lightsList || !Array.isArray(lightsList)) return;
+    this.customLights = lightsList;
+
+    // Clear existing lights
+    while (this.roomLightsGroup.children.length > 0) {
+      const child = this.roomLightsGroup.children[0];
+      this.roomLightsGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+        else child.material.dispose();
+      }
+    }
+    this.roomLights = {};
+
     const fixtureGeom = new THREE.CylinderGeometry(0.14, 0.14, 0.04, 16);
 
-    for (const [roomId, cfg] of Object.entries(ROOM_LIGHT_CONFIGS)) {
-      const pLight = new THREE.PointLight(cfg.defaultColor, 0.0, cfg.range, 1.2);
-      pLight.position.copy(cfg.pos);
+    for (const cfg of lightsList) {
+      const p = cfg.pos || { x: 2.5, y: 2.2, z: -3.5 };
+      const vec = new THREE.Vector3(p.x, p.y, p.z);
+      const col = cfg.defaultColor !== undefined ? cfg.defaultColor : 0xffe299;
+      const range = cfg.range || 6.5;
+
+      const pLight = new THREE.PointLight(col, 0.0, range, 1.2);
+      pLight.position.copy(vec);
 
       const fixMat = new THREE.MeshStandardMaterial({
         color: 0xcccccc,
@@ -243,15 +292,17 @@ export class SceneManager {
         metalness: 0.2
       });
       const fixtureMesh = new THREE.Mesh(fixtureGeom, fixMat);
-      fixtureMesh.position.copy(cfg.pos);
+      fixtureMesh.position.copy(vec);
 
-      this.roomLightsGroup.add(pLight);
-      this.roomLightsGroup.add(fixtureMesh);
+      const container = new THREE.Group();
+      container.add(pLight);
+      container.add(fixtureMesh);
 
-      // Unlit Room Darkness Shade Box (Makes unlit rooms visibly dark & shadowed)
+      // Room Darkness Shade Box (Makes unlit rooms visibly dark & shadowed)
       let shadeMesh = null;
-      if (cfg.boxCenter && cfg.boxSize) {
-        const shadeGeom = new THREE.BoxGeometry(cfg.boxSize.x, cfg.boxSize.y, cfg.boxSize.z);
+      const roomPreset = ROOM_LIGHT_CONFIGS[cfg.id];
+      if (roomPreset?.boxCenter && roomPreset?.boxSize) {
+        const shadeGeom = new THREE.BoxGeometry(roomPreset.boxSize.x, roomPreset.boxSize.y, roomPreset.boxSize.z);
         const shadeMat = new THREE.MeshBasicMaterial({
           color: 0x040814,
           transparent: true,
@@ -260,22 +311,125 @@ export class SceneManager {
           depthWrite: false
         });
         shadeMesh = new THREE.Mesh(shadeGeom, shadeMat);
-        shadeMesh.position.copy(cfg.boxCenter);
-        this.roomLightsGroup.add(shadeMesh);
+        shadeMesh.position.copy(roomPreset.boxCenter);
+        container.add(shadeMesh);
       }
 
-      this.roomLights[roomId] = {
+      this.roomLightsGroup.add(container);
+
+      this.roomLights[cfg.id] = {
         config: cfg,
         light: pLight,
         fixture: fixtureMesh,
+        container,
         shadeMesh,
+        floor: cfg.floor || (vec.y > 3.0 ? 'first' : 'ground'),
         isOn: false,
         brightness: 0,
-        colorHex: cfg.defaultColor
+        colorHex: col
       };
     }
 
-    this.applyLightingMode();
+    if (this.cutawayMode === 'downstairs') {
+      this.setCutawayMode('downstairs');
+    }
+  }
+
+  updateLightPosition(lightId, x, y, z) {
+    const obj = this.roomLights[lightId];
+    if (obj) {
+      obj.light.position.set(x, y, z);
+      obj.fixture.position.set(x, y, z);
+      obj.config.pos = { x, y, z };
+      obj.floor = y > 3.0 ? 'first' : 'ground';
+    }
+    if (this.beaconGroup && this.beaconGroup.visible) {
+      this.setEditingLightBeacon(lightId, new THREE.Vector3(x, y, z));
+    }
+  }
+
+  setEditingLightBeacon(lightId, pos = null) {
+    if (!this.beaconGroup) {
+      this.beaconGroup = new THREE.Group();
+      this.scene.add(this.beaconGroup);
+
+      const ringGeom = new THREE.RingGeometry(0.16, 0.28, 32);
+      ringGeom.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85
+      });
+      this.beaconRing = new THREE.Mesh(ringGeom, ringMat);
+      this.beaconGroup.add(this.beaconRing);
+
+      const lineGeom = new THREE.CylinderGeometry(0.008, 0.008, 1.0, 8);
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.6 });
+      this.beaconLine = new THREE.Mesh(lineGeom, lineMat);
+      this.beaconGroup.add(this.beaconLine);
+
+      const sphereGeom = new THREE.SphereGeometry(0.07, 16, 16);
+      const sphereMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+      this.beaconSphere = new THREE.Mesh(sphereGeom, sphereMat);
+      this.beaconGroup.add(this.beaconSphere);
+    }
+
+    const lightObj = this.roomLights[lightId];
+    const p = pos || (lightObj ? lightObj.light.position : new THREE.Vector3(2.5, 2.2, -3.5));
+
+    this.beaconGroup.visible = true;
+    this.beaconSphere.position.copy(p);
+    this.beaconRing.position.set(p.x, 0.02, p.z);
+    this.beaconLine.position.set(p.x, p.y / 2, p.z);
+    this.beaconLine.scale.set(1, Math.max(0.1, p.y), 1);
+  }
+
+  clearEditingLightBeacon() {
+    if (this.beaconGroup) {
+      this.beaconGroup.visible = false;
+    }
+  }
+
+  enableClickToPlace(callback) {
+    this.clickToPlaceCallback = callback;
+    if (!this.boundOnClickToPlace) {
+      this.boundOnClickToPlace = (e) => {
+        if (!this.clickToPlaceCallback) return;
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+          ((e.clientX - rect.left) / rect.width) * 2 - 1,
+          -((e.clientY - rect.top) / rect.height) * 2 + 1
+        );
+
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+        const intersects = raycaster.intersectObjects(this.scene.children, true);
+        const valid = intersects.find((hit) => {
+          let p = hit.object;
+          while (p) {
+            if (p === this.beaconGroup || p === this.roomLightsGroup || p === this.energyFlow?.group) return false;
+            p = p.parent;
+          }
+          return true;
+        });
+
+        if (valid) {
+          const pt = valid.point;
+          const yPos = this.cutawayMode === 'downstairs' ? 2.15 : (pt.y > 3.0 ? 4.55 : 2.15);
+          this.clickToPlaceCallback({
+            x: parseFloat(pt.x.toFixed(2)),
+            y: parseFloat(yPos.toFixed(2)),
+            z: parseFloat(pt.z.toFixed(2))
+          });
+        }
+      };
+      this.renderer.domElement.addEventListener('pointerup', this.boundOnClickToPlace);
+    }
+  }
+
+  disableClickToPlace() {
+    this.clickToPlaceCallback = null;
   }
 
   updateRoomLights(lightsData) {
@@ -563,6 +717,8 @@ export class SceneManager {
               child.receiveShadow = true;
 
               const name = child.name;
+
+              // Roof ghosting parts for general X-Ray
               if (
                 name.includes('Roof_Main') ||
                 name.includes('Roof_Ridge_Tiles') ||
@@ -581,6 +737,34 @@ export class SceneManager {
                     depthWrite: false
                   })
                 });
+              }
+
+              // Top floor meshes (Hidden when viewing downstairs so ground floor is 100% visible)
+              if (
+                name.includes('Roof_') ||
+                name.includes('Fascia_and_Soffits') ||
+                name.includes('Rainwater_Gutters') ||
+                name.includes('First_Floor_') ||
+                name.includes('Interior_Walls_First') ||
+                name.includes('Landing_Carpet') ||
+                name.includes('Carpet_') ||
+                name.includes('Solar_PV_')
+              ) {
+                this.topFloorMeshes.push({
+                  mesh: child,
+                  originalMaterial: child.material
+                });
+              }
+
+              // Exterior walls, party wall, windows, exterior doors (Sliced at ground ceiling line when viewing downstairs)
+              if (
+                name.includes('Exterior_Walls') ||
+                name.includes('Separating_Party_Wall') ||
+                name.includes('Windows_') ||
+                name.includes('Front_Entrance_Door') ||
+                name.includes('Rear_French_Doors')
+              ) {
+                this.cuttableMeshes.push(child);
               }
             }
           });
@@ -614,6 +798,39 @@ export class SceneManager {
     }
   }
 
+  setCutawayMode(mode) {
+    this.cutawayMode = mode;
+    const isDownstairs = mode === 'downstairs';
+
+    // 1. Hide top floor structures (ceiling, roof, first floor interior walls, carpets, first floor slab)
+    for (const item of this.topFloorMeshes) {
+      item.mesh.visible = !isDownstairs;
+    }
+
+    // 2. Slice exterior walls at ground floor ceiling level so ground floor is 100% visible from above
+    for (const mesh of this.cuttableMeshes) {
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((m) => {
+        if (m) {
+          m.clippingPlanes = isDownstairs ? [this.downstairsClipPlane] : [];
+          m.clipShadows = true;
+          m.needsUpdate = true;
+        }
+      });
+    }
+
+    // 3. Hide upstairs lights and fixtures
+    for (const [id, lightObj] of Object.entries(this.roomLights)) {
+      const isUpstairs = lightObj.floor === 'first' || (lightObj.config?.pos?.y > 3.0);
+      if (isUpstairs) {
+        if (lightObj.container) lightObj.container.visible = !isDownstairs;
+        if (lightObj.fixture) lightObj.fixture.visible = !isDownstairs;
+        if (lightObj.shadeMesh) lightObj.shadeMesh.visible = !isDownstairs;
+        if (isDownstairs && lightObj.light) lightObj.light.intensity = 0;
+      }
+    }
+  }
+
   setCameraPreset(preset) {
     const presets = {
       overview: {
@@ -642,9 +859,9 @@ export class SceneManager {
         xray: false
       },
       downstairs: {
-        pos: new THREE.Vector3(2.8, 9.5, 4.0),
-        target: new THREE.Vector3(2.8, 1.2, -4.5),
-        xray: true
+        pos: new THREE.Vector3(2.8, 11.5, 4.2),
+        target: new THREE.Vector3(2.8, 0.8, -4.5),
+        xray: false
       },
       upstairs: {
         pos: new THREE.Vector3(2.8, 11.5, 4.0),
@@ -664,7 +881,14 @@ export class SceneManager {
     this.targetCameraPos = target.pos.clone();
     this.targetLookAt = target.target.clone();
 
-    if (target.xray !== undefined && target.xray !== this.xrayActive) {
+    // Trigger cutaway mode for downstairs so top floors disappear
+    if (preset === 'downstairs') {
+      this.setCutawayMode('downstairs');
+    } else {
+      this.setCutawayMode('normal');
+    }
+
+    if (target.xray !== undefined && target.xray !== this.xrayActive && preset !== 'downstairs') {
       this.setXRayRoof(target.xray);
     }
   }
@@ -682,7 +906,14 @@ export class SceneManager {
     const halfW = width / 2;
     const halfH = height / 2;
 
-    return this.hotspots.map((spot) => {
+    return this.hotspots
+      .filter((spot) => {
+        if (this.cutawayMode === 'downstairs') {
+          if (spot.id === 'solar' || spot.id === 'thermostat_upstairs') return false;
+        }
+        return true;
+      })
+      .map((spot) => {
       const v = spot.pos.clone();
       v.project(this.camera);
 

@@ -41,6 +41,14 @@ export class HUDOverlay {
     this.onToggleRotate = options.onToggleRotate || (() => {});
     this.onToggleLight = options.onToggleLight || (() => {});
     this.onSaveSensors = options.onSaveSensors || (() => {});
+    this.customLights = options.customLights || [];
+    this.onSaveCustomLights = options.onSaveCustomLights || (() => {});
+    this.onUpdateLightPosition = options.onUpdateLightPosition || (() => {});
+    this.onBeaconFocus = options.onBeaconFocus || (() => {});
+    this.onBeaconClear = options.onBeaconClear || (() => {});
+    this.onEnableClickToPlace = options.onEnableClickToPlace || (() => {});
+    this.onDisableClickToPlace = options.onDisableClickToPlace || (() => {});
+    this.editingLight = null;
 
     this.initDOM();
   }
@@ -723,6 +731,217 @@ export class HUDOverlay {
         }
         .btn-detect:hover { background: rgba(255, 255, 255, 0.18); }
 
+        /* Light Customizer Overlay Modal */
+        .light-customizer-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 120;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          pointer-events: auto;
+        }
+
+        .light-customizer-overlay.open {
+          display: flex;
+        }
+
+        .light-customizer-card {
+          width: 92%;
+          max-width: 540px;
+          max-height: 86vh;
+          background: rgba(15, 23, 42, 0.98);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .coord-section {
+          background: rgba(0, 0, 0, 0.35);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin: 6px 0;
+        }
+
+        .coord-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .coord-label {
+          width: 80px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #94a3b8;
+        }
+
+        .coord-stepper {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex: 1;
+        }
+
+        .coord-slider {
+          flex: 1;
+          accent-color: #38bdf8;
+          height: 6px;
+          cursor: pointer;
+        }
+
+        .coord-val-input {
+          width: 65px;
+          background: rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #38bdf8;
+          font-weight: 700;
+          padding: 4px 6px;
+          border-radius: 6px;
+          text-align: center;
+          font-size: 12px;
+          outline: none;
+        }
+
+        .coord-step-btn {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #fff;
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s;
+        }
+
+        .coord-step-btn:hover {
+          background: rgba(56, 189, 248, 0.3);
+          border-color: #38bdf8;
+        }
+
+        .btn-pick-3d {
+          background: rgba(56, 189, 248, 0.18);
+          border: 1px solid #38bdf8;
+          color: #38bdf8;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .btn-pick-3d.active {
+          background: #38bdf8;
+          color: #000;
+          box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+        }
+
+        .floor-select-group {
+          display: flex;
+          gap: 8px;
+        }
+
+        .floor-opt-btn {
+          flex: 1;
+          padding: 6px 10px;
+          border-radius: 8px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.05);
+          color: #94a3b8;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          text-align: center;
+          transition: all 0.15s;
+        }
+
+        .floor-opt-btn.active {
+          background: rgba(56, 189, 248, 0.2);
+          border-color: #38bdf8;
+          color: #fff;
+        }
+
+        .color-preset-chips {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+
+        .color-chip-btn {
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          cursor: pointer;
+          transition: transform 0.15s, border-color 0.15s;
+        }
+
+        .color-chip-btn:hover, .color-chip-btn.active {
+          transform: scale(1.15);
+          border-color: #fff;
+          box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .light-card-footer {
+          display: flex;
+          gap: 6px;
+          margin-top: 4px;
+        }
+
+        .btn-light-sub {
+          flex: 1;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #cbd5e1;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 4px 6px;
+          border-radius: 6px;
+          cursor: pointer;
+          text-align: center;
+          transition: background 0.15s;
+        }
+
+        .btn-light-sub:hover {
+          background: rgba(255, 255, 255, 0.14);
+          color: #fff;
+        }
+
+        .btn-light-del {
+          background: rgba(239, 68, 68, 0.12);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #f87171;
+          width: 28px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 11px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.15s;
+        }
+
+        .btn-light-del:hover {
+          background: rgba(239, 68, 68, 0.3);
+          color: #fff;
+        }
+
         @media (max-width: 600px) {
           .hud-controls-bar {
             width: calc(100% - 24px);
@@ -1137,6 +1356,112 @@ export class HUDOverlay {
         </div>
       </div>
 
+      <!-- Interactive 3D Light Customizer Modal Dialog (Add, Delete, Set & Move in 3D) -->
+      <div class="light-customizer-overlay" id="light-customizer-dialog">
+        <div class="light-customizer-card">
+          <div class="entity-picker-header">
+            <div class="entity-picker-title">
+              <span>💡</span>
+              <span id="light-customizer-title">Configure & Position Light</span>
+            </div>
+            <button class="drawer-close" id="light-customizer-close">&times;</button>
+          </div>
+
+          <div class="modal-body" style="padding:14px 18px; overflow-y:auto; max-height:calc(86vh - 120px);">
+            <!-- Light Name -->
+            <div class="sensor-row">
+              <label>Light Label / Friendly Name</label>
+              <input type="text" id="custom-light-name" placeholder="e.g. Living Room Spotlight">
+            </div>
+
+            <!-- HA Entity -->
+            <div class="sensor-row">
+              <label>Mapped Home Assistant Entity (light or switch)</label>
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="custom-light-entity" placeholder="e.g. light.living_room">
+                <button type="button" class="btn-entity-browse" data-target="#custom-light-entity">📋 Select</button>
+              </div>
+            </div>
+
+            <!-- Floor Location -->
+            <div class="sensor-row">
+              <label>Floor Level</label>
+              <div class="floor-select-group">
+                <button type="button" class="floor-opt-btn active" data-floor="ground" id="floor-btn-ground">🛋️ Downstairs (Ground)</button>
+                <button type="button" class="floor-opt-btn" data-floor="first" id="floor-btn-first">🛏️ Upstairs (First)</button>
+              </div>
+            </div>
+
+            <!-- 3D Positioning Controls -->
+            <div class="coord-section">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12px; font-weight:700; color:#38bdf8;">📍 Move Position in 3D (Meters)</span>
+                <button type="button" class="btn-pick-3d" id="btn-pick-3d-point">📍 Click House to Place</button>
+              </div>
+
+              <!-- X: Left / Right -->
+              <div class="coord-row">
+                <span class="coord-label">X (Left/Right)</span>
+                <div class="coord-stepper">
+                  <button type="button" class="coord-step-btn" data-axis="x" data-dir="-1">&minus;</button>
+                  <input type="range" class="coord-slider" id="coord-x-slider" min="-1.5" max="6.5" step="0.05">
+                  <input type="number" class="coord-val-input" id="coord-x-val" step="0.05">
+                  <button type="button" class="coord-step-btn" data-axis="x" data-dir="1">&plus;</button>
+                </div>
+              </div>
+
+              <!-- Y: Height -->
+              <div class="coord-row">
+                <span class="coord-label">Y (Height)</span>
+                <div class="coord-stepper">
+                  <button type="button" class="coord-step-btn" data-axis="y" data-dir="-1">&minus;</button>
+                  <input type="range" class="coord-slider" id="coord-y-slider" min="0.1" max="5.5" step="0.05">
+                  <input type="number" class="coord-val-input" id="coord-y-val" step="0.05">
+                  <button type="button" class="coord-step-btn" data-axis="y" data-dir="1">&plus;</button>
+                </div>
+              </div>
+
+              <!-- Quick Height Presets -->
+              <div style="display:flex; gap:6px; margin-top:-4px;">
+                <button type="button" class="btn-light-sub" id="btn-preset-ceil-down">Ceiling Down (2.15m)</button>
+                <button type="button" class="btn-light-sub" id="btn-preset-ceil-up">Ceiling Up (4.55m)</button>
+                <button type="button" class="btn-light-sub" id="btn-preset-lamp">Floor Lamp (1.55m)</button>
+              </div>
+
+              <!-- Z: Front / Back -->
+              <div class="coord-row">
+                <span class="coord-label">Z (Front/Back)</span>
+                <div class="coord-stepper">
+                  <button type="button" class="coord-step-btn" data-axis="z" data-dir="-1">&minus;</button>
+                  <input type="range" class="coord-slider" id="coord-z-slider" min="-9.0" max="1.5" step="0.05">
+                  <input type="number" class="coord-val-input" id="coord-z-val" step="0.05">
+                  <button type="button" class="coord-step-btn" data-axis="z" data-dir="1">&plus;</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Light Color Swatches -->
+            <div class="sensor-row">
+              <label>Light Color Tone</label>
+              <div class="color-preset-chips">
+                <button type="button" class="color-chip-btn" style="background:#ffe299" data-color="#ffe299" title="Warm Candle White"></button>
+                <button type="button" class="color-chip-btn" style="background:#fff0d6" data-color="#fff0d6" title="Soft White"></button>
+                <button type="button" class="color-chip-btn" style="background:#ffffff" data-color="#ffffff" title="Pure Daylight"></button>
+                <button type="button" class="color-chip-btn" style="background:#f59e0b" data-color="#f59e0b" title="Amber Gold"></button>
+                <button type="button" class="color-chip-btn" style="background:#38bdf8" data-color="#38bdf8" title="Sky Cyan"></button>
+                <button type="button" class="color-chip-btn" style="background:#ec4899" data-color="#ec4899" title="Pink Accent"></button>
+                <input type="color" id="custom-light-color-input" style="width:28px; height:24px; border:none; background:none; cursor:pointer;" title="Custom Color">
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="padding:12px 18px;">
+            <button class="btn-action" style="background:rgba(239,68,68,0.2); color:#f87171; border:1px solid rgba(239,68,68,0.4);" id="btn-custom-light-delete">🗑️ Delete Light</button>
+            <button class="btn-action btn-save" id="btn-custom-light-save">💾 Save Light</button>
+          </div>
+        </div>
+      </div>
+
       <!-- HTML5 Datalist for Direct Typing Auto-Completion -->
       <datalist id="ha-entities-datalist"></datalist>
 
@@ -1170,6 +1495,7 @@ export class HUDOverlay {
         presetBtns.forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         const preset = btn.getAttribute('data-preset');
+        this.activePreset = preset;
         this.onPresetClick(preset);
       });
     });
@@ -1288,6 +1614,133 @@ export class HUDOverlay {
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         this.renderPickerEntityList(e.target.value, this.currentPickerFilter || 'all');
+      });
+    }
+
+    // Light Customizer Dialog close & backdrop click
+    const lightCustDialog = this.el.querySelector('#light-customizer-dialog');
+    const lightCustClose = this.el.querySelector('#light-customizer-close');
+    if (lightCustClose) {
+      lightCustClose.addEventListener('click', () => {
+        lightCustDialog.classList.remove('open');
+        this.onBeaconClear();
+        this.onDisableClickToPlace();
+        this.el.querySelector('#btn-pick-3d-point')?.classList.remove('active');
+      });
+    }
+
+    if (lightCustDialog) {
+      lightCustDialog.addEventListener('click', (e) => {
+        if (e.target === lightCustDialog) {
+          lightCustDialog.classList.remove('open');
+          this.onBeaconClear();
+          this.onDisableClickToPlace();
+          this.el.querySelector('#btn-pick-3d-point')?.classList.remove('active');
+        }
+      });
+    }
+
+    // Floor Selector buttons
+    const floorGround = this.el.querySelector('#floor-btn-ground');
+    const floorFirst = this.el.querySelector('#floor-btn-first');
+    if (floorGround && floorFirst) {
+      floorGround.addEventListener('click', () => {
+        floorGround.classList.add('active');
+        floorFirst.classList.remove('active');
+        if (this.editingLight) this.editingLight.floor = 'ground';
+      });
+      floorFirst.addEventListener('click', () => {
+        floorFirst.classList.add('active');
+        floorGround.classList.remove('active');
+        if (this.editingLight) this.editingLight.floor = 'first';
+      });
+    }
+
+    // Coordinate Steppers & Sliders
+    ['x', 'y', 'z'].forEach((axis) => {
+      const slider = this.el.querySelector(`#coord-${axis}-slider`);
+      const numInput = this.el.querySelector(`#coord-${axis}-val`);
+      if (slider) {
+        slider.addEventListener('input', (e) => this.onCoordChange(axis, e.target.value));
+      }
+      if (numInput) {
+        numInput.addEventListener('change', (e) => this.onCoordChange(axis, e.target.value));
+      }
+    });
+
+    // Step +/- buttons
+    const stepBtns = this.el.querySelectorAll('.coord-step-btn');
+    stepBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const axis = btn.getAttribute('data-axis');
+        const dir = parseFloat(btn.getAttribute('data-dir') || '1');
+        if (this.editingLight) {
+          const current = this.editingLight.pos[axis] || 0;
+          const next = parseFloat((current + dir * 0.1).toFixed(2));
+          this.onCoordChange(axis, next);
+        }
+      });
+    });
+
+    // Preset height buttons
+    const btnCeilDown = this.el.querySelector('#btn-preset-ceil-down');
+    const btnCeilUp = this.el.querySelector('#btn-preset-ceil-up');
+    const btnFloorLamp = this.el.querySelector('#btn-preset-lamp');
+    if (btnCeilDown) btnCeilDown.addEventListener('click', () => this.onCoordChange('y', 2.15));
+    if (btnCeilUp) btnCeilUp.addEventListener('click', () => this.onCoordChange('y', 4.55));
+    if (btnFloorLamp) btnFloorLamp.addEventListener('click', () => this.onCoordChange('y', 1.55));
+
+    // Click on 3D House to Place button
+    const btnPick3D = this.el.querySelector('#btn-pick-3d-point');
+    if (btnPick3D) {
+      btnPick3D.addEventListener('click', () => {
+        btnPick3D.classList.toggle('active');
+        if (btnPick3D.classList.contains('active')) {
+          this.onEnableClickToPlace((coords) => {
+            this.onCoordChange('x', coords.x);
+            this.onCoordChange('y', coords.y);
+            this.onCoordChange('z', coords.z);
+          });
+        } else {
+          this.onDisableClickToPlace();
+        }
+      });
+    }
+
+    // Color chips
+    const colorChips = this.el.querySelectorAll('.color-chip-btn');
+    const colorInput = this.el.querySelector('#custom-light-color-input');
+    colorChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const colStr = chip.getAttribute('data-color');
+        const colHex = parseInt(colStr.replace('#', '0x'), 16);
+        if (this.editingLight) {
+          this.editingLight.defaultColor = colHex;
+        }
+        colorChips.forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+        if (colorInput) colorInput.value = colStr;
+      });
+    });
+    if (colorInput) {
+      colorInput.addEventListener('input', (e) => {
+        const colHex = parseInt(e.target.value.replace('#', '0x'), 16);
+        if (this.editingLight) {
+          this.editingLight.defaultColor = colHex;
+        }
+        colorChips.forEach((c) => c.classList.remove('active'));
+      });
+    }
+
+    // Save & Delete buttons
+    const btnSaveLight = this.el.querySelector('#btn-custom-light-save');
+    const btnDeleteLight = this.el.querySelector('#btn-custom-light-delete');
+    if (btnSaveLight) {
+      btnSaveLight.addEventListener('click', () => this.saveEditingLight());
+    }
+    if (btnDeleteLight) {
+      btnDeleteLight.addEventListener('click', () => {
+        if (this.editingLight?.id) this.deleteLight(this.editingLight.id);
       });
     }
 
@@ -1566,6 +2019,124 @@ export class HUDOverlay {
     dl.innerHTML = ids.map((id) => `<option value="${id}"></option>`).join('');
   }
 
+  setCustomLights(lights) {
+    this.customLights = lights || [];
+    if (this.activeTab === 'lights') {
+      this.renderDrawerContent();
+    }
+  }
+
+  openLightEditor(lightId = null) {
+    const dialog = this.el.querySelector('#light-customizer-dialog');
+    if (!dialog) return;
+
+    if (!lightId) {
+      // Adding a new light
+      const isDownstairs = this.activePreset === 'downstairs';
+      const defaultY = isDownstairs ? 2.15 : 4.55;
+      const defaultFloor = isDownstairs ? 'ground' : 'first';
+      this.editingLight = {
+        id: `light_custom_${Date.now()}`,
+        name: `New Light ${this.customLights.length + 1}`,
+        floor: defaultFloor,
+        pos: { x: 2.20, y: defaultY, z: -3.50 },
+        range: 6.5,
+        maxIntensity: 4.0,
+        defaultColor: 0xffe299,
+        entity_id: '',
+        isNew: true
+      };
+      this.el.querySelector('#light-customizer-title').innerText = '➕ Add New 3D Light';
+      this.el.querySelector('#btn-custom-light-delete').style.display = 'none';
+    } else {
+      const existing = this.customLights.find((l) => l.id === lightId);
+      if (!existing) return;
+      this.editingLight = JSON.parse(JSON.stringify(existing));
+      this.editingLight.isNew = false;
+      this.el.querySelector('#light-customizer-title').innerText = `💡 Configure & Move: ${this.editingLight.name}`;
+      this.el.querySelector('#btn-custom-light-delete').style.display = 'block';
+    }
+
+    // Populate inputs
+    this.el.querySelector('#custom-light-name').value = this.editingLight.name || '';
+    this.el.querySelector('#custom-light-entity').value = this.editingLight.entity_id || '';
+
+    // Floor buttons
+    const floor = this.editingLight.floor || (this.editingLight.pos.y > 3.0 ? 'first' : 'ground');
+    this.el.querySelector('#floor-btn-ground').classList.toggle('active', floor === 'ground');
+    this.el.querySelector('#floor-btn-first').classList.toggle('active', floor === 'first');
+
+    // Coordinates
+    this.updateCoordInputs(this.editingLight.pos.x, this.editingLight.pos.y, this.editingLight.pos.z);
+
+    // Show 3D beacon marker in the house
+    this.onBeaconFocus(this.editingLight.id, this.editingLight.pos);
+
+    dialog.classList.add('open');
+  }
+
+  updateCoordInputs(x, y, z) {
+    const setVal = (id, val) => {
+      const el = this.el.querySelector(id);
+      if (el) el.value = val;
+    };
+    setVal('#coord-x-slider', x);
+    setVal('#coord-x-val', x);
+    setVal('#coord-y-slider', y);
+    setVal('#coord-y-val', y);
+    setVal('#coord-z-slider', z);
+    setVal('#coord-z-val', z);
+  }
+
+  onCoordChange(axis, val) {
+    if (!this.editingLight) return;
+    const num = parseFloat(val);
+    if (isNaN(num)) return;
+    this.editingLight.pos[axis] = num;
+    this.updateCoordInputs(this.editingLight.pos.x, this.editingLight.pos.y, this.editingLight.pos.z);
+    this.onUpdateLightPosition(this.editingLight.id, this.editingLight.pos.x, this.editingLight.pos.y, this.editingLight.pos.z);
+    this.onBeaconFocus(this.editingLight.id, this.editingLight.pos);
+  }
+
+  saveEditingLight() {
+    if (!this.editingLight) return;
+    this.editingLight.name = this.el.querySelector('#custom-light-name')?.value?.trim() || 'Custom Light';
+    this.editingLight.entity_id = this.el.querySelector('#custom-light-entity')?.value?.trim() || '';
+
+    const isFirst = this.el.querySelector('#floor-btn-first')?.classList.contains('active');
+    this.editingLight.floor = isFirst ? 'first' : 'ground';
+
+    if (this.editingLight.isNew) {
+      delete this.editingLight.isNew;
+      this.customLights.push(this.editingLight);
+    } else {
+      const idx = this.customLights.findIndex((l) => l.id === this.editingLight.id);
+      if (idx !== -1) {
+        this.customLights[idx] = this.editingLight;
+      } else {
+        this.customLights.push(this.editingLight);
+      }
+    }
+
+    this.onSaveCustomLights(this.customLights);
+    this.onBeaconClear();
+    this.onDisableClickToPlace();
+    this.el.querySelector('#btn-pick-3d-point')?.classList.remove('active');
+    this.el.querySelector('#light-customizer-dialog')?.classList.remove('open');
+    this.renderDrawerContent();
+  }
+
+  deleteLight(lightId) {
+    if (!confirm('Are you sure you want to delete this light from the 3D model?')) return;
+    this.customLights = this.customLights.filter((l) => l.id !== lightId);
+    this.onSaveCustomLights(this.customLights);
+    this.onBeaconClear();
+    this.onDisableClickToPlace();
+    this.el.querySelector('#btn-pick-3d-point')?.classList.remove('active');
+    this.el.querySelector('#light-customizer-dialog')?.classList.remove('open');
+    this.renderDrawerContent();
+  }
+
   autoDetectSensors() {
     const ids = this.availableEntities.map((e) => (typeof e === 'string' ? e : e.entity_id || ''));
     if (!ids.length) return;
@@ -1734,8 +2305,8 @@ export class HUDOverlay {
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
             <div class="stat-label">KITCHEN COMBI BOILER</div>
-            <div class="stat-val color-gas">${g.boiler_status || (isActive ? 'Active' : 'Standby')}</div>
-            <div class="stat-subtext">Pipework: ${isActive ? '🔥 Flowing Tank to Boiler' : 'Frozen (Idle)'}</div>
+            <div class="stat-val color-gas">${isActive ? '🔥 Heating' : 'Standby'}</div>
+            <div class="stat-subtext">Status: ${isActive ? 'Heating (Firing)' : 'Standby (Idle)'} &bull; Supply: External LPG Bulk Tank</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">30-MIN READING (MINI)</div>
@@ -1854,10 +2425,10 @@ export class HUDOverlay {
           <div class="stat-card">
             <div class="stat-label">KITCHEN COMBI BOILER</div>
             <div class="stat-val" style="color: ${boilerFiring ? '#f97316' : '#94a3b8'};">
-              ${boilerFiring ? '🔥 Central Heating (Firing)' : 'Standby / Off'}
+              ${boilerFiring ? '🔥 Heating' : 'Standby'}
             </div>
             <div class="stat-subtext">
-              Hooked to Thermostats: ${boilerFiring ? (downHeating && upHeating ? 'Downstairs & Upstairs Heating' : (downHeating ? 'Downstairs Heating' : 'Upstairs Heating')) : 'Both Thermostats Satisfied (Off)'}
+              Status: ${boilerFiring ? 'Heating (Firing)' : 'Standby'} &bull; Supply: LPG Bulk Tank
             </div>
           </div>
 
@@ -1879,65 +2450,102 @@ export class HUDOverlay {
       }
     } else if (this.activeTab === 'lights') {
       const roomLights = data.room_lights || {};
-      const roomList = [
-        { key: 'lounge', name: 'Living Room Ceiling', icon: '🛋️' },
-        { key: 'living_lamp', name: 'Living Room Corner Lamp', icon: '🛋️', isAppliance: true },
-        { key: 'kitchen', name: 'Kitchen', icon: '🍳' },
-        { key: 'dining', name: 'Dining Room', icon: '🍽️' },
-        { key: 'hallway', name: 'Hall & Stairs', icon: '🚪' },
-        { key: 'wc', name: 'Downstairs WC', icon: '🚽' },
-        { key: 'master_bedroom', name: 'Master Bedroom', icon: '🛏️' },
-        { key: 'ensuite', name: 'Master En-Suite', icon: '🚿' },
-        { key: 'bedroom2', name: 'Bedroom 2', icon: '🛏️' },
-        { key: 'bedroom3', name: 'Bedroom 3', icon: '🧸' },
-        { key: 'bathroom', name: 'Family Bathroom', icon: '🛁' },
-        { key: 'landing', name: 'Upstairs Landing', icon: '🪜' }
-      ];
+      const lights = this.customLights || [];
 
       let cardsHtml = '';
-      for (const r of roomList) {
-        const item = r.isAppliance ? (data.appliances?.[r.key] || {}) : (roomLights[r.key] || {});
+      for (const lt of lights) {
+        const item = roomLights[lt.id] || (lt.id === 'living_lamp' ? data.appliances?.living_lamp : {}) || {};
         const isOn = Boolean(item.is_on);
         const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : 100;
+        const icon = lt.isFloorLamp || lt.name?.toLowerCase().includes('lamp') ? '🛋️' : '💡';
+        const floorText = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0) ? '🛏️ Upstairs' : '🛋️ Downstairs';
+        const posText = lt.pos ? `(${lt.pos.x.toFixed(1)}, ${lt.pos.y.toFixed(1)}, ${lt.pos.z.toFixed(1)})` : '';
+
         cardsHtml += `
           <div class="light-card ${isOn ? 'active' : ''}">
             <div class="light-card-top">
-              <span class="light-name">${r.icon} ${r.name}</span>
+              <span class="light-name">${icon} ${lt.name}</span>
               <span class="light-status-pill ${isOn ? 'on' : 'off'}">${isOn ? '💡 ON' : 'OFF'}</span>
             </div>
-            <div style="font-size: 10px; color: #94a3b8;">${isOn ? `Brightness: ${bri}%` : 'Light is off'}</div>
-            <button class="light-toggle-btn" data-entity="${item.entity_id || ''}" data-room="${r.key}" data-is-appliance="${r.isAppliance ? '1' : '0'}">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#94a3b8;">
+              <span>${floorText}</span>
+              <span style="font-size:9px;">${posText}</span>
+            </div>
+            <div style="font-size:10px; color:#94a3b8;">${isOn ? `Brightness: ${bri}%` : 'Light is off'}</div>
+            <button class="light-toggle-btn" data-entity="${lt.entity_id || ''}" data-light-id="${lt.id}">
               ${isOn ? 'Turn Off' : 'Turn On'}
             </button>
+            <div class="light-card-footer">
+              <button class="btn-light-sub btn-edit-light-coords" data-light-id="${lt.id}">
+                ⚙️ Move / Edit
+              </button>
+              <button class="btn-light-del btn-delete-light-item" data-light-id="${lt.id}" title="Delete light">
+                🗑️
+              </button>
+            </div>
           </div>
         `;
       }
 
       content.innerHTML = `
-        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
-          Interactive 3D Room Illumination &bull; Toggle lights to illuminate rooms in the model:
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:700; font-size:13px; color:#f8fafc;">💡 Interactive 3D Lights (${lights.length})</div>
+            <div style="font-size:11px; color:#94a3b8;">Add, delete, move around in 3D, and link Home Assistant entities</div>
+          </div>
+          <button class="btn-action" id="btn-add-light-ui" style="background:#0284c7; color:#fff; display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-weight:600; font-size:12px; cursor:pointer; border:none;">
+            <span>➕</span>
+            <span>Add Light</span>
+          </button>
         </div>
         <div class="light-grid">
           ${cardsHtml}
         </div>
       `;
 
+      // Toggle buttons
       const toggleBtns = content.querySelectorAll('.light-toggle-btn');
       toggleBtns.forEach((btn) => {
         btn.addEventListener('click', () => {
           const entId = btn.getAttribute('data-entity');
-          const roomKey = btn.getAttribute('data-room');
-          const isAppliance = btn.getAttribute('data-is-appliance') === '1';
+          const lightId = btn.getAttribute('data-light-id');
           if (entId) {
             this.onToggleLight(entId);
-          } else if (isAppliance && data.appliances?.[roomKey]) {
-            data.appliances[roomKey].is_on = !data.appliances[roomKey].is_on;
-            this.renderDrawerContent();
-          } else if (roomKey && data.room_lights?.[roomKey]) {
-            // Local fallback simulation
-            data.room_lights[roomKey].is_on = !data.room_lights[roomKey].is_on;
+          } else if (lightId) {
+            if (data.room_lights?.[lightId]) {
+              data.room_lights[lightId].is_on = !data.room_lights[lightId].is_on;
+            }
+            if (lightId === 'living_lamp' && data.appliances?.living_lamp) {
+              data.appliances.living_lamp.is_on = !data.appliances.living_lamp.is_on;
+            }
             this.renderDrawerContent();
           }
+        });
+      });
+
+      // Add light button
+      const btnAdd = content.querySelector('#btn-add-light-ui');
+      if (btnAdd) {
+        btnAdd.addEventListener('click', () => {
+          this.openLightEditor(null);
+        });
+      }
+
+      // Edit / Move light buttons
+      const editBtns = content.querySelectorAll('.btn-edit-light-coords');
+      editBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const lightId = btn.getAttribute('data-light-id');
+          this.openLightEditor(lightId);
+        });
+      });
+
+      // Delete light buttons
+      const delBtns = content.querySelectorAll('.btn-delete-light-item');
+      delBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const lightId = btn.getAttribute('data-light-id');
+          this.deleteLight(lightId);
         });
       });
     }
@@ -1981,7 +2589,7 @@ export class HUDOverlay {
         const rate = Number(data.octopus_electric?.current_rate_p || 0).toFixed(1);
         badgeHtml = `<span>⚡ Octopus</span> <span>${Math.abs(gridKw).toFixed(1)} kW</span> <span style="color:#94a3b8">(${rate}p)</span>`;
       } else if (spot.id === 'boiler') {
-        badgeHtml = `<span>🔥 Boiler</span> <span class="color-gas">${data.octopus_gas?.boiler_status || 'Active'}</span>`;
+        badgeHtml = `<span>🔥 Boiler</span> <span class="color-gas">${data.octopus_gas?.is_active ? 'Heating' : 'Standby'}</span>`;
       } else if (spot.id === 'ev') {
         badgeHtml = `<span>🚗 Peugeot</span> <span class="color-ev">${data.ev?.battery_soc_pct || 68}%</span>`;
       } else if (spot.id === 'thermostat_downstairs') {
