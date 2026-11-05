@@ -9,7 +9,7 @@ export const DEFAULT_LIGHTS = [
   { id: 'kitchen', name: 'Kitchen Ceiling', floor: 'ground', pos: { x: 1.80, y: 2.15, z: -7.40 }, range: 7.0, maxIntensity: 4.5, defaultColor: 0xfff0d6, entity_id: 'light.kitchen' },
   { id: 'dining', name: 'Dining Room', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -7.40 }, range: 6.5, maxIntensity: 4.0, defaultColor: 0xffe6b8, entity_id: 'light.dining_room' },
   { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.20, y: 2.15, z: -2.20 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.hallway' },
-  { id: 'wc', name: 'Downstairs WC', floor: 'ground', pos: { x: 0.92, y: 2.15, z: -5.32 }, range: 4.5, maxIntensity: 3.5, defaultColor: 0xfff1dc, entity_id: 'light.downstairs_wc' },
+  { id: 'wc', name: 'Downstairs WC', floor: 'ground', pos: { x: 1.85, y: 2.15, z: -5.32 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff1dc, entity_id: 'light.downstairs_wc' },
   { id: 'living_lamp', name: 'Living Room Lamp', floor: 'ground', pos: { x: 0.60, y: 1.58, z: -0.65 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xffd580, entity_id: 'light.living_room_lamp', isFloorLamp: true },
   { id: 'master_bedroom', name: 'Master Bedroom', floor: 'first', pos: { x: 1.90, y: 4.55, z: -2.10 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.master_bedroom' },
   { id: 'ensuite', name: 'Master En-Suite', floor: 'first', pos: { x: 4.40, y: 4.55, z: -1.22 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xfff6ea, entity_id: 'light.ensuite' },
@@ -58,12 +58,12 @@ export const ROOM_LIGHT_CONFIGS = {
   },
   wc: {
     name: 'Downstairs WC',
-    pos: new THREE.Vector3(0.92, 2.15, -5.32),
-    range: 4.5,
-    maxIntensity: 3.5,
+    pos: new THREE.Vector3(1.85, 2.15, -5.32),
+    range: 5.5,
+    maxIntensity: 3.8,
     defaultColor: 0xfff1dc,
-    boxCenter: new THREE.Vector3(0.92, 1.20, -5.32),
-    boxSize: new THREE.Vector3(1.22, 2.35, 1.82)
+    boxCenter: new THREE.Vector3(1.85, 1.20, -5.32),
+    boxSize: new THREE.Vector3(3.08, 2.35, 1.82)
   },
   master_bedroom: {
     name: 'Master Bedroom',
