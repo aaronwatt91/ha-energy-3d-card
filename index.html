@@ -150,7 +150,7 @@
   </style>
 
   <!-- Load bundled custom card module with cache-buster -->
-  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.1.4"></script>
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.1.5"></script>
 </head>
 <body>
 
@@ -252,6 +252,7 @@
 
         // Appliances & Living Room Devices
         'sensor.fridge_power': { state: '85', attributes: { unit_of_measurement: 'W' } },
+        'sensor.washing_machine_power': { state: '420', attributes: { unit_of_measurement: 'W' } },
         'media_player.living_room_tv': { state: 'on', attributes: { friendly_name: 'Living Room TV' } },
         'light.living_room_lamp': { state: 'on', attributes: { brightness: 220, rgb_color: [255, 220, 160] } },
 

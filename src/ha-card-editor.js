@@ -216,6 +216,10 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <input type="text" data-key="sensor_fridge" value="${c.sensor_fridge || 'sensor.fridge_power'}">
           </div>
           <div class="input-row">
+            <label>Kitchen Washing Machine Power</label>
+            <input type="text" data-key="sensor_washer" value="${c.sensor_washer || 'sensor.washing_machine_power'}">
+          </div>
+          <div class="input-row">
             <label>Living Room TV (media_player/switch)</label>
             <input type="text" data-key="sensor_tv" value="${c.sensor_tv || 'media_player.living_room_tv'}">
           </div>

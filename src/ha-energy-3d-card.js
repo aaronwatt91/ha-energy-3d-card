@@ -137,6 +137,7 @@ export class HaEnergy3DCard extends HTMLElement {
       thermostat_upstairs: 'climate.upstairs',
       // Appliances & Living Room Devices
       sensor_fridge: 'sensor.fridge_power',
+      sensor_washer: 'sensor.washing_machine_power',
       sensor_tv: 'media_player.living_room_tv',
       light_living_lamp: 'light.living_room_lamp',
       // Room Lights (Unset by default: strictly OFF until user maps a sensor)
@@ -348,10 +349,16 @@ export class HaEnergy3DCard extends HTMLElement {
     const exportKw = this.getPowerInKw(cfg.octopus_export_power, 0);
     let isExporting = false;
 
-    if (exportKw > 0.04) {
-      electricKw = -exportKw;
+    // Strict rule:
+    // If electricKw > 0.02: House is IMPORTING from Octopus grid -> positive kW, flow moves towards house.
+    // If electricKw < -0.02: House is EXPORTING (negative) -> flow moves away from house towards pylon.
+    if (electricKw < -0.02) {
       isExporting = true;
-    } else if (electricKw < -0.04) {
+    } else if (electricKw > 0.02) {
+      isExporting = false;
+    } else if (exportKw > 0.04) {
+      // Only when main electricity power is ~0 and dedicated export sensor reports export
+      electricKw = -exportKw;
       isExporting = true;
     }
 
@@ -478,6 +485,10 @@ export class HaEnergy3DCard extends HTMLElement {
       tvPower = this.energyData.appliances.tv.power_kw;
     }
 
+    const washerPower = this.getPowerInKw(cfg.sensor_washer, this.energyData.appliances?.washer?.power_kw ?? 0.0);
+    const washerRawState = this.getEntityState(cfg.sensor_washer, '').toLowerCase();
+    const isWasherActive = washerPower > 0.010 || washerRawState === 'on' || washerRawState === 'running';
+
     const lampEntity = cfg.light_living_lamp || this.customLights.find(l => l.id === 'living_lamp' || l.name?.toLowerCase().includes('corner lamp'))?.entity_id;
     const lampData = this.getLightState(lampEntity, this.energyData.appliances?.living_lamp);
 
@@ -488,6 +499,13 @@ export class HaEnergy3DCard extends HTMLElement {
         power_w: Math.round(fridgePower * 1000),
         is_active: isFridgeActive,
         state: isFridgeActive ? 'Running' : 'Standby'
+      },
+      washer: {
+        entity_id: cfg.sensor_washer || '',
+        power_kw: washerPower,
+        power_w: Math.round(washerPower * 1000),
+        is_active: isWasherActive,
+        state: isWasherActive ? 'Running' : 'Standby'
       },
       tv: {
         entity_id: cfg.sensor_tv || '',

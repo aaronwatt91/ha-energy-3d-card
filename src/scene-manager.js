@@ -145,6 +145,7 @@ export class SceneManager {
       { id: 'thermostat_downstairs', name: 'Downstairs Heating', pos: new THREE.Vector3(3.60, 1.45, -2.40) },
       { id: 'thermostat_upstairs', name: 'Upstairs Heating', pos: new THREE.Vector3(3.30, 4.05, -4.95) },
       { id: 'appliance_fridge', name: 'Kitchen Fridge Freezer', pos: new THREE.Vector3(2.45, 1.45, -6.65) },
+      { id: 'appliance_washer', name: 'Kitchen Washing Machine', pos: new THREE.Vector3(2.15, 0.90, -8.20) },
       { id: 'appliance_tv', name: 'Living Room TV', pos: new THREE.Vector3(3.35, 1.40, -3.10) }
     ];
 
@@ -677,6 +678,110 @@ export class SceneManager {
 
     this.appliancesGroup.add(lampGroup);
     this.applianceLamp = lampGroup;
+
+    // ==========================================
+    // 4. Kitchen Washing Machine (Opposite side from Fridge Freezer)
+    // ==========================================
+    const washerGroup = new THREE.Group();
+    // Placed on opposite wall (under counter at z = -8.20, x = 2.15, facing +Z towards fridge freezer)
+    washerGroup.position.set(2.15, 0.0, -8.20);
+
+    // Main Washer Cabinet
+    const washerBodyGeom = new THREE.BoxGeometry(0.58, 0.85, 0.58);
+    const washerBodyMat = new THREE.MeshStandardMaterial({
+      color: 0xf1f5f9,
+      roughness: 0.35,
+      metalness: 0.25
+    });
+    const washerBody = new THREE.Mesh(washerBodyGeom, washerBodyMat);
+    washerBody.position.y = 0.425;
+    washerBody.castShadow = true;
+    washerBody.receiveShadow = true;
+    washerGroup.add(washerBody);
+
+    // Front Chrome/Gloss Porthole Door Rim
+    const doorRimGeom = new THREE.TorusGeometry(0.19, 0.024, 16, 36);
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      metalness: 0.90,
+      roughness: 0.18
+    });
+    const doorRim = new THREE.Mesh(doorRimGeom, chromeMat);
+    doorRim.position.set(0.0, 0.42, 0.295);
+    washerGroup.add(doorRim);
+
+    // Smoked Porthole Glass Window
+    const glassGeom = new THREE.CircleGeometry(0.175, 32);
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.1,
+      metalness: 0.6,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide
+    });
+    this.applianceWasherGlass = new THREE.Mesh(glassGeom, glassMat);
+    this.applianceWasherGlass.position.set(0.0, 0.42, 0.298);
+    washerGroup.add(this.applianceWasherGlass);
+
+    // Inner Stainless Steel Drum Lines
+    const innerRimGeom = new THREE.TorusGeometry(0.14, 0.012, 12, 28);
+    const innerRim = new THREE.Mesh(innerRimGeom, chromeMat);
+    innerRim.position.set(0.0, 0.42, 0.296);
+    washerGroup.add(innerRim);
+
+    // Top Control Panel Inset
+    const panelGeom = new THREE.PlaneGeometry(0.54, 0.14);
+    const panelMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.4,
+      metalness: 0.5,
+      side: THREE.DoubleSide
+    });
+    const panel = new THREE.Mesh(panelGeom, panelMat);
+    panel.position.set(0.0, 0.74, 0.295);
+    washerGroup.add(panel);
+
+    // Detergent Drawer Handle (Left)
+    const drawerGeom = new THREE.BoxGeometry(0.14, 0.08, 0.015);
+    const drawerMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.3
+    });
+    const drawer = new THREE.Mesh(drawerGeom, drawerMat);
+    drawer.position.set(-0.17, 0.74, 0.30);
+    washerGroup.add(drawer);
+
+    // Rotary Selector Dial (Center)
+    const dialGeom = new THREE.CylinderGeometry(0.032, 0.032, 0.018, 20);
+    const dial = new THREE.Mesh(dialGeom, chromeMat);
+    dial.rotation.x = Math.PI / 2;
+    dial.position.set(0.0, 0.74, 0.302);
+    washerGroup.add(dial);
+
+    // Digital LED Display (Right)
+    const washerDispGeom = new THREE.PlaneGeometry(0.12, 0.05);
+    const washerDispMat = new THREE.MeshBasicMaterial({
+      color: 0x00f59b,
+      side: THREE.DoubleSide
+    });
+    this.applianceWasherDisplay = new THREE.Mesh(washerDispGeom, washerDispMat);
+    this.applianceWasherDisplay.position.set(0.17, 0.74, 0.302);
+    washerGroup.add(this.applianceWasherDisplay);
+
+    // Status LED Indicator
+    const washerLedGeom = new THREE.SphereGeometry(0.006, 8, 8);
+    this.applianceWasherLed = new THREE.Mesh(washerLedGeom, new THREE.MeshBasicMaterial({ color: 0x64748b }));
+    this.applianceWasherLed.position.set(0.24, 0.77, 0.304);
+    washerGroup.add(this.applianceWasherLed);
+
+    // Internal Drum Ambient Light (Glows when running cycle)
+    this.applianceWasherLight = new THREE.PointLight(0x00f59b, 0.0, 2.0, 1.4);
+    this.applianceWasherLight.position.set(2.15, 0.45, -7.95);
+    this.appliancesGroup.add(this.applianceWasherLight);
+
+    this.appliancesGroup.add(washerGroup);
+    this.applianceWasher = washerGroup;
   }
 
   updateAppliances(appliances) {
@@ -709,6 +814,30 @@ export class SceneManager {
         if (this.tvCss3dObject) {
           this.tvCss3dObject.visible = false;
         }
+      }
+    }
+
+    // 2. Kitchen Washing Machine Drum & Status
+    if (this.applianceWasher && this.applianceWasherLight) {
+      const washer = appliances.washer || {};
+      const isWasherActive = Boolean(washer.is_active || (washer.power_w && washer.power_w > 10));
+
+      if (isWasherActive) {
+        if (this.applianceWasherLed) this.applianceWasherLed.material.color.setHex(0x22c55e); // Active green
+        if (this.applianceWasherDisplay) this.applianceWasherDisplay.material.color.setHex(0x00f59b);
+        if (this.applianceWasherGlass) {
+          this.applianceWasherGlass.material.emissive.setHex(0x00f59b);
+          this.applianceWasherGlass.material.emissiveIntensity = 0.8;
+        }
+        this.applianceWasherLight.intensity = 1.4;
+      } else {
+        if (this.applianceWasherLed) this.applianceWasherLed.material.color.setHex(0x64748b); // Standby grey
+        if (this.applianceWasherDisplay) this.applianceWasherDisplay.material.color.setHex(0x334155);
+        if (this.applianceWasherGlass) {
+          this.applianceWasherGlass.material.emissive.setHex(0x000000);
+          this.applianceWasherGlass.material.emissiveIntensity = 0.0;
+        }
+        this.applianceWasherLight.intensity = 0.0;
       }
     }
   }

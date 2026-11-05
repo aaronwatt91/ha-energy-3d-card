@@ -103,6 +103,12 @@ export const DEFAULT_ENERGY_DATA = {
       power_kw: 0.065, // ~65W typical compressor cycle
       is_active: true
     },
+    washer: {
+      entity_id: 'sensor.washing_machine_power',
+      power_kw: 0.450, // ~450W active wash cycle
+      power_w: 450,
+      is_active: true
+    },
     tv: {
       entity_id: 'media_player.living_room_tv',
       is_on: true,

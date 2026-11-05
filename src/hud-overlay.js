@@ -1208,6 +1208,13 @@ export class HUDOverlay {
               </div>
             </div>
             <div class="sensor-row">
+              <label>Kitchen Washing Machine (power sensor)</label>
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-washer" placeholder="sensor.washing_machine_power">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-washer">📋 Select</button>
+              </div>
+            </div>
+            <div class="sensor-row">
               <label>📺 Living Room TV (media_player/switch)</label>
               <div class="sensor-input-wrap">
                 <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="media_player.living_room_tv">
@@ -1800,6 +1807,7 @@ export class HUDOverlay {
 
     // Appliances & Living Room Devices
     setVal('#cfg-sensor-fridge', cfg.sensor_fridge);
+    setVal('#cfg-sensor-washer', cfg.sensor_washer);
     setVal('#cfg-sensor-tv', cfg.sensor_tv);
     setVal('#cfg-light-living-lamp', cfg.light_living_lamp);
 
@@ -1855,6 +1863,7 @@ export class HUDOverlay {
 
       // Appliances & Living Room Devices
       sensor_fridge: getVal('#cfg-sensor-fridge'),
+      sensor_washer: getVal('#cfg-sensor-washer'),
       sensor_tv: getVal('#cfg-sensor-tv'),
       light_living_lamp: getVal('#cfg-light-living-lamp'),
 
@@ -2194,6 +2203,7 @@ export class HUDOverlay {
 
     // Appliances auto-detection
     setIfFound('#cfg-sensor-fridge', 'fridge', 'refrigerator', 'freezer', 'fridge_power', 'kitchen_fridge');
+    setIfFound('#cfg-sensor-washer', 'washer_power', 'washing_machine_power', 'washing_machine', 'washer', 'laundry_power', 'laundry');
     setIfFound('#cfg-sensor-tv', 'living_room_tv', 'lounge_tv', 'media_player.tv', 'media_player.living_room', 'switch.tv');
     setIfFound('#cfg-light-living-lamp', 'living_room_lamp', 'corner_lamp', 'living_lamp', 'floor_lamp', 'standard_lamp', 'lamp');
 
@@ -2299,6 +2309,13 @@ export class HUDOverlay {
           <div class="stat-card">
             <div class="stat-label">THIS MONTH</div>
             <div class="stat-val">${Number(o.month_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">KITCHEN WASHING MACHINE</div>
+            <div class="stat-val" style="color:${data.appliances?.washer?.is_active ? '#00f59b' : '#94a3b8'};">
+              ${data.appliances?.washer?.power_w || 0} <span class="stat-unit">W</span>
+            </div>
+            <div class="stat-subtext">Status: ${data.appliances?.washer?.state || 'Standby'}</div>
           </div>
         </div>
       `;
@@ -2654,6 +2671,11 @@ export class HUDOverlay {
         const pVal = fridge.power_w !== undefined ? `${fridge.power_w} W` : `${((fridge.power_kw || 0.085) * 1000).toFixed(0)} W`;
         const isRun = Boolean(fridge.is_active);
         badgeHtml = `<span>🧊 Fridge</span> <span style="color:#38bdf8;font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isRun ? '#10b981' : '#64748b'}">●</span>`;
+      } else if (spot.id === 'appliance_washer') {
+        const washer = data.appliances?.washer || {};
+        const isRun = Boolean(washer.is_active);
+        const pVal = washer.power_w ? `${washer.power_w} W` : (isRun ? 'Running' : 'Standby');
+        badgeHtml = `<span>🫧 Washer</span> <span style="color:${isRun ? '#00f59b' : '#94a3b8'};font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isRun ? '#10b981' : '#64748b'}">●</span>`;
       } else if (spot.id === 'appliance_tv') {
         const tv = data.appliances?.tv || {};
         const isTvOn = Boolean(tv.is_on);
@@ -2683,6 +2705,10 @@ export class HUDOverlay {
           this.onPresetClick('downstairs');
           return;
         } else if (spot.id === 'appliance_fridge') {
+          this.openDrawerTab('electric');
+          this.onPresetClick('downstairs');
+          return;
+        } else if (spot.id === 'appliance_washer') {
           this.openDrawerTab('electric');
           this.onPresetClick('downstairs');
           return;

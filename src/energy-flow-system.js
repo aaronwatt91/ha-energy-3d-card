@@ -257,22 +257,24 @@ export class EnergyFlowSystem {
         }
       } else if (id === 'grid') {
         // Grid:
-        // Exporting: goes backwards towards grid (direction = -1), faster with more export
-        // Importing: goes inwards towards meter (direction = 1), faster with more import
+        // Importing: balls move towards the house from pylon to meter (direction = 1)
+        // Negative / Exporting: balls move away from the house towards pylon (direction = -1)
         const absGridKw = Math.abs(gridKw);
-        const isExporting = gridKw < -0.02 || (Boolean(energyData.octopus_electric?.is_exporting) && absGridKw > 0.02);
+        const isNegativeOrExport = gridKw < -0.02 || (Boolean(energyData.octopus_electric?.is_exporting) && gridKw <= 0.02);
 
         if (absGridKw > 0.02) {
           const ratio = Math.min(absGridKw / 3.5, 2.5);
           speed = Math.max(ratio * def.baseSpeed, 0.04);
 
-          if (isExporting) {
-            direction = -1; // Goes backwards towards the grid!
+          if (isNegativeOrExport) {
+            // Negative: moves AWAY from the house towards the pylon
+            direction = -1;
             const green = new THREE.Color(0x00ff88);
             mesh.material.color.lerp(green, 0.2);
             if (this.glowLines[id]) this.glowLines[id].material.color.lerp(green, 0.2);
           } else {
-            direction = 1; // Flows from pylon into meter box
+            // Importing: moves TOWARDS the house into the meter box
+            direction = 1;
             const cyan = new THREE.Color(0x00d2ff);
             mesh.material.color.lerp(cyan, 0.2);
             if (this.glowLines[id]) this.glowLines[id].material.color.lerp(cyan, 0.2);
