@@ -345,6 +345,13 @@ export class HaEnergy3DCard extends HTMLElement {
       this.hud.update(this.energyData, hotspots);
     };
 
+    // When user drags, orbits, or pans away, clear preset active state
+    this.sceneManager.onUserCameraInteraction = () => {
+      if (this.hud) {
+        this.hud.clearActivePreset();
+      }
+    };
+
     if (this._hass) {
       this.updateStatesFromHass();
     }

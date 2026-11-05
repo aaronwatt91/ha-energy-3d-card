@@ -214,6 +214,18 @@ export class SceneManager {
     this.controls.autoRotate = this.options.autoRotate;
     this.controls.autoRotateSpeed = 0.8;
 
+    // Immediately stop camera preset animation when user interacts/drags to allow free motion
+    this.controls.addEventListener('start', () => this.stopCameraAnimation());
+
+    const onUserInput = () => this.stopCameraAnimation();
+    this.renderer.domElement.addEventListener('pointerdown', onUserInput, { passive: true });
+    this.renderer.domElement.addEventListener('wheel', onUserInput, { passive: true });
+    this.renderer.domElement.addEventListener('touchstart', onUserInput, { passive: true });
+    if (this.css3dRenderer?.domElement) {
+      this.css3dRenderer.domElement.addEventListener('pointerdown', onUserInput, { passive: true });
+      this.css3dRenderer.domElement.addEventListener('wheel', onUserInput, { passive: true });
+    }
+
     // 5. Lighting
     this.initLighting();
 
@@ -614,6 +626,8 @@ export class SceneManager {
     tvIframeContainer.style.backgroundColor = '#000000';
     tvIframeContainer.style.overflow = 'hidden';
     tvIframeContainer.style.borderRadius = '3px';
+    tvIframeContainer.style.backfaceVisibility = 'hidden';
+    tvIframeContainer.style.webkitBackfaceVisibility = 'hidden';
 
     const tvIframe = document.createElement('iframe');
     tvIframe.id = 'tv-youtube-iframe';
@@ -632,7 +646,8 @@ export class SceneManager {
     this.isTvPlaying = false;
 
     this.tvCss3dObject = new CSS3DObject(tvIframeContainer);
-    this.tvCss3dObject.position.set(3.360, 1.35, -3.10);
+    // Slightly in front of the bezel (X = 3.352) to eliminate z-fighting / clipping at grazing angles
+    this.tvCss3dObject.position.set(3.352, 1.35, -3.10);
     this.tvCss3dObject.rotation.y = -Math.PI / 2;
     const tvScale = 1.17 / 640;
     this.tvCss3dObject.scale.set(tvScale, tvScale, tvScale);
@@ -1198,6 +1213,16 @@ export class SceneManager {
     }
   }
 
+  stopCameraAnimation() {
+    if (this.targetCameraPos || this.targetLookAt) {
+      this.targetCameraPos = null;
+      this.targetLookAt = null;
+      if (this.onUserCameraInteraction) {
+        this.onUserCameraInteraction();
+      }
+    }
+  }
+
   animate() {
     if (!this.isRunning) return;
     requestAnimationFrame(this.animate);
@@ -1208,7 +1233,10 @@ export class SceneManager {
       this.camera.position.lerp(this.targetCameraPos, 0.06);
       this.controls.target.lerp(this.targetLookAt, 0.06);
 
-      if (this.camera.position.distanceTo(this.targetCameraPos) < 0.05) {
+      if (
+        this.camera.position.distanceTo(this.targetCameraPos) < 0.05 &&
+        this.controls.target.distanceTo(this.targetLookAt) < 0.05
+      ) {
         this.targetCameraPos = null;
         this.targetLookAt = null;
       }
@@ -1225,31 +1253,59 @@ export class SceneManager {
     // Update TV YouTube stream visibility & render CSS3D scene
     if (this.tvCss3dObject) {
       if (this.isTvPlaying) {
-        // Camera must be facing the front of the screen (west / -X direction into living room)
-        const isFacing = this.camera.position.x < 3.32;
+        // Camera must be in front of the TV screen plane (facing -X into living room)
+        // TV is located on the living room wall at X = 3.36, screen normal points along -X
+        const isFacing = this.camera.position.x < 3.38;
+
         let isOccluded = false;
-
-        // Verify line-of-sight: if any wall, floor, or roof blocks the ray from camera to TV, hide the TV
         if (isFacing && this.occludingMeshes && this.occludingMeshes.length > 0) {
-          const rayDir = new THREE.Vector3().subVectors(this.tvTargetPos, this.camera.position);
-          const distToTv = rayDir.length();
-          rayDir.normalize();
-          this.tvRaycaster.set(this.camera.position, rayDir);
-          this.tvRaycaster.near = 0.1;
-          this.tvRaycaster.far = distToTv;
+          // Multi-point line-of-sight test across the TV screen (Center, Left, Right)
+          const testPoints = [
+            new THREE.Vector3(3.28, 1.35, -3.10), // Center
+            new THREE.Vector3(3.28, 1.35, -2.75), // Left
+            new THREE.Vector3(3.28, 1.35, -3.45)  // Right
+          ];
 
-          const visibleOccluders = this.occludingMeshes.filter(m => m.visible);
-          const hits = this.tvRaycaster.intersectObjects(visibleOccluders, false);
-          for (const hit of hits) {
-            if (hit.distance < distToTv - 0.20) {
-              isOccluded = true;
-              break;
+          const visibleOccluders = this.occludingMeshes.filter((m) => m.visible);
+          let hasLineOfSight = false;
+
+          for (const pt of testPoints) {
+            const rayDir = new THREE.Vector3().subVectors(pt, this.camera.position);
+            const distToPt = rayDir.length();
+            rayDir.normalize();
+            this.tvRaycaster.set(this.camera.position, rayDir);
+            this.tvRaycaster.near = 0.1;
+            this.tvRaycaster.far = distToPt;
+
+            const hits = this.tvRaycaster.intersectObjects(visibleOccluders, false);
+            let pointBlocked = false;
+
+            for (const hit of hits) {
+              // In downstairs cutaway mode, walls above the cut plane (y > 2.50) are clipped away and invisible
+              if (this.cutawayMode === 'downstairs' && hit.point.y > 2.50) {
+                continue;
+              }
+              // In X-ray roof mode, transparent ghost roofs do not occlude
+              if (this.xrayActive && this.roofParts.some((p) => p.mesh === hit.object)) {
+                continue;
+              }
+              // If hit is closer than (distToPt - 0.35m), a solid wall stands between camera and TV
+              if (hit.distance < distToPt - 0.35) {
+                pointBlocked = true;
+                break;
+              }
+            }
+
+            if (!pointBlocked) {
+              hasLineOfSight = true;
+              break; // If any part of the screen has direct line of sight, show TV
             }
           }
+
+          isOccluded = !hasLineOfSight;
         }
 
-        const isGroundVisible = this.cutawayMode === 'downstairs' || this.xrayActive || this.camera.position.distanceTo(new THREE.Vector3(3.38, 1.35, -3.10)) < 4.5;
-        this.tvCss3dObject.visible = isFacing && isGroundVisible && !isOccluded;
+        this.tvCss3dObject.visible = isFacing && !isOccluded;
       } else {
         this.tvCss3dObject.visible = false;
       }
@@ -1266,7 +1322,9 @@ export class SceneManager {
 
   destroy() {
     this.isRunning = false;
+    this.stopCameraAnimation();
     window.removeEventListener('resize', this.handleResize);
+    this.controls?.dispose();
     if (this.tvIframe) {
       this.tvIframe.src = '';
     }

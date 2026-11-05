@@ -2038,6 +2038,12 @@ export class HUDOverlay {
     }
   }
 
+  clearActivePreset() {
+    const presetBtns = this.el.querySelectorAll('[data-preset]');
+    presetBtns.forEach((b) => b.classList.remove('active'));
+    this.activePreset = null;
+  }
+
   openLightEditor(lightId = null) {
     const dialog = this.el.querySelector('#light-customizer-dialog');
     if (!dialog) return;
