@@ -429,19 +429,189 @@ export class HUDOverlay {
           color: #94a3b8;
         }
 
-        .sensor-row input {
+        .sensor-input-wrap {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+
+        .sensor-input-wrap input {
+          flex: 1;
           background: rgba(0, 0, 0, 0.35);
           border: 1px solid rgba(255, 255, 255, 0.12);
           color: #f8fafc;
-          padding: 8px 10px;
+          padding: 7px 10px;
           border-radius: 8px;
           font-size: 12px;
           outline: none;
-          transition: border-color 0.2s;
+          transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        .sensor-row input:focus {
+        .sensor-input-wrap input:focus {
           border-color: #38bdf8;
+          box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+        }
+
+        .btn-entity-browse {
+          background: rgba(56, 189, 248, 0.15);
+          border: 1px solid rgba(56, 189, 248, 0.35);
+          color: #38bdf8;
+          padding: 6px 10px;
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+          pointer-events: auto;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .btn-entity-browse:hover {
+          background: rgba(56, 189, 248, 0.3);
+          border-color: #38bdf8;
+          color: #fff;
+        }
+
+        /* Entity Picker Modal Dialog */
+        .entity-picker-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          z-index: 100;
+          display: none;
+          align-items: center;
+          justify-content: center;
+          pointer-events: auto;
+        }
+
+        .entity-picker-overlay.open {
+          display: flex;
+        }
+
+        .entity-picker-card {
+          width: 92%;
+          max-width: 520px;
+          max-height: 82vh;
+          background: rgba(15, 23, 42, 0.98);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 16px;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .entity-picker-header {
+          padding: 14px 18px 10px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .entity-picker-title {
+          font-weight: 700;
+          font-size: 14px;
+          color: #f8fafc;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .entity-filter-chips {
+          display: flex;
+          gap: 6px;
+          padding: 10px 18px 6px;
+          overflow-x: auto;
+        }
+
+        .filter-chip {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: #94a3b8;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.15s ease;
+        }
+
+        .filter-chip.active, .filter-chip:hover {
+          background: #0284c7;
+          border-color: #38bdf8;
+          color: #fff;
+        }
+
+        .entity-search-wrap {
+          padding: 6px 18px 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .entity-search-input {
+          width: 100%;
+          box-sizing: border-box;
+          background: rgba(0, 0, 0, 0.45);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          color: #f8fafc;
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          outline: none;
+        }
+
+        .entity-search-input:focus {
+          border-color: #38bdf8;
+          box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+        }
+
+        .entity-list-container {
+          flex: 1;
+          overflow-y: auto;
+          padding: 8px 14px;
+          max-height: 380px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .entity-item-row {
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid transparent;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: all 0.15s ease;
+        }
+
+        .entity-item-row:hover {
+          background: rgba(56, 189, 248, 0.14);
+          border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .entity-item-id {
+          font-weight: 600;
+          font-size: 12px;
+          color: #e2e8f0;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .entity-item-state {
+          font-size: 11px;
+          font-weight: 600;
+          color: #38bdf8;
+          background: rgba(56, 189, 248, 0.15);
+          padding: 2px 8px;
+          border-radius: 6px;
         }
 
         .sensor-grid-2 {
@@ -638,100 +808,192 @@ export class HUDOverlay {
           <div class="sensor-group-title">☀️ Solax Solar Integration</div>
           <div class="sensor-row">
             <label>Live Solar Generation Power (kW)</label>
-            <input type="text" id="cfg-solax-power" placeholder="sensor.solax_pv_power_total">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-solax-power" placeholder="sensor.solax_pv_power_total">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-solax-power">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Today's Solar Energy (kWh)</label>
-            <input type="text" id="cfg-solax-today" placeholder="sensor.solax_today_s_solar_energy">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-solax-today" placeholder="sensor.solax_today_s_solar_energy">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-solax-today">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>This Week's Solar Energy (kWh)</label>
-            <input type="text" id="cfg-solax-week" placeholder="sensor.solax_this_week_solar_energy">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-solax-week" placeholder="sensor.solax_this_week_solar_energy">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-solax-week">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>This Month's Solar Energy (kWh)</label>
-            <input type="text" id="cfg-solax-month" placeholder="sensor.solax_this_month_solar_energy">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-solax-month" placeholder="sensor.solax_this_month_solar_energy">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-solax-month">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>This Year's Solar Energy (kWh)</label>
-            <input type="text" id="cfg-solax-year" placeholder="sensor.solax_this_year_solar_energy">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-solax-year" placeholder="sensor.solax_this_year_solar_energy">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-solax-year">📋 Select</button>
+            </div>
           </div>
 
           <!-- Octopus Electricity -->
           <div class="sensor-group-title">⚡ Octopus Electricity & Grid</div>
           <div class="sensor-row">
             <label>Live Electricity Power / Home Mini (kW)</label>
-            <input type="text" id="cfg-octopus-power" placeholder="sensor.octopus_home_mini_current_electricity_power">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-power" placeholder="sensor.octopus_home_mini_current_electricity_power">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-power">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Solar Feed-In Export Power (kW)</label>
-            <input type="text" id="cfg-octopus-export" placeholder="sensor.solax_feed_in_power">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-export" placeholder="sensor.solax_feed_in_power">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-export">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Electricity Unit Rate (p/kWh)</label>
-            <input type="text" id="cfg-octopus-rate" placeholder="sensor.octopus_energy_electricity_current_rate">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-rate" placeholder="sensor.octopus_energy_electricity_current_rate">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-rate">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Month-to-Date Spend (£)</label>
-            <input type="text" id="cfg-octopus-spend" placeholder="sensor.octopus_energy_electricity_current_month_cost">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-spend" placeholder="sensor.octopus_energy_electricity_current_month_cost">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-spend">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Octopus Home Mini 30-Min Reading (kWh)</label>
-            <input type="text" id="cfg-octopus-30min" placeholder="sensor.octopus_home_mini_electricity_30min">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-30min" placeholder="sensor.octopus_home_mini_electricity_30min">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-30min">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Electricity Day (kWh)</label>
-            <input type="text" id="cfg-octopus-day" placeholder="sensor.octopus_energy_electricity_day">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-day" placeholder="sensor.octopus_energy_electricity_day">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-day">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Electricity Week (kWh)</label>
-            <input type="text" id="cfg-octopus-week" placeholder="sensor.octopus_energy_electricity_week">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-week" placeholder="sensor.octopus_energy_electricity_week">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-week">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Electricity Month (kWh)</label>
-            <input type="text" id="cfg-octopus-month" placeholder="sensor.octopus_energy_electricity_month">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-octopus-month" placeholder="sensor.octopus_energy_electricity_month">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-octopus-month">📋 Select</button>
+            </div>
           </div>
 
           <!-- Gas -->
           <div class="sensor-group-title">🔥 Octopus Gas & Combi Boiler</div>
           <div class="sensor-row">
             <label>Boiler Status (switch / climate / sensor)</label>
-            <input type="text" id="cfg-boiler-status" placeholder="sensor.boiler_status">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-boiler-status" placeholder="sensor.boiler_status">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-boiler-status">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Gas 30-Min Reading (Home Mini) (kWh)</label>
-            <input type="text" id="cfg-gas-30min" placeholder="sensor.octopus_home_mini_gas_30min">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-gas-30min" placeholder="sensor.octopus_home_mini_gas_30min">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-gas-30min">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Gas Day (kWh)</label>
-            <input type="text" id="cfg-gas-day" placeholder="sensor.octopus_energy_gas_day">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-gas-day" placeholder="sensor.octopus_energy_gas_day">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-gas-day">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Gas Week (kWh)</label>
-            <input type="text" id="cfg-gas-week" placeholder="sensor.octopus_energy_gas_week">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-gas-week" placeholder="sensor.octopus_energy_gas_week">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-gas-week">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Gas Month (kWh)</label>
-            <input type="text" id="cfg-gas-month" placeholder="sensor.octopus_energy_gas_month">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-gas-month" placeholder="sensor.octopus_energy_gas_month">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-gas-month">📋 Select</button>
+            </div>
           </div>
 
           <!-- EV -->
           <div class="sensor-group-title">🚗 myenergi Zappi & Peugeot e-2008</div>
           <div class="sensor-row">
             <label>Zappi Charging Speed (kW)</label>
-            <input type="text" id="cfg-zappi-power" placeholder="sensor.myenergi_zappi_power">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-zappi-power" placeholder="sensor.myenergi_zappi_power">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-zappi-power">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Zappi Session Energy Added (kWh)</label>
-            <input type="text" id="cfg-zappi-energy" placeholder="sensor.myenergi_zappi_charge_added_session">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-zappi-energy" placeholder="sensor.myenergi_zappi_charge_added_session">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-zappi-energy">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Peugeot Battery SoC (%)</label>
-            <input type="text" id="cfg-peugeot-battery" placeholder="sensor.e2008_battery_level">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-peugeot-battery" placeholder="sensor.e2008_battery_level">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-peugeot-battery">📋 Select</button>
+            </div>
           </div>
           <div class="sensor-row">
             <label>Peugeot Remaining Range (miles)</label>
-            <input type="text" id="cfg-peugeot-range" placeholder="sensor.e2008_battery_range">
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-peugeot-range" placeholder="sensor.e2008_battery_range">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-peugeot-range">📋 Select</button>
+            </div>
+          </div>
+
+          <!-- Appliances & Furniture -->
+          <div class="sensor-group-title">🍽️ Appliances & Living Room Devices</div>
+          <div class="sensor-row">
+            <label>Kitchen Fridge Freezer (power sensor in Watts or kW)</label>
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-sensor-fridge" placeholder="sensor.fridge_power">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-fridge">📋 Select</button>
+            </div>
+          </div>
+          <div class="sensor-grid-2">
+            <div class="sensor-row">
+              <label>📺 Living Room TV (media_player/switch/power)</label>
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="media_player.living_room_tv">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-tv">📋 Select</button>
+              </div>
+            </div>
+            <div class="sensor-row">
+              <label>🛋️ Living Room Corner Floor Lamp (light/switch)</label>
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-living-lamp" placeholder="light.living_room_lamp">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-living-lamp">📋 Select</button>
+              </div>
+            </div>
           </div>
 
           <!-- Heating & Thermostats -->
@@ -739,63 +1001,102 @@ export class HUDOverlay {
           <div class="sensor-grid-2">
             <div class="sensor-row">
               <label>Downstairs Thermostat (climate / sensor)</label>
-              <input type="text" id="cfg-thermostat-downstairs" placeholder="climate.downstairs">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-thermostat-downstairs" placeholder="climate.downstairs">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-thermostat-downstairs">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>Upstairs Thermostat (climate / sensor)</label>
-              <input type="text" id="cfg-thermostat-upstairs" placeholder="climate.upstairs">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-thermostat-upstairs" placeholder="climate.upstairs">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-thermostat-upstairs">📋 Select</button>
+              </div>
             </div>
           </div>
 
           <!-- Room Lights -->
-          <div class="sensor-group-title">💡 Room Lights (12 Rooms in 3D Model)</div>
+          <div class="sensor-group-title">💡 Room Lights (11 Interior Rooms)</div>
           <div style="font-size: 11px; color: #94a3b8; margin-top: -6px;">
             Select light/switch entities for each room. When turned ON, the room glows in 3D!
           </div>
           <div class="sensor-grid-2">
             <div class="sensor-row">
               <label>🛋️ Living Room / Lounge</label>
-              <input type="text" id="cfg-light-lounge" placeholder="light.living_room">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-lounge" placeholder="light.living_room">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-lounge">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🍳 Kitchen</label>
-              <input type="text" id="cfg-light-kitchen" placeholder="light.kitchen">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-kitchen" placeholder="light.kitchen">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-kitchen">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🍽️ Dining Area</label>
-              <input type="text" id="cfg-light-dining" placeholder="light.dining_room">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-dining" placeholder="light.dining_room">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-dining">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🚪 Entrance Hall & Stairs</label>
-              <input type="text" id="cfg-light-hallway" placeholder="light.hallway">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-hallway" placeholder="light.hallway">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-hallway">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🚽 Downstairs WC / Cloakroom</label>
-              <input type="text" id="cfg-light-wc" placeholder="light.downstairs_wc">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-wc" placeholder="light.downstairs_wc">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-wc">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🛏️ Master Bedroom</label>
-              <input type="text" id="cfg-light-master" placeholder="light.master_bedroom">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-master" placeholder="light.master_bedroom">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-master">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🚿 Master En-Suite</label>
-              <input type="text" id="cfg-light-ensuite" placeholder="light.ensuite">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-ensuite" placeholder="light.ensuite">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-ensuite">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🛏️ Bedroom 2 (Guestroom)</label>
-              <input type="text" id="cfg-light-bedroom2" placeholder="light.bedroom_2">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-bedroom2" placeholder="light.bedroom_2">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-bedroom2">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🧸 Bedroom 3 (Nursery / Office)</label>
-              <input type="text" id="cfg-light-bedroom3" placeholder="light.bedroom_3">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-bedroom3" placeholder="light.bedroom_3">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-bedroom3">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🛁 Family Bathroom</label>
-              <input type="text" id="cfg-light-bathroom" placeholder="light.family_bathroom">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-bathroom" placeholder="light.family_bathroom">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-bathroom">📋 Select</button>
+              </div>
             </div>
             <div class="sensor-row">
               <label>🪜 Upstairs Landing</label>
-              <input type="text" id="cfg-light-landing" placeholder="light.landing">
+              <div class="sensor-input-wrap">
+                <input type="text" list="ha-entities-datalist" id="cfg-light-landing" placeholder="light.landing">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-light-landing">📋 Select</button>
+              </div>
             </div>
           </div>
         </div>
@@ -805,6 +1106,39 @@ export class HUDOverlay {
           <button class="btn-action btn-save" id="btn-save-sensors">💾 Save & Apply</button>
         </div>
       </div>
+
+      <!-- Interactive Entity Picker Modal Dialog (Open a window and select from a list) -->
+      <div class="entity-picker-overlay" id="entity-picker-dialog">
+        <div class="entity-picker-card">
+          <div class="entity-picker-header">
+            <div class="entity-picker-title">
+              <span>📋</span>
+              <span id="picker-dialog-title">Select Home Assistant Entity</span>
+            </div>
+            <button class="drawer-close" id="picker-dialog-close">&times;</button>
+          </div>
+
+          <div class="entity-filter-chips" id="picker-filter-chips">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="light">💡 Lights</button>
+            <button class="filter-chip" data-filter="switch">🔌 Switches</button>
+            <button class="filter-chip" data-filter="sensor">📊 Sensors</button>
+            <button class="filter-chip" data-filter="climate">🌡️ Climate</button>
+            <button class="filter-chip" data-filter="media_player">📺 Media</button>
+          </div>
+
+          <div class="entity-search-wrap">
+            <input type="text" class="entity-search-input" id="picker-search-input" placeholder="🔍 Search entity ID or friendly name...">
+          </div>
+
+          <div class="entity-list-container" id="picker-entity-list">
+            <!-- Dynamic entities list populated on demand -->
+          </div>
+        </div>
+      </div>
+
+      <!-- HTML5 Datalist for Direct Typing Auto-Completion -->
+      <datalist id="ha-entities-datalist"></datalist>
 
       <!-- Bottom Camera & Feature Bar -->
       <div class="hud-controls-bar">
@@ -909,6 +1243,54 @@ export class HUDOverlay {
       this.autoDetectSensors();
     });
 
+    // Browse / Select Entity buttons (Opens searchable Entity Picker modal)
+    const browseBtns = this.el.querySelectorAll('.btn-entity-browse');
+    browseBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetId = btn.getAttribute('data-target');
+        this.openEntityPicker(targetId);
+      });
+    });
+
+    // Entity Picker Dialog close & backdrop click
+    const pickerDialog = this.el.querySelector('#entity-picker-dialog');
+    const pickerClose = this.el.querySelector('#picker-dialog-close');
+    if (pickerClose) {
+      pickerClose.addEventListener('click', () => {
+        pickerDialog.classList.remove('open');
+      });
+    }
+
+    if (pickerDialog) {
+      pickerDialog.addEventListener('click', (e) => {
+        if (e.target === pickerDialog) {
+          pickerDialog.classList.remove('open');
+        }
+      });
+    }
+
+    // Filter chips inside Entity Picker
+    const filterChips = this.el.querySelectorAll('.filter-chip');
+    filterChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        filterChips.forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+        this.currentPickerFilter = chip.getAttribute('data-filter') || 'all';
+        const searchVal = this.el.querySelector('#picker-search-input')?.value || '';
+        this.renderPickerEntityList(searchVal, this.currentPickerFilter);
+      });
+    });
+
+    // Live search input in Entity Picker
+    const searchInput = this.el.querySelector('#picker-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.renderPickerEntityList(e.target.value, this.currentPickerFilter || 'all');
+      });
+    }
+
     // Tab buttons
     const tabBtns = this.el.querySelectorAll('.drawer-nav-tab');
     tabBtns.forEach((tabBtn) => {
@@ -961,6 +1343,11 @@ export class HUDOverlay {
     setVal('#cfg-thermostat-downstairs', cfg.thermostat_downstairs);
     setVal('#cfg-thermostat-upstairs', cfg.thermostat_upstairs);
 
+    // Appliances & Living Room Devices
+    setVal('#cfg-sensor-fridge', cfg.sensor_fridge);
+    setVal('#cfg-sensor-tv', cfg.sensor_tv);
+    setVal('#cfg-light-living-lamp', cfg.light_living_lamp);
+
     // Room Lights (11 Interior Rooms)
     const rooms = [
       'lounge', 'kitchen', 'dining', 'hallway', 'wc',
@@ -1010,6 +1397,11 @@ export class HUDOverlay {
       thermostat_downstairs: getVal('#cfg-thermostat-downstairs'),
       thermostat_upstairs: getVal('#cfg-thermostat-upstairs'),
 
+      // Appliances & Living Room Devices
+      sensor_fridge: getVal('#cfg-sensor-fridge'),
+      sensor_tv: getVal('#cfg-sensor-tv'),
+      light_living_lamp: getVal('#cfg-light-living-lamp'),
+
       // Room Lights
       light_lounge: getVal('#cfg-light-lounge'),
       light_kitchen: getVal('#cfg-light-kitchen'),
@@ -1025,8 +1417,153 @@ export class HUDOverlay {
     };
   }
 
+  openEntityPicker(targetInputId) {
+    this.activePickerTarget = targetInputId;
+    const picker = this.el.querySelector('#entity-picker-dialog');
+    if (!picker) return;
+
+    const targetEl = this.el.querySelector(targetInputId);
+    const titleEl = this.el.querySelector('#picker-dialog-title');
+    if (titleEl && targetEl) {
+      const label = targetEl.closest('.sensor-row')?.querySelector('label')?.innerText || 'Select Entity';
+      titleEl.innerText = label;
+    }
+
+    // Auto-select filter domain if recognizable
+    let defaultFilter = 'all';
+    if (targetInputId.includes('light')) defaultFilter = 'light';
+    else if (targetInputId.includes('thermostat')) defaultFilter = 'climate';
+    else if (targetInputId.includes('tv')) defaultFilter = 'media_player';
+    else if (targetInputId.includes('power') || targetInputId.includes('energy') || targetInputId.includes('fridge')) defaultFilter = 'sensor';
+
+    this.currentPickerFilter = defaultFilter;
+    const filterChips = this.el.querySelectorAll('.filter-chip');
+    filterChips.forEach((c) => c.classList.toggle('active', c.getAttribute('data-filter') === defaultFilter));
+
+    picker.classList.add('open');
+    const searchInput = this.el.querySelector('#picker-search-input');
+    if (searchInput) {
+      searchInput.value = '';
+      setTimeout(() => searchInput.focus(), 60);
+    }
+    this.renderPickerEntityList('', defaultFilter);
+  }
+
+  renderPickerEntityList(searchTerm = '', filterDomain = 'all') {
+    const listEl = this.el.querySelector('#picker-entity-list');
+    if (!listEl) return;
+
+    let entities = this.availableEntities || [];
+    if (!entities.length) {
+      entities = [
+        'sensor.solax_pv_power_total',
+        'sensor.solax_today_s_solar_energy',
+        'sensor.solax_feed_in_power',
+        'sensor.octopus_home_mini_current_electricity_power',
+        'sensor.octopus_energy_electricity_current_rate',
+        'sensor.octopus_energy_electricity_current_month_cost',
+        'sensor.boiler_status',
+        'sensor.octopus_home_mini_gas_30min',
+        'sensor.myenergi_zappi_power',
+        'sensor.e2008_battery_level',
+        'sensor.e2008_battery_range',
+        'climate.downstairs',
+        'climate.upstairs',
+        'sensor.fridge_power',
+        'media_player.living_room_tv',
+        'light.living_room_lamp',
+        'light.living_room',
+        'light.kitchen',
+        'light.dining_room',
+        'light.hallway',
+        'light.downstairs_wc',
+        'light.master_bedroom',
+        'light.ensuite',
+        'light.bedroom_2',
+        'light.bedroom_3',
+        'light.family_bathroom',
+        'light.landing'
+      ];
+    }
+
+    const query = searchTerm.toLowerCase().trim();
+    const filtered = entities.filter((item) => {
+      const id = (typeof item === 'string' ? item : item.entity_id || '').toLowerCase();
+      const domain = id.split('.')[0] || '';
+      if (filterDomain !== 'all') {
+        if (filterDomain === 'media_player') {
+          if (domain !== 'media_player' && !id.includes('tv') && domain !== 'switch') return false;
+        } else if (filterDomain === 'climate') {
+          if (domain !== 'climate' && !id.includes('thermostat') && !id.includes('temp')) return false;
+        } else if (domain !== filterDomain) {
+          return false;
+        }
+      }
+      if (query && !id.includes(query)) return false;
+      return true;
+    });
+
+    if (!filtered.length) {
+      listEl.innerHTML = `
+        <div style="padding: 24px 12px; text-align: center; color: #94a3b8; font-size: 13px;">
+          No matching entities found. You can type any entity ID directly into the input field!
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = filtered.map((item) => {
+      const id = typeof item === 'string' ? item : item.entity_id;
+      const domain = id.split('.')[0] || 'sensor';
+      const icon = domain === 'light' ? '💡' : domain === 'climate' ? '🌡️' : domain === 'switch' ? '🔌' : domain === 'media_player' ? '📺' : '📊';
+      return `
+        <div class="entity-item-row" data-entity-id="${id}">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span>${icon}</span>
+            <span class="entity-item-id">${id}</span>
+          </div>
+          <span class="entity-item-state">${domain}</span>
+        </div>
+      `;
+    }).join('');
+
+    const rows = listEl.querySelectorAll('.entity-item-row');
+    rows.forEach((row) => {
+      row.addEventListener('click', () => {
+        const entId = row.getAttribute('data-entity-id');
+        this.selectEntityForTarget(entId);
+      });
+    });
+  }
+
+  selectEntityForTarget(entityId) {
+    if (this.activePickerTarget) {
+      const el = this.el.querySelector(this.activePickerTarget);
+      if (el) {
+        el.value = entityId;
+        el.focus();
+        el.style.borderColor = '#10b981';
+        el.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.6)';
+        setTimeout(() => {
+          el.style.borderColor = '';
+          el.style.boxShadow = '';
+        }, 1200);
+      }
+    }
+    const picker = this.el.querySelector('#entity-picker-dialog');
+    if (picker) picker.classList.remove('open');
+  }
+
   setAvailableEntities(entities) {
     this.availableEntities = entities || [];
+    this.updateDatalist();
+  }
+
+  updateDatalist() {
+    let dl = this.el.querySelector('#ha-entities-datalist');
+    if (!dl) return;
+    const ids = this.availableEntities.map((e) => (typeof e === 'string' ? e : e.entity_id || '')).filter(Boolean);
+    dl.innerHTML = ids.map((id) => `<option value="${id}"></option>`).join('');
   }
 
   autoDetectSensors() {
@@ -1079,6 +1616,11 @@ export class HUDOverlay {
     // Thermostats auto-detection
     setIfFound('#cfg-thermostat-downstairs', 'climate.downstairs', 'climate.ground_floor', 'climate.hallway', 'climate.living_room', 'downstairs_temperature');
     setIfFound('#cfg-thermostat-upstairs', 'climate.upstairs', 'climate.first_floor', 'climate.landing', 'climate.master_bedroom', 'upstairs_temperature');
+
+    // Appliances auto-detection
+    setIfFound('#cfg-sensor-fridge', 'fridge', 'refrigerator', 'freezer', 'fridge_power', 'kitchen_fridge');
+    setIfFound('#cfg-sensor-tv', 'living_room_tv', 'lounge_tv', 'media_player.tv', 'media_player.living_room', 'switch.tv');
+    setIfFound('#cfg-light-living-lamp', 'living_room_lamp', 'corner_lamp', 'living_lamp', 'floor_lamp', 'standard_lamp', 'lamp');
 
     // Room Lights auto-detection
     setIfFound('#cfg-light-lounge', 'light.living', 'light.lounge', 'light.sitting_room', 'switch.living');
@@ -1338,7 +1880,8 @@ export class HUDOverlay {
     } else if (this.activeTab === 'lights') {
       const roomLights = data.room_lights || {};
       const roomList = [
-        { key: 'lounge', name: 'Living Room', icon: '🛋️' },
+        { key: 'lounge', name: 'Living Room Ceiling', icon: '🛋️' },
+        { key: 'living_lamp', name: 'Living Room Corner Lamp', icon: '🛋️', isAppliance: true },
         { key: 'kitchen', name: 'Kitchen', icon: '🍳' },
         { key: 'dining', name: 'Dining Room', icon: '🍽️' },
         { key: 'hallway', name: 'Hall & Stairs', icon: '🚪' },
@@ -1353,7 +1896,7 @@ export class HUDOverlay {
 
       let cardsHtml = '';
       for (const r of roomList) {
-        const item = roomLights[r.key] || {};
+        const item = r.isAppliance ? (data.appliances?.[r.key] || {}) : (roomLights[r.key] || {});
         const isOn = Boolean(item.is_on);
         const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : 100;
         cardsHtml += `
@@ -1363,7 +1906,7 @@ export class HUDOverlay {
               <span class="light-status-pill ${isOn ? 'on' : 'off'}">${isOn ? '💡 ON' : 'OFF'}</span>
             </div>
             <div style="font-size: 10px; color: #94a3b8;">${isOn ? `Brightness: ${bri}%` : 'Light is off'}</div>
-            <button class="light-toggle-btn" data-entity="${item.entity_id || ''}" data-room="${r.key}">
+            <button class="light-toggle-btn" data-entity="${item.entity_id || ''}" data-room="${r.key}" data-is-appliance="${r.isAppliance ? '1' : '0'}">
               ${isOn ? 'Turn Off' : 'Turn On'}
             </button>
           </div>
@@ -1384,8 +1927,12 @@ export class HUDOverlay {
         btn.addEventListener('click', () => {
           const entId = btn.getAttribute('data-entity');
           const roomKey = btn.getAttribute('data-room');
+          const isAppliance = btn.getAttribute('data-is-appliance') === '1';
           if (entId) {
             this.onToggleLight(entId);
+          } else if (isAppliance && data.appliances?.[roomKey]) {
+            data.appliances[roomKey].is_on = !data.appliances[roomKey].is_on;
+            this.renderDrawerContent();
           } else if (roomKey && data.room_lights?.[roomKey]) {
             // Local fallback simulation
             data.room_lights[roomKey].is_on = !data.room_lights[roomKey].is_on;
@@ -1449,6 +1996,20 @@ export class HUDOverlay {
         const isHeat = Boolean(up.is_heating);
         const comfort = getComfortStatus(up.current_temp || 19.5);
         badgeHtml = `<span>🌡️ Upstairs</span> <span style="color:${comfort.color};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${comfort.icon}</span> ${isHeat ? '<span style="color:#f97316;font-size:9px;font-weight:700;">HEATING</span>' : ''}`;
+      } else if (spot.id === 'appliance_fridge') {
+        const fridge = data.appliances?.fridge || {};
+        const pVal = fridge.power_w !== undefined ? `${fridge.power_w} W` : `${((fridge.power_kw || 0.085) * 1000).toFixed(0)} W`;
+        const isRun = Boolean(fridge.is_active);
+        badgeHtml = `<span>🧊 Fridge</span> <span style="color:#38bdf8;font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isRun ? '#10b981' : '#64748b'}">●</span>`;
+      } else if (spot.id === 'appliance_tv') {
+        const tv = data.appliances?.tv || {};
+        const isTvOn = Boolean(tv.is_on);
+        const tvW = tv.power_w ? `${tv.power_w} W` : (isTvOn ? 'ON' : 'OFF');
+        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${tvW}</span> <span style="font-size:9px;color:${isTvOn ? '#10b981' : '#ef4444'}">●</span>`;
+      } else if (spot.id === 'light_living_lamp') {
+        const lamp = data.appliances?.living_lamp || {};
+        const isLampOn = Boolean(lamp.is_on);
+        badgeHtml = `<span>🛋️ Corner Lamp</span> <span style="color:${isLampOn ? '#fbbf24' : '#94a3b8'};font-weight:700;">${isLampOn ? '💡 ON' : 'OFF'}</span>`;
       }
 
       const badge = document.createElement('div');
@@ -1458,6 +2019,28 @@ export class HUDOverlay {
       badge.innerHTML = badgeHtml;
 
       badge.addEventListener('click', () => {
+        if (spot.id === 'light_living_lamp') {
+          const lamp = data.appliances?.living_lamp;
+          if (lamp?.entity_id) {
+            this.onToggleLight(lamp.entity_id);
+          } else if (lamp) {
+            lamp.is_on = !lamp.is_on;
+            this.renderDrawerContent();
+          }
+          return;
+        } else if (spot.id === 'appliance_tv') {
+          const tv = data.appliances?.tv;
+          if (tv?.entity_id) {
+            this.onToggleLight(tv.entity_id);
+          }
+          this.onPresetClick('downstairs');
+          return;
+        } else if (spot.id === 'appliance_fridge') {
+          this.openDrawerTab('electric');
+          this.onPresetClick('downstairs');
+          return;
+        }
+
         const tabMap = {
           solar: 'solar',
           grid: 'electric',

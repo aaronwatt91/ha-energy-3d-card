@@ -91,5 +91,24 @@ export const DEFAULT_ENERGY_DATA = {
     bedroom3: { is_on: false, brightness: 0, entity_id: '' },
     bathroom: { is_on: false, brightness: 0, entity_id: '' },
     landing: { is_on: false, brightness: 0, entity_id: '' }
+  },
+
+  // Dedicated Appliances & Living Room Lamp
+  appliances: {
+    fridge: {
+      entity_id: 'sensor.fridge_power',
+      power_kw: 0.065, // ~65W typical compressor cycle
+      is_active: true
+    },
+    tv: {
+      entity_id: 'media_player.living_room_tv',
+      is_on: true,
+      power_kw: 0.110 // ~110W OLED
+    },
+    living_lamp: {
+      entity_id: 'light.living_room_lamp',
+      is_on: true,
+      brightness: 255
+    }
   }
 };

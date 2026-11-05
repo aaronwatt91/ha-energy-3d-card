@@ -123,6 +123,10 @@ export class HaEnergy3DCard extends HTMLElement {
       // Thermostats (Upstairs & Downstairs)
       thermostat_downstairs: 'climate.downstairs',
       thermostat_upstairs: 'climate.upstairs',
+      // Appliances & Living Room Devices
+      sensor_fridge: 'sensor.fridge_power',
+      sensor_tv: 'media_player.living_room_tv',
+      light_living_lamp: 'light.living_room_lamp',
       // Room Lights (Unset by default: strictly OFF until user maps a sensor)
       light_lounge: '',
       light_kitchen: '',
@@ -385,9 +389,52 @@ export class HaEnergy3DCard extends HTMLElement {
     }
     this.energyData.room_lights = lightsData;
 
+    // 7. Kitchen Fridge Freezer, Living Room TV, and Corner Lamp
+    const fridgePower = this.getPowerInKw(cfg.sensor_fridge, this.energyData.appliances?.fridge?.power_kw ?? 0.085);
+    const fridgeRawState = this.getEntityState(cfg.sensor_fridge, '');
+    const isFridgeActive = fridgePower > 0.005 || fridgeRawState === 'on';
+
+    const tvStateObj = cfg.sensor_tv && this._hass ? this._hass.states[cfg.sensor_tv] : null;
+    let isTvOn = false;
+    let tvPower = 0;
+    if (tvStateObj) {
+      const s = tvStateObj.state;
+      isTvOn = s === 'on' || s === 'playing' || s === 'paused' || s === 'idle';
+      if (tvStateObj.attributes?.unit_of_measurement) {
+        tvPower = autoFigureKw(s, tvStateObj.attributes.unit_of_measurement);
+        isTvOn = tvPower > 0.015;
+      } else {
+        tvPower = isTvOn ? 0.095 : 0.001;
+      }
+    } else if (this.energyData.appliances?.tv) {
+      isTvOn = Boolean(this.energyData.appliances.tv.is_on);
+      tvPower = this.energyData.appliances.tv.power_kw;
+    }
+
+    const lampData = this.getLightState(cfg.light_living_lamp, this.energyData.appliances?.living_lamp);
+
+    this.energyData.appliances = {
+      fridge: {
+        entity_id: cfg.sensor_fridge || '',
+        power_kw: fridgePower,
+        power_w: Math.round(fridgePower * 1000),
+        is_active: isFridgeActive,
+        state: isFridgeActive ? 'Running' : 'Standby'
+      },
+      tv: {
+        entity_id: cfg.sensor_tv || '',
+        is_on: isTvOn,
+        power_kw: tvPower,
+        power_w: Math.round(tvPower * 1000),
+        state: isTvOn ? 'On' : 'Standby'
+      },
+      living_lamp: lampData
+    };
+
     if (this.sceneManager) {
       this.sceneManager.updateEnergyData(this.energyData);
       this.sceneManager.updateRoomLights(lightsData);
+      this.sceneManager.updateAppliances(this.energyData.appliances);
     }
   }
 

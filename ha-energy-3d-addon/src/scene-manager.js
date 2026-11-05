@@ -126,7 +126,10 @@ export class SceneManager {
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
       { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) },
       { id: 'thermostat_downstairs', name: 'Downstairs Heating', pos: new THREE.Vector3(3.60, 1.45, -2.40) },
-      { id: 'thermostat_upstairs', name: 'Upstairs Heating', pos: new THREE.Vector3(3.30, 4.05, -4.95) }
+      { id: 'thermostat_upstairs', name: 'Upstairs Heating', pos: new THREE.Vector3(3.30, 4.05, -4.95) },
+      { id: 'appliance_fridge', name: 'Kitchen Fridge Freezer', pos: new THREE.Vector3(2.95, 1.45, -8.15) },
+      { id: 'appliance_tv', name: 'Living Room TV', pos: new THREE.Vector3(3.35, 1.40, -3.10) },
+      { id: 'light_living_lamp', name: 'Living Room Corner Lamp', pos: new THREE.Vector3(0.60, 1.65, -0.65) }
     ];
 
     this.roofParts = [];
@@ -174,10 +177,13 @@ export class SceneManager {
     // 5. Lighting
     this.initLighting();
 
-    // 6. Energy Flow Particle System
+    // 6. Appliances & Interactive Furniture (Fridge, Wall TV, Corner Lamp)
+    this.initAppliancesAndFurniture();
+
+    // 7. Energy Flow Particle System
     this.energyFlow = new EnergyFlowSystem(this.scene);
 
-    // 7. Load GLTF 3D House Model with smart fallback chain
+    // 8. Load GLTF 3D House Model with smart fallback chain
     this.loadModelWithFallbacks(this.options.modelUrl);
 
     // 8. Resize Listener
@@ -283,6 +289,194 @@ export class SceneManager {
       const rgb = info.rgb_color;
 
       this.setRoomLightState(roomId, isOn, brightness, rgb);
+    }
+  }
+
+  initAppliancesAndFurniture() {
+    this.appliancesGroup = new THREE.Group();
+    this.scene.add(this.appliancesGroup);
+
+    // ==========================================
+    // 1. Kitchen Fridge Freezer (Modern Freestanding French Door)
+    // ==========================================
+    const fridgeGroup = new THREE.Group();
+    fridgeGroup.position.set(2.95, 0.0, -8.15);
+
+    // Main Fridge Cabinet
+    const cabinetGeom = new THREE.BoxGeometry(0.70, 1.84, 0.65);
+    const cabinetMat = new THREE.MeshStandardMaterial({
+      color: 0x2e3440,
+      metalness: 0.82,
+      roughness: 0.28
+    });
+    const cabinet = new THREE.Mesh(cabinetGeom, cabinetMat);
+    cabinet.position.y = 0.92;
+    cabinet.castShadow = true;
+    cabinet.receiveShadow = true;
+    fridgeGroup.add(cabinet);
+
+    // Chrome Handles
+    const handleGeom = new THREE.CylinderGeometry(0.012, 0.012, 0.55, 12);
+    const handleMat = new THREE.MeshStandardMaterial({
+      color: 0xd8dee9,
+      metalness: 0.95,
+      roughness: 0.15
+    });
+    const handleL = new THREE.Mesh(handleGeom, handleMat);
+    handleL.position.set(-0.06, 1.28, 0.34);
+    const handleR = new THREE.Mesh(handleGeom, handleMat);
+    handleR.position.set(0.06, 1.28, 0.34);
+    fridgeGroup.add(handleL);
+    fridgeGroup.add(handleR);
+
+    // Freezer Drawer Handle
+    const freezerHandleGeom = new THREE.CylinderGeometry(0.012, 0.012, 0.48, 12);
+    const freezerHandle = new THREE.Mesh(freezerHandleGeom, handleMat);
+    freezerHandle.rotation.z = Math.PI / 2;
+    freezerHandle.position.set(0.0, 0.65, 0.34);
+    fridgeGroup.add(freezerHandle);
+
+    // Digital LED Display & Ice/Water Dispenser
+    const dispGeom = new THREE.PlaneGeometry(0.12, 0.18);
+    const dispMat = new THREE.MeshBasicMaterial({
+      color: 0x00e5ff,
+      side: THREE.DoubleSide
+    });
+    const dispenser = new THREE.Mesh(dispGeom, dispMat);
+    dispenser.position.set(-0.16, 1.35, 0.33);
+    fridgeGroup.add(dispenser);
+
+    this.appliancesGroup.add(fridgeGroup);
+    this.applianceFridge = fridgeGroup;
+
+    // ==========================================
+    // 2. Living Room Wall-Mounted Widescreen TV
+    // ==========================================
+    const tvGroup = new THREE.Group();
+    tvGroup.position.set(3.38, 1.35, -3.10);
+
+    // Bezel / Chassis (faced towards -X living room)
+    const tvBezelGeom = new THREE.BoxGeometry(0.038, 0.72, 1.22);
+    const tvBezelMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.4,
+      metalness: 0.6
+    });
+    const tvBezel = new THREE.Mesh(tvBezelGeom, tvBezelMat);
+    tvGroup.add(tvBezel);
+
+    // TV Screen Panel
+    const tvScreenGeom = new THREE.BoxGeometry(0.01, 0.67, 1.17);
+    const tvScreenMat = new THREE.MeshStandardMaterial({
+      color: 0x020305,
+      roughness: 0.12,
+      metalness: 0.2,
+      emissive: 0x000000,
+      emissiveIntensity: 0.0
+    });
+    this.applianceTvScreen = new THREE.Mesh(tvScreenGeom, tvScreenMat);
+    this.applianceTvScreen.position.x = -0.016; // Slight offset facing living room (-X)
+    tvGroup.add(this.applianceTvScreen);
+
+    // Tiny Power/Standby LED
+    const ledGeom = new THREE.SphereGeometry(0.007, 8, 8);
+    this.applianceTvLed = new THREE.Mesh(ledGeom, new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+    this.applianceTvLed.position.set(-0.022, -0.34, 0.54);
+    tvGroup.add(this.applianceTvLed);
+
+    // Ambient TV Glow Light into Living Room
+    this.applianceTvLight = new THREE.PointLight(0x70a5ff, 0.0, 3.8, 1.6);
+    this.applianceTvLight.position.set(3.18, 1.35, -3.10);
+    this.appliancesGroup.add(this.applianceTvLight);
+
+    this.appliancesGroup.add(tvGroup);
+    this.applianceTv = tvGroup;
+
+    // ==========================================
+    // 3. Living Room Corner Floor Standing Lamp
+    // ==========================================
+    const lampGroup = new THREE.Group();
+    lampGroup.position.set(0.60, 0.0, -0.65);
+
+    // Heavy Circular Base
+    const baseGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.025, 24);
+    const lampMetalMat = new THREE.MeshStandardMaterial({
+      color: 0xc49b56,
+      metalness: 0.85,
+      roughness: 0.25
+    });
+    const lampBase = new THREE.Mesh(baseGeom, lampMetalMat);
+    lampBase.position.y = 0.0125;
+    lampGroup.add(lampBase);
+
+    // Vertical Brass Pole
+    const poleGeom = new THREE.CylinderGeometry(0.014, 0.014, 1.55, 16);
+    const lampPole = new THREE.Mesh(poleGeom, lampMetalMat);
+    lampPole.position.y = 0.775;
+    lampGroup.add(lampPole);
+
+    // Fabric Drum Shade
+    const shadeGeom = new THREE.CylinderGeometry(0.18, 0.22, 0.28, 24);
+    const shadeMat = new THREE.MeshStandardMaterial({
+      color: 0xfef3c7,
+      roughness: 0.85,
+      side: THREE.DoubleSide,
+      emissive: 0x000000,
+      emissiveIntensity: 0.0
+    });
+    this.applianceLampShade = new THREE.Mesh(shadeGeom, shadeMat);
+    this.applianceLampShade.position.y = 1.55;
+    lampGroup.add(this.applianceLampShade);
+
+    // Dedicated Point Light for Floor Lamp
+    this.applianceLampLight = new THREE.PointLight(0xffe2aa, 0.0, 5.0, 1.2);
+    this.applianceLampLight.position.set(0.60, 1.58, -0.65);
+    this.appliancesGroup.add(this.applianceLampLight);
+
+    this.appliancesGroup.add(lampGroup);
+    this.applianceLamp = lampGroup;
+  }
+
+  updateAppliances(appliances) {
+    if (!appliances) return;
+
+    // 1. Living Room TV Screen & Glow
+    if (this.applianceTvScreen && this.applianceTvLight) {
+      const isTvOn = Boolean(appliances.tv?.is_on || appliances.tv?.state === 'on');
+      if (isTvOn) {
+        this.applianceTvScreen.material.emissive.setHex(0x5ca8f5);
+        this.applianceTvScreen.material.emissiveIntensity = 1.8;
+        this.applianceTvLight.intensity = 1.6;
+        if (this.applianceTvLed) this.applianceTvLed.material.color.setHex(0x22c55e);
+      } else {
+        this.applianceTvScreen.material.emissive.setHex(0x000000);
+        this.applianceTvScreen.material.emissiveIntensity = 0.0;
+        this.applianceTvLight.intensity = 0.0;
+        if (this.applianceTvLed) this.applianceTvLed.material.color.setHex(0xef4444);
+      }
+    }
+
+    // 2. Living Room Corner Lamp Illumination
+    if (this.applianceLampShade && this.applianceLampLight) {
+      const lamp = appliances.living_lamp;
+      const isLampOn = Boolean(lamp?.is_on || lamp?.state === 'on');
+      const brightness = lamp?.brightness !== undefined ? lamp.brightness : 255;
+      const ratio = Math.max(0.1, brightness / 255.0);
+
+      if (isLampOn) {
+        let col = new THREE.Color(0xffd580);
+        if (lamp?.rgb_color && Array.isArray(lamp.rgb_color) && lamp.rgb_color.length === 3) {
+          col.setRGB(lamp.rgb_color[0] / 255, lamp.rgb_color[1] / 255, lamp.rgb_color[2] / 255);
+        }
+        this.applianceLampShade.material.emissive.copy(col);
+        this.applianceLampShade.material.emissiveIntensity = 2.2 * ratio;
+        this.applianceLampLight.color.copy(col);
+        this.applianceLampLight.intensity = 3.6 * ratio;
+      } else {
+        this.applianceLampShade.material.emissive.setHex(0x000000);
+        this.applianceLampShade.material.emissiveIntensity = 0.0;
+        this.applianceLampLight.intensity = 0.0;
+      }
     }
   }
 
@@ -477,6 +671,9 @@ export class SceneManager {
 
   updateEnergyData(data) {
     this.currentEnergyData = data;
+    if (data?.appliances) {
+      this.updateAppliances(data.appliances);
+    }
   }
 
   getProjectedHotspots() {

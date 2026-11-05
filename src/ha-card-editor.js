@@ -205,7 +205,23 @@ export class HaEnergy3DCardEditor extends HTMLElement {
           </div>
         </div>
 
-        <div class="section-title">💡 Room Lights (12 Rooms)</div>
+        <div class="section-title">🍽️ Appliances & Living Room Devices</div>
+        <div class="grid-2">
+          <div class="input-row">
+            <label>Kitchen Fridge Freezer Power</label>
+            <input type="text" data-key="sensor_fridge" value="${c.sensor_fridge || 'sensor.fridge_power'}">
+          </div>
+          <div class="input-row">
+            <label>Living Room TV (media_player/switch)</label>
+            <input type="text" data-key="sensor_tv" value="${c.sensor_tv || 'media_player.living_room_tv'}">
+          </div>
+          <div class="input-row">
+            <label>Living Room Corner Floor Lamp</label>
+            <input type="text" data-key="light_living_lamp" value="${c.light_living_lamp || 'light.living_room_lamp'}">
+          </div>
+        </div>
+
+        <div class="section-title">💡 Room Lights (11 Rooms)</div>
         <div class="grid-2">
           <div class="input-row">
             <label>Living Room / Lounge</label>
