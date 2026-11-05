@@ -93,8 +93,9 @@ export class EnergyFlowSystem {
       grid: {
         curve: this.paths.grid,
         color: new THREE.Color(0x00d2ff), // Electric cyan (import)
-        baseSpeed: 0.38,
-        size: 0.065
+        baseSpeed: 0.19, // Halved speed (was 0.38) for clear, gentle flow
+        size: 0.065,
+        particleCount: 24 // Halved amount of balls (was 48) for clean, unambiguous spacing
       },
       ev: {
         curve: this.paths.ev,
@@ -264,7 +265,7 @@ export class EnergyFlowSystem {
 
         if (absGridKw > 0.02) {
           const ratio = Math.min(absGridKw / 3.5, 2.5);
-          speed = Math.max(ratio * def.baseSpeed, 0.04);
+          speed = Math.max(ratio * def.baseSpeed, 0.02);
 
           if (isNegativeOrExport) {
             // Negative: moves AWAY from the house towards the pylon
@@ -327,9 +328,13 @@ export class EnergyFlowSystem {
         const pt = def.curve.getPointAt(t);
         dummy.position.copy(pt);
 
-        // Breathing pulse variation
-        const scalePhase = Math.sin(t * Math.PI * 4 + delta * 5);
-        dummy.scale.setScalar(def.size * (0.90 + 0.25 * scalePhase));
+        // Uniform clean balls for grid/ev to avoid stroboscopic optical aliases
+        if (id === 'grid' || id === 'ev') {
+          dummy.scale.setScalar(def.size);
+        } else {
+          const scalePhase = Math.sin(t * Math.PI * 4);
+          dummy.scale.setScalar(def.size * (0.90 + 0.25 * scalePhase));
+        }
 
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);
