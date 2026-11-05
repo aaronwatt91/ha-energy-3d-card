@@ -8,7 +8,7 @@ export const DEFAULT_LIGHTS = [
   { id: 'lounge', name: 'Living Room Ceiling', floor: 'ground', pos: { x: 1.88, y: 2.15, z: -2.35 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.living_room' },
   { id: 'kitchen', name: 'Kitchen Ceiling', floor: 'ground', pos: { x: 1.80, y: 2.15, z: -7.40 }, range: 7.0, maxIntensity: 4.5, defaultColor: 0xfff0d6, entity_id: 'light.kitchen' },
   { id: 'dining', name: 'Dining Room', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -7.40 }, range: 6.5, maxIntensity: 4.0, defaultColor: 0xffe6b8, entity_id: 'light.dining_room' },
-  { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.20, y: 2.15, z: -2.20 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.hallway' },
+  { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -3.25 }, range: 7.5, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.hallway' },
   { id: 'wc', name: 'Downstairs WC', floor: 'ground', pos: { x: 1.85, y: 2.15, z: -5.32 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff1dc, entity_id: 'light.downstairs_wc' },
   { id: 'living_lamp', name: 'Living Room Lamp', floor: 'ground', pos: { x: 0.60, y: 1.58, z: -0.65 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xffd580, entity_id: 'light.living_room_lamp', isFloorLamp: true },
   { id: 'master_bedroom', name: 'Master Bedroom', floor: 'first', pos: { x: 1.90, y: 4.55, z: -2.10 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.master_bedroom' },
@@ -49,12 +49,12 @@ export const ROOM_LIGHT_CONFIGS = {
   },
   hallway: {
     name: 'Hallway',
-    pos: new THREE.Vector3(4.20, 2.15, -2.20),
-    range: 6.0,
+    pos: new THREE.Vector3(4.30, 2.15, -3.25),
+    range: 7.5,
     maxIntensity: 3.8,
     defaultColor: 0xffedd5,
-    boxCenter: new THREE.Vector3(4.35, 1.20, -2.35),
-    boxSize: new THREE.Vector3(1.85, 2.35, 4.05)
+    boxCenter: new THREE.Vector3(4.37, 1.20, -3.275),
+    boxSize: new THREE.Vector3(1.98, 2.40, 6.00)
   },
   wc: {
     name: 'Downstairs WC',
@@ -71,8 +71,8 @@ export const ROOM_LIGHT_CONFIGS = {
     range: 7.5,
     maxIntensity: 4.2,
     defaultColor: 0xffe299,
-    boxCenter: new THREE.Vector3(1.88, 3.85, -2.08),
-    boxSize: new THREE.Vector3(3.10, 2.25, 3.52)
+    boxCenter: new THREE.Vector3(2.325, 3.85, -2.075),
+    boxSize: new THREE.Vector3(4.10, 2.40, 3.62)
   },
   ensuite: {
     name: 'Master En-Suite',
@@ -89,8 +89,8 @@ export const ROOM_LIGHT_CONFIGS = {
     range: 6.8,
     maxIntensity: 4.0,
     defaultColor: 0xffe299,
-    boxCenter: new THREE.Vector3(1.75, 3.85, -7.31),
-    boxSize: new THREE.Vector3(2.85, 2.25, 2.48)
+    boxCenter: new THREE.Vector3(1.775, 3.85, -7.315),
+    boxSize: new THREE.Vector3(3.00, 2.40, 2.60)
   },
   bedroom3: {
     name: 'Bedroom 3',
@@ -98,8 +98,8 @@ export const ROOM_LIGHT_CONFIGS = {
     range: 6.8,
     maxIntensity: 4.0,
     defaultColor: 0xffe299,
-    boxCenter: new THREE.Vector3(4.32, 3.85, -7.31),
-    boxSize: new THREE.Vector3(2.00, 2.25, 2.48)
+    boxCenter: new THREE.Vector3(4.295, 3.85, -7.315),
+    boxSize: new THREE.Vector3(2.15, 2.40, 2.60)
   },
   bathroom: {
     name: 'Family Bathroom',
@@ -152,6 +152,9 @@ export class SceneManager {
     this.roofParts = [];
     this.topFloorMeshes = [];
     this.cuttableMeshes = [];
+    this.occludingMeshes = [];
+    this.tvRaycaster = new THREE.Raycaster();
+    this.tvTargetPos = new THREE.Vector3(3.34, 1.35, -3.10);
     this.cutawayMode = 'normal';
     this.customLights = this.options.customLights || DEFAULT_LIGHTS;
     this.roomLights = {};
@@ -989,6 +992,18 @@ export class SceneManager {
               ) {
                 this.cuttableMeshes.push(child);
               }
+
+              // Occluding house structure meshes for TV visibility line-of-sight test
+              if (
+                name.includes('Exterior_Walls') ||
+                name.includes('Separating_Party_Wall') ||
+                name.includes('Interior_Walls_') ||
+                name.includes('First_Floor_') ||
+                name.includes('Roof_') ||
+                name.includes('Front_Entrance_Door')
+              ) {
+                this.occludingMeshes.push(child);
+              }
             }
           });
 
@@ -1198,9 +1213,31 @@ export class SceneManager {
     // Update TV YouTube stream visibility & render CSS3D scene
     if (this.tvCss3dObject) {
       if (this.isTvPlaying) {
+        // Camera must be facing the front of the screen (west / -X direction into living room)
         const isFacing = this.camera.position.x < 3.32;
-        const isGroundVisible = this.cutawayMode === 'downstairs' || this.xrayActive || this.camera.position.distanceTo(new THREE.Vector3(3.38, 1.35, -3.10)) < 8.5;
-        this.tvCss3dObject.visible = isFacing && isGroundVisible;
+        let isOccluded = false;
+
+        // Verify line-of-sight: if any wall, floor, or roof blocks the ray from camera to TV, hide the TV
+        if (isFacing && this.occludingMeshes && this.occludingMeshes.length > 0) {
+          const rayDir = new THREE.Vector3().subVectors(this.tvTargetPos, this.camera.position);
+          const distToTv = rayDir.length();
+          rayDir.normalize();
+          this.tvRaycaster.set(this.camera.position, rayDir);
+          this.tvRaycaster.near = 0.1;
+          this.tvRaycaster.far = distToTv;
+
+          const visibleOccluders = this.occludingMeshes.filter(m => m.visible);
+          const hits = this.tvRaycaster.intersectObjects(visibleOccluders, false);
+          for (const hit of hits) {
+            if (hit.distance < distToTv - 0.20) {
+              isOccluded = true;
+              break;
+            }
+          }
+        }
+
+        const isGroundVisible = this.cutawayMode === 'downstairs' || this.xrayActive || this.camera.position.distanceTo(new THREE.Vector3(3.38, 1.35, -3.10)) < 4.5;
+        this.tvCss3dObject.visible = isFacing && isGroundVisible && !isOccluded;
       } else {
         this.tvCss3dObject.visible = false;
       }

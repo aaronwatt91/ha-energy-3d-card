@@ -2668,13 +2668,13 @@ export class HUDOverlay {
         badgeHtml = `<span>🌡️ Upstairs</span> <span style="color:${comfort.color};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${comfort.icon}</span> ${isHeat ? '<span style="color:#f97316;font-size:9px;font-weight:700;">HEATING</span>' : ''}`;
       } else if (spot.id === 'appliance_fridge') {
         const fridge = data.appliances?.fridge || {};
-        const pVal = fridge.power_w !== undefined ? `${fridge.power_w} W` : `${((fridge.power_kw || 0.085) * 1000).toFixed(0)} W`;
+        const pVal = fridge.power_w !== undefined ? `${fridge.power_w} W` : '0 W';
         const isRun = Boolean(fridge.is_active);
         badgeHtml = `<span>🧊 Fridge</span> <span style="color:#38bdf8;font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isRun ? '#10b981' : '#64748b'}">●</span>`;
       } else if (spot.id === 'appliance_washer') {
         const washer = data.appliances?.washer || {};
         const isRun = Boolean(washer.is_active);
-        const pVal = washer.power_w ? `${washer.power_w} W` : (isRun ? 'Running' : 'Standby');
+        const pVal = washer.power_w !== undefined ? `${washer.power_w} W` : (isRun ? 'Running' : '0 W');
         badgeHtml = `<span>🫧 Washer</span> <span style="color:${isRun ? '#00f59b' : '#94a3b8'};font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isRun ? '#10b981' : '#64748b'}">●</span>`;
       } else if (spot.id === 'appliance_tv') {
         const tv = data.appliances?.tv || {};

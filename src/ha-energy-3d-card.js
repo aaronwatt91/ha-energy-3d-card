@@ -294,7 +294,7 @@ export class HaEnergy3DCard extends HTMLElement {
     if (!this._hass || !entityId) return defaultKw;
     const stateObj = this._hass.states[entityId];
     if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      return defaultKw;
+      return 0;
     }
     const unit = stateObj.attributes?.unit_of_measurement || '';
     return autoFigureKw(stateObj.state, unit);
@@ -304,7 +304,7 @@ export class HaEnergy3DCard extends HTMLElement {
     if (!this._hass || !entityId) return defaultKwh;
     const stateObj = this._hass.states[entityId];
     if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      return defaultKwh;
+      return 0;
     }
     const unit = stateObj.attributes?.unit_of_measurement || '';
     return autoFigureKwh(stateObj.state, unit);
@@ -314,7 +314,7 @@ export class HaEnergy3DCard extends HTMLElement {
     if (!this._hass || !entityId) return defaultVal;
     const stateObj = this._hass.states[entityId];
     if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      return defaultVal;
+      return 0;
     }
     const val = parseFloat(stateObj.state);
     return isNaN(val) ? defaultVal : val;
@@ -464,9 +464,16 @@ export class HaEnergy3DCard extends HTMLElement {
     this.energyData.room_lights = lightsData;
 
     // 7. Kitchen Fridge Freezer, Living Room TV, and Corner Lamp
-    const fridgePower = this.getPowerInKw(cfg.sensor_fridge, this.energyData.appliances?.fridge?.power_kw ?? 0.085);
-    const fridgeRawState = this.getEntityState(cfg.sensor_fridge, '');
-    const isFridgeActive = fridgePower > 0.005 || fridgeRawState === 'on';
+    const fridgeStateObj = cfg.sensor_fridge && this._hass ? this._hass.states[cfg.sensor_fridge] : null;
+    const fridgeRawState = (fridgeStateObj ? fridgeStateObj.state : this.getEntityState(cfg.sensor_fridge, '')).toLowerCase();
+    const isFridgeUnavailable = fridgeStateObj && (fridgeRawState === 'unavailable' || fridgeRawState === 'unknown');
+    let fridgePower = 0.0;
+    if (isFridgeUnavailable) {
+      fridgePower = 0.0;
+    } else {
+      fridgePower = this.getPowerInKw(cfg.sensor_fridge, this.energyData.appliances?.fridge?.power_kw ?? 0.085);
+    }
+    const isFridgeActive = !isFridgeUnavailable && (fridgePower > 0.005 || fridgeRawState === 'on');
 
     const tvStateObj = cfg.sensor_tv && this._hass ? this._hass.states[cfg.sensor_tv] : null;
     let isTvOn = false;
@@ -485,9 +492,16 @@ export class HaEnergy3DCard extends HTMLElement {
       tvPower = this.energyData.appliances.tv.power_kw;
     }
 
-    const washerPower = this.getPowerInKw(cfg.sensor_washer, this.energyData.appliances?.washer?.power_kw ?? 0.0);
-    const washerRawState = this.getEntityState(cfg.sensor_washer, '').toLowerCase();
-    const isWasherActive = washerPower > 0.010 || washerRawState === 'on' || washerRawState === 'running';
+    const washerStateObj = cfg.sensor_washer && this._hass ? this._hass.states[cfg.sensor_washer] : null;
+    const washerRawState = (washerStateObj ? washerStateObj.state : this.getEntityState(cfg.sensor_washer, '')).toLowerCase();
+    const isWasherUnavailable = washerStateObj && (washerRawState === 'unavailable' || washerRawState === 'unknown');
+    let washerPower = 0.0;
+    if (isWasherUnavailable) {
+      washerPower = 0.0;
+    } else {
+      washerPower = this.getPowerInKw(cfg.sensor_washer, this.energyData.appliances?.washer?.power_kw ?? 0.0);
+    }
+    const isWasherActive = !isWasherUnavailable && (washerPower > 0.010 || washerRawState === 'on' || washerRawState === 'running');
 
     const lampEntity = cfg.light_living_lamp || this.customLights.find(l => l.id === 'living_lamp' || l.name?.toLowerCase().includes('corner lamp'))?.entity_id;
     const lampData = this.getLightState(lampEntity, this.energyData.appliances?.living_lamp);
@@ -496,16 +510,16 @@ export class HaEnergy3DCard extends HTMLElement {
       fridge: {
         entity_id: cfg.sensor_fridge || '',
         power_kw: fridgePower,
-        power_w: Math.round(fridgePower * 1000),
+        power_w: isFridgeUnavailable ? 0 : Math.round(fridgePower * 1000),
         is_active: isFridgeActive,
-        state: isFridgeActive ? 'Running' : 'Standby'
+        state: isFridgeUnavailable ? 'Unavailable' : (isFridgeActive ? 'Running' : 'Standby')
       },
       washer: {
         entity_id: cfg.sensor_washer || '',
         power_kw: washerPower,
-        power_w: Math.round(washerPower * 1000),
+        power_w: isWasherUnavailable ? 0 : Math.round(washerPower * 1000),
         is_active: isWasherActive,
-        state: isWasherActive ? 'Running' : 'Standby'
+        state: isWasherUnavailable ? 'Unavailable' : (isWasherActive ? 'Running' : 'Standby')
       },
       tv: {
         entity_id: cfg.sensor_tv || '',
