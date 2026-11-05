@@ -45,6 +45,26 @@ export function autoFigureKwh(val, unit = '') {
 }
 
 /**
+ * Helper to determine comfort status based on temperature:
+ * < 16°C: Cold
+ * 16°C to 22°C: Comfortable
+ * > 22°C: Hot
+ */
+export function getComfortStatus(temp) {
+  const t = Number(temp);
+  if (isNaN(t)) {
+    return { label: 'Comfortable', color: '#10b981', icon: '✨', code: 'comfortable' };
+  }
+  if (t < 16.0) {
+    return { label: 'Cold (<16°C)', color: '#38bdf8', icon: '❄️', code: 'cold' };
+  } else if (t > 22.0) {
+    return { label: 'Hot (>22°C)', color: '#ef4444', icon: '🔥', code: 'hot' };
+  } else {
+    return { label: 'Comfortable (16–22°C)', color: '#10b981', icon: '✨', code: 'comfortable' };
+  }
+}
+
+/**
  * HaEnergy3DCard
  * Custom Home Assistant Lovelace Card Component
  */
@@ -305,14 +325,33 @@ export class HaEnergy3DCard extends HTMLElement {
       month_kwh: this.getEnergyInKwh(cfg.octopus_electric_month, this.energyData.octopus_electric.month_kwh)
     };
 
-    // 3. Octopus Gas & Combi Boiler
-    const boilerRawState = this.getEntityState(cfg.boiler_status, 'Central Heating');
-    const isGasActive = boilerRawState === 'on' || boilerRawState === 'heat' || boilerRawState === 'Central Heating';
+    // 3. Thermostats (Upstairs & Downstairs Heating Monitoring)
+    const downThermo = this.getThermostatState(cfg.thermostat_downstairs, this.energyData.thermostats?.downstairs);
+    const upThermo = this.getThermostatState(cfg.thermostat_upstairs, this.energyData.thermostats?.upstairs);
+    this.energyData.thermostats = {
+      downstairs: downThermo,
+      upstairs: upThermo
+    };
+
+    // 4. Octopus Gas & Combi Boiler
+    // Directly hooked to thermostats: if either is on/calling for heat, the boiler is firing.
+    // If both are off/idle, the boiler is in Standby / Off.
+    const eitherThermostatHeating = Boolean(downThermo.is_heating || upThermo.is_heating);
+    let explicitBoilerActive = false;
+    if (cfg.boiler_status) {
+      const boilerRawState = this.getEntityState(cfg.boiler_status, '');
+      if (boilerRawState === 'on' || boilerRawState === 'heat' || boilerRawState === 'heating' || boilerRawState === 'Central Heating') {
+        explicitBoilerActive = true;
+      }
+    }
+
+    const isGasActive = eitherThermostatHeating || explicitBoilerActive;
+    const boilerStatus = isGasActive ? 'Central Heating' : 'Standby / Off';
 
     this.energyData.octopus_gas = {
       is_active: isGasActive,
       power_kw: isGasActive ? 1.45 : 0.0,
-      boiler_status: isGasActive ? 'Central Heating' : 'Standby',
+      boiler_status: boilerStatus,
       reading_30min_kwh: this.getEnergyInKwh(cfg.octopus_gas_30min, this.energyData.octopus_gas.reading_30min_kwh),
       day_kwh: this.getEnergyInKwh(cfg.octopus_gas_day, this.energyData.octopus_gas.day_kwh),
       week_kwh: this.getEnergyInKwh(cfg.octopus_gas_week, this.energyData.octopus_gas.week_kwh),
@@ -321,7 +360,7 @@ export class HaEnergy3DCard extends HTMLElement {
       monthly_spend_gbp: this.getEntityNumericValue(cfg.octopus_gas_spend, this.energyData.octopus_gas.monthly_spend_gbp)
     };
 
-    // 4. myenergi Zappi & Peugeot e-2008 (Auto-figures Watts vs kW, e.g. 7200W -> 7.2 kW)
+    // 5. myenergi Zappi & Peugeot e-2008 (Auto-figures Watts vs kW, e.g. 7200W -> 7.2 kW)
     const evChargerKw = this.getPowerInKw(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
     this.energyData.ev = {
       is_charging: evChargerKw > 0.04,
@@ -331,12 +370,6 @@ export class HaEnergy3DCard extends HTMLElement {
       charger_mode: evChargerKw > 3.0 ? 'Fast' : 'Eco+',
       battery_soc_pct: this.getEntityNumericValue(cfg.peugeot_battery, this.energyData.ev.battery_soc_pct),
       range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
-    };
-
-    // 5. Thermostats (Upstairs & Downstairs Heating Monitoring)
-    this.energyData.thermostats = {
-      downstairs: this.getThermostatState(cfg.thermostat_downstairs, this.energyData.thermostats?.downstairs),
-      upstairs: this.getThermostatState(cfg.thermostat_upstairs, this.energyData.thermostats?.upstairs)
     };
 
     // 6. Room Lights (12 distinct rooms with live on/off & illumination)
@@ -389,6 +422,7 @@ export class HaEnergy3DCard extends HTMLElement {
 
     res.hvac_action = attr.hvac_action || (stateObj.state === 'heating' ? 'heating' : (stateObj.state === 'off' ? 'off' : 'idle'));
     res.is_heating = res.hvac_action === 'heating' || (res.target_temp !== null && res.current_temp < res.target_temp && stateObj.state !== 'off');
+    res.comfort = getComfortStatus(res.current_temp);
     return res;
   }
 

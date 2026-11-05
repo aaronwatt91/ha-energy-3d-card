@@ -9,6 +9,20 @@ function toKw(val) {
   return num;
 }
 
+function getComfortStatus(temp) {
+  const t = Number(temp);
+  if (isNaN(t)) {
+    return { label: 'Comfortable', color: '#10b981', icon: '✨', code: 'comfortable' };
+  }
+  if (t < 16.0) {
+    return { label: 'Cold (<16°C)', color: '#38bdf8', icon: '❄️', code: 'cold' };
+  } else if (t > 22.0) {
+    return { label: 'Hot (>22°C)', color: '#ef4444', icon: '🔥', code: 'hot' };
+  } else {
+    return { label: 'Comfortable (16–22°C)', color: '#10b981', icon: '✨', code: 'comfortable' };
+  }
+}
+
 /**
  * HUDOverlay
  * High-tech glassmorphism HUD overlay with floating 3D hotspot badges,
@@ -1248,10 +1262,14 @@ export class HUDOverlay {
       const downTemp = Number(down.current_temp || 20.0);
       const downTarget = Number(down.target_temp || 21.0);
       const downHeating = Boolean(down.is_heating);
+      const downComfort = getComfortStatus(downTemp);
 
       const upTemp = Number(up.current_temp || 19.5);
       const upTarget = Number(up.target_temp || 19.5);
       const upHeating = Boolean(up.is_heating);
+      const upComfort = getComfortStatus(upTemp);
+
+      const boilerFiring = Boolean(gas.is_active);
 
       content.innerHTML = `
         <div class="stat-grid">
@@ -1259,11 +1277,17 @@ export class HUDOverlay {
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <div>
                 <div class="stat-label">DOWNSTAIRS HEATING & CLIMATE</div>
-                <div class="stat-val" style="color: ${downHeating ? '#f97316' : '#38bdf8'}; font-size: 26px;">
+                <div class="stat-val" style="color: ${downComfort.color}; font-size: 26px;">
                   ${downTemp.toFixed(1)} <span class="stat-unit">°C</span>
+                  <span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,0.08); color: ${downComfort.color}; vertical-align: middle; margin-left: 6px;">
+                    ${downComfort.icon} ${downComfort.label}
+                  </span>
                 </div>
-                <div class="stat-subtext">
-                  Target Setpoint: ${downTarget.toFixed(1)}°C &bull; ${downHeating ? '🔥 Heating Active' : '❄️ Idle / At Temp'}
+                <div class="stat-subtext" style="margin-top: 4px;">
+                  Target Setpoint: ${downTarget.toFixed(1)}°C &bull; 
+                  <span style="color: ${downHeating ? '#f97316' : '#94a3b8'}; font-weight: ${downHeating ? '700' : 'normal'};">
+                    ${downHeating ? '🔥 Calling for Heat' : '❄️ Thermostat Idle / Off'}
+                  </span>
                 </div>
               </div>
               <button class="light-toggle-btn" style="padding:6px 12px;" id="btn-focus-down">🛋️ View Ground Floor</button>
@@ -1274,11 +1298,17 @@ export class HUDOverlay {
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <div>
                 <div class="stat-label">UPSTAIRS HEATING & CLIMATE</div>
-                <div class="stat-val" style="color: ${upHeating ? '#f97316' : '#38bdf8'}; font-size: 26px;">
+                <div class="stat-val" style="color: ${upComfort.color}; font-size: 26px;">
                   ${upTemp.toFixed(1)} <span class="stat-unit">°C</span>
+                  <span style="font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,0.08); color: ${upComfort.color}; vertical-align: middle; margin-left: 6px;">
+                    ${upComfort.icon} ${upComfort.label}
+                  </span>
                 </div>
-                <div class="stat-subtext">
-                  Target Setpoint: ${upTarget.toFixed(1)}°C &bull; ${upHeating ? '🔥 Heating Active' : '❄️ Idle / At Temp'}
+                <div class="stat-subtext" style="margin-top: 4px;">
+                  Target Setpoint: ${upTarget.toFixed(1)}°C &bull; 
+                  <span style="color: ${upHeating ? '#f97316' : '#94a3b8'}; font-weight: ${upHeating ? '700' : 'normal'};">
+                    ${upHeating ? '🔥 Calling for Heat' : '❄️ Thermostat Idle / Off'}
+                  </span>
                 </div>
               </div>
               <button class="light-toggle-btn" style="padding:6px 12px;" id="btn-focus-up">🛏️ View First Floor</button>
@@ -1287,14 +1317,18 @@ export class HUDOverlay {
 
           <div class="stat-card">
             <div class="stat-label">KITCHEN COMBI BOILER</div>
-            <div class="stat-val" style="color: #f97316;">${gas.boiler_status || 'Central Heating'}</div>
-            <div class="stat-subtext">Supply: External LPG Bulk Tank</div>
+            <div class="stat-val" style="color: ${boilerFiring ? '#f97316' : '#94a3b8'};">
+              ${boilerFiring ? '🔥 Central Heating (Firing)' : 'Standby / Off'}
+            </div>
+            <div class="stat-subtext">
+              Hooked to Thermostats: ${boilerFiring ? (downHeating && upHeating ? 'Downstairs & Upstairs Heating' : (downHeating ? 'Downstairs Heating' : 'Upstairs Heating')) : 'Both Thermostats Satisfied (Off)'}
+            </div>
           </div>
 
           <div class="stat-card">
             <div class="stat-label">GAS TODAY</div>
             <div class="stat-val">${Number(gas.day_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
-            <div class="stat-subtext">30-min: ${Number(gas.reading_30min_kwh || 0).toFixed(2)} kWh</div>
+            <div class="stat-subtext">Supply: External LPG Bulk Tank</div>
           </div>
         </div>
       `;
@@ -1414,12 +1448,14 @@ export class HUDOverlay {
         const down = data.thermostats?.downstairs || {};
         const tVal = Number(down.current_temp || 20.0).toFixed(1);
         const isHeat = Boolean(down.is_heating);
-        badgeHtml = `<span>🌡️ Downstairs</span> <span style="color:${isHeat ? '#f97316' : '#38bdf8'};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${isHeat ? '🔥' : '❄️'}</span>`;
+        const comfort = getComfortStatus(down.current_temp || 20.0);
+        badgeHtml = `<span>🌡️ Downstairs</span> <span style="color:${comfort.color};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${comfort.icon}</span> ${isHeat ? '<span style="color:#f97316;font-size:9px;font-weight:700;">HEATING</span>' : ''}`;
       } else if (spot.id === 'thermostat_upstairs') {
         const up = data.thermostats?.upstairs || {};
         const tVal = Number(up.current_temp || 19.5).toFixed(1);
         const isHeat = Boolean(up.is_heating);
-        badgeHtml = `<span>🌡️ Upstairs</span> <span style="color:${isHeat ? '#f97316' : '#38bdf8'};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${isHeat ? '🔥' : '❄️'}</span>`;
+        const comfort = getComfortStatus(up.current_temp || 19.5);
+        badgeHtml = `<span>🌡️ Upstairs</span> <span style="color:${comfort.color};font-weight:700;">${tVal}°C</span> <span style="font-size:10px;">${comfort.icon}</span> ${isHeat ? '<span style="color:#f97316;font-size:9px;font-weight:700;">HEATING</span>' : ''}`;
       }
 
       const badge = document.createElement('div');
