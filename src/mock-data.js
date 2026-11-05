@@ -90,7 +90,8 @@ export const DEFAULT_ENERGY_DATA = {
     bedroom2: { is_on: false, brightness: 0, entity_id: '' },
     bedroom3: { is_on: false, brightness: 0, entity_id: '' },
     bathroom: { is_on: false, brightness: 0, entity_id: '' },
-    landing: { is_on: false, brightness: 0, entity_id: '' }
+    landing: { is_on: false, brightness: 0, entity_id: '' },
+    living_lamp: { is_on: true, brightness: 220, entity_id: 'light.living_room_lamp' }
   },
 
   // Dedicated Appliances & Living Room Lamp

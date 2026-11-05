@@ -40,6 +40,7 @@ export class HUDOverlay {
     this.onToggleNight = options.onToggleNight || (() => {});
     this.onToggleRotate = options.onToggleRotate || (() => {});
     this.onToggleLight = options.onToggleLight || (() => {});
+    this.onToggleTvAudio = options.onToggleTvAudio || (() => {});
     this.onSaveSensors = options.onSaveSensors || (() => {});
     this.customLights = options.customLights || [];
     this.onSaveCustomLights = options.onSaveCustomLights || (() => {});
@@ -1191,26 +1192,19 @@ export class HUDOverlay {
 
           <!-- Appliances & Furniture -->
           <div class="sensor-group-title">🍽️ Appliances & Living Room Devices</div>
-          <div class="sensor-row">
-            <label>Kitchen Fridge Freezer (power sensor in Watts or kW)</label>
-            <div class="sensor-input-wrap">
-              <input type="text" list="ha-entities-datalist" id="cfg-sensor-fridge" placeholder="sensor.fridge_power">
-              <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-fridge">📋 Select</button>
-            </div>
-          </div>
           <div class="sensor-grid-2">
             <div class="sensor-row">
-              <label>📺 Living Room TV (media_player/switch/power)</label>
+              <label>Kitchen Fridge Freezer (power sensor)</label>
               <div class="sensor-input-wrap">
-                <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="media_player.living_room_tv">
-                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-tv">📋 Select</button>
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-fridge" placeholder="sensor.fridge_power">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-fridge">📋 Select</button>
               </div>
             </div>
             <div class="sensor-row">
-              <label>🛋️ Living Room Corner Floor Lamp (light/switch)</label>
+              <label>📺 Living Room TV (media_player/switch)</label>
               <div class="sensor-input-wrap">
-                <input type="text" list="ha-entities-datalist" id="cfg-light-living-lamp" placeholder="light.living_room_lamp">
-                <button type="button" class="btn-entity-browse" data-target="#cfg-light-living-lamp">📋 Select</button>
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="media_player.living_room_tv">
+                <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-tv">📋 Select</button>
               </div>
             </div>
           </div>
@@ -2612,12 +2606,7 @@ export class HUDOverlay {
       } else if (spot.id === 'appliance_tv') {
         const tv = data.appliances?.tv || {};
         const isTvOn = Boolean(tv.is_on);
-        const tvW = tv.power_w ? `${tv.power_w} W` : (isTvOn ? 'ON' : 'OFF');
-        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${tvW}</span> <span style="font-size:9px;color:${isTvOn ? '#10b981' : '#ef4444'}">●</span>`;
-      } else if (spot.id === 'light_living_lamp') {
-        const lamp = data.appliances?.living_lamp || {};
-        const isLampOn = Boolean(lamp.is_on);
-        badgeHtml = `<span>🛋️ Corner Lamp</span> <span style="color:${isLampOn ? '#fbbf24' : '#94a3b8'};font-weight:700;">${isLampOn ? '💡 ON' : 'OFF'}</span>`;
+        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${isTvOn ? '▶ Playing' : 'OFF'}</span> ${isTvOn ? '<button class="btn-tv-audio" style="margin-left:4px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,0.2);border:none;color:#fff;cursor:pointer;font-size:9px;">🔊 Sound</button>' : ''}`;
       }
 
       const badge = document.createElement('div');
@@ -2626,20 +2615,19 @@ export class HUDOverlay {
       badge.style.top = `${spot.y}px`;
       badge.innerHTML = badgeHtml;
 
-      badge.addEventListener('click', () => {
-        if (spot.id === 'light_living_lamp') {
-          const lamp = data.appliances?.living_lamp;
-          if (lamp?.entity_id) {
-            this.onToggleLight(lamp.entity_id);
-          } else if (lamp) {
-            lamp.is_on = !lamp.is_on;
-            this.renderDrawerContent();
+      badge.addEventListener('click', (e) => {
+        if (spot.id === 'appliance_tv') {
+          if (e.target.closest('.btn-tv-audio')) {
+            e.stopPropagation();
+            if (this.onToggleTvAudio) this.onToggleTvAudio();
+            return;
           }
-          return;
-        } else if (spot.id === 'appliance_tv') {
           const tv = data.appliances?.tv;
           if (tv?.entity_id) {
             this.onToggleLight(tv.entity_id);
+          } else if (tv) {
+            tv.is_on = !tv.is_on;
+            this.updateData(data);
           }
           this.onPresetClick('downstairs');
           return;

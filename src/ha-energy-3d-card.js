@@ -88,6 +88,10 @@ export class HaEnergy3DCard extends HTMLElement {
     try {
       const savedLights = JSON.parse(localStorage.getItem('ha_energy_3d_custom_lights') || 'null');
       this.customLights = savedLights && Array.isArray(savedLights) && savedLights.length ? savedLights : JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
+      const lamp = this.customLights.find(l => l.id === 'living_lamp');
+      if (lamp && (lamp.name === 'Living Room Corner Lamp' || !lamp.name)) {
+        lamp.name = 'Living Room Lamp';
+      }
     } catch (e) {
       this.customLights = JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
     }
@@ -234,6 +238,7 @@ export class HaEnergy3DCard extends HTMLElement {
         this.sceneManager.controls.autoRotate = enable;
       },
       onToggleLight: (entityId) => this.toggleLightEntity(entityId),
+      onToggleTvAudio: () => this.sceneManager.toggleTvAudio(),
       onSaveSensors: (customSensors) => {
         this.customSensors = customSensors;
         this._config = { ...this._config, ...customSensors };
@@ -410,7 +415,7 @@ export class HaEnergy3DCard extends HTMLElement {
     // 6. Customizable 3D Lights (Mapped to Home Assistant entities)
     const lightsData = {};
     for (const light of this.customLights) {
-      const entityId = light.entity_id || cfg[`light_${light.id}`] || cfg.room_lights?.[light.id];
+      const entityId = light.entity_id || cfg[`light_${light.id}`] || cfg.room_lights?.[light.id] || (light.id === 'living_lamp' ? cfg.light_living_lamp : undefined);
       lightsData[light.id] = this.getLightState(entityId, this.energyData.room_lights?.[light.id]);
     }
     this.energyData.room_lights = lightsData;
