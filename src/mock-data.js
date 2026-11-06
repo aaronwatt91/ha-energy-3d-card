@@ -30,15 +30,15 @@ export const DEFAULT_ENERGY_DATA = {
 
   // Octopus Gas & Kitchen Combi Boiler
   octopus_gas: {
-    is_active: true,         // Boiler is firing / heating
-    power_kw: 1.45,          // Live equivalent gas consumption rate
+    is_active: false,        // Boiler is on Standby (not firing)
+    power_kw: 0.0,           // Live equivalent gas consumption rate (0 kW when idle)
     reading_30min_kwh: 0.72, // Octopus Home Mini 30-min gas reading
     day_kwh: 12.8,           // Gas consumed today
     week_kwh: 78.5,          // Gas consumed this week
     month_kwh: 310.2,        // Gas consumed this month
     current_rate_p: 6.24,    // Gas unit rate in p/kWh
     monthly_spend_gbp: 38.65,// Gas monthly spend in £
-    boiler_status: 'Heating' // 'Heating', 'Standby'
+    boiler_status: 'Standby' // 'Heating', 'Standby'
   },
 
   // myenergi Zappi EV Charger & Peugeot e-2008

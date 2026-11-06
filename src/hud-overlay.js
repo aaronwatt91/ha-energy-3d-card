@@ -18,7 +18,17 @@ function formatSolarPower(valKw) {
   return `${kw.toFixed(2)} kW`;
 }
 
-function getSolarPowerParts(valKw) {
+function formatGridPower(gridKw, isExporting) {
+  const absKw = Math.abs(Number(gridKw) || 0);
+  const prefix = isExporting ? 'Export ' : 'Import ';
+  if (absKw < 1.0) {
+    const watts = Math.round(absKw * 1000);
+    return `${prefix}${watts} W`;
+  }
+  return `${prefix}${absKw.toFixed(2)} kW`;
+}
+
+function getPowerParts(valKw) {
   const kw = Number(valKw) || 0;
   if (Math.abs(kw) < 1.0) {
     return {
@@ -30,6 +40,10 @@ function getSolarPowerParts(valKw) {
     value: kw.toFixed(2),
     unit: 'kW'
   };
+}
+
+function getSolarPowerParts(valKw) {
+  return getPowerParts(valKw);
 }
 
 function getComfortStatus(temp) {
@@ -1000,7 +1014,7 @@ export class HUDOverlay {
           </div>
           <div class="hud-flow-item">
             <span>⚡</span>
-            <span class="hud-flow-val color-grid-import" id="hdr-grid-kw">0.00 kW</span>
+            <span class="hud-flow-val color-grid-import" id="hdr-grid-kw">Import 0 W</span>
           </div>
           <div class="hud-flow-item">
             <span>🚗</span>
@@ -1008,7 +1022,7 @@ export class HUDOverlay {
           </div>
           <div class="hud-flow-item">
             <span>🔥</span>
-            <span class="hud-flow-val color-gas" id="hdr-gas-val">Active</span>
+            <span class="hud-flow-val color-gas" id="hdr-gas-val" style="color:#94a3b8;">Standby</span>
           </div>
         </div>
       </div>
@@ -2306,16 +2320,18 @@ export class HUDOverlay {
     } else if (this.activeTab === 'electric') {
       const o = data.octopus_electric || {};
       const kw = toKw(o.power_kw);
+      const absKw = Math.abs(kw);
       const isExporting = kw < -0.02 || Boolean(o.is_exporting);
-      const isMoving = Math.abs(kw) > 0.03;
+      const isMoving = absKw > 0.03;
+      const parts = getPowerParts(absKw);
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
             <div class="stat-label">OCTOPUS GRID POWER (${isMoving ? (isExporting ? 'EXPORTING TO GRID' : 'IMPORTING FROM GRID') : 'IDLE / FROZEN'})</div>
             <div class="stat-val ${isExporting ? 'color-grid-export' : 'color-grid-import'}">
-              ${Math.abs(kw).toFixed(2)} <span class="stat-unit">kW</span>
+              ${parts.value} <span class="stat-unit">${parts.unit}</span>
             </div>
-            <div class="stat-subtext">Flow: ${isMoving ? (isExporting ? '⬆️ House to Pylon' : '⬇️ Pylon to House') : 'Frozen (0 kW)'}</div>
+            <div class="stat-subtext">Flow: ${isMoving ? (isExporting ? '⬆️ House to Pylon' : '⬇️ Pylon to House') : 'Frozen (0 W)'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">CURRENT TARIFF RATE</div>
@@ -2352,12 +2368,12 @@ export class HUDOverlay {
       `;
     } else if (this.activeTab === 'gas') {
       const g = data.octopus_gas || {};
-      const isActive = Boolean(g.is_active && g.boiler_status !== 'off');
+      const isActive = Boolean(g.is_active && g.boiler_status === 'Heating');
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
             <div class="stat-label">KITCHEN COMBI BOILER</div>
-            <div class="stat-val color-gas">${isActive ? '🔥 Heating' : 'Standby'}</div>
+            <div class="stat-val" style="color:${isActive ? '#f97316' : '#94a3b8'};">${isActive ? '🔥 Heating' : 'Standby'}</div>
             <div class="stat-subtext">Status: ${isActive ? 'Heating (Firing)' : 'Standby (Idle)'} &bull; Supply: External LPG Bulk Tank</div>
           </div>
           <div class="stat-card">
@@ -2457,7 +2473,7 @@ export class HUDOverlay {
       const upHeating = Boolean(up.is_heating);
       const upComfort = getComfortStatus(upTemp);
 
-      const boilerFiring = Boolean(gas.is_active);
+      const boilerFiring = Boolean(gas.is_active && gas.boiler_status === 'Heating');
 
       content.innerHTML = `
         <div class="stat-grid">
@@ -2668,12 +2684,14 @@ export class HUDOverlay {
 
     if (hdrSolar) hdrSolar.innerText = formatSolarPower(solarKw);
     if (hdrGrid) {
-      hdrGrid.innerText = `${isExporting ? 'Export ' : 'Import '}${Math.abs(gridKw).toFixed(2)} kW`;
+      hdrGrid.innerText = formatGridPower(gridKw, isExporting);
       hdrGrid.className = `hud-flow-val ${isExporting ? 'color-grid-export' : 'color-grid-import'}`;
     }
     if (hdrEv) hdrEv.innerText = `${evKw.toFixed(2)} kW`;
     if (hdrGas) {
-      hdrGas.innerText = data.octopus_gas?.is_active ? 'Heating' : 'Standby';
+      const isHeating = Boolean(data.octopus_gas?.is_active && data.octopus_gas?.boiler_status === 'Heating');
+      hdrGas.innerText = isHeating ? 'Heating' : 'Standby';
+      hdrGas.style.color = isHeating ? '#f97316' : '#94a3b8';
     }
 
     // 3D Hotspot Badges
@@ -2689,9 +2707,13 @@ export class HUDOverlay {
         badgeHtml = `<span>☀️ Solax</span> <span class="color-solar">${formatSolarPower(solarKw)}</span> <span style="font-size:9px;color:${isGen ? '#10b981' : '#64748b'}">●</span>`;
       } else if (spot.id === 'grid') {
         const rate = Number(data.octopus_electric?.current_rate_p || 0).toFixed(1);
-        badgeHtml = `<span>⚡ Octopus</span> <span>${Math.abs(gridKw).toFixed(1)} kW</span> <span style="color:#94a3b8">(${rate}p)</span>`;
+        const absKw = Math.abs(gridKw);
+        const powerText = absKw < 1.0 ? `${Math.round(absKw * 1000)} W` : `${absKw.toFixed(1)} kW`;
+        const dirPrefix = isExporting ? 'Export ' : '';
+        badgeHtml = `<span>⚡ Octopus</span> <span class="${isExporting ? 'color-grid-export' : 'color-grid-import'}">${dirPrefix}${powerText}</span> <span style="color:#94a3b8">(${rate}p)</span>`;
       } else if (spot.id === 'boiler') {
-        badgeHtml = `<span>🔥 Boiler</span> <span class="color-gas">${data.octopus_gas?.is_active ? 'Heating' : 'Standby'}</span>`;
+        const isHeating = Boolean(data.octopus_gas?.is_active && data.octopus_gas?.boiler_status === 'Heating');
+        badgeHtml = `<span>🔥 Boiler</span> <span style="color:${isHeating ? '#f97316' : '#94a3b8'};font-weight:700;">${isHeating ? 'Heating' : 'Standby'}</span>`;
       } else if (spot.id === 'ev') {
         badgeHtml = `<span>🚗 Peugeot</span> <span class="color-ev">${data.ev?.battery_soc_pct || 68}%</span>`;
       } else if (spot.id === 'ev_charger') {

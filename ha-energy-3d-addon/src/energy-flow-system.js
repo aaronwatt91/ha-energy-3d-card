@@ -109,7 +109,8 @@ export class EnergyFlowSystem {
         curve: this.paths.gas,
         color: new THREE.Color(0xff6d00), // Warm flame amber
         baseSpeed: 0.32,
-        size: 0.052
+        size: 0.052,
+        particleCount: 12 // Reduced to a quarter (was 48, now 12 balls)
       }
     };
 
@@ -240,7 +241,8 @@ export class EnergyFlowSystem {
     const evKw = autoKw(energyData.ev?.charger_power_kw);
     const gasKw = autoKw(energyData.octopus_gas?.power_kw);
 
-    const gasActive = Boolean((energyData.octopus_gas?.is_active || gasKw > 0.05) && energyData.octopus_gas?.boiler_status !== 'off');
+    const isHeating = Boolean(energyData.octopus_gas?.is_active && energyData.octopus_gas?.boiler_status === 'Heating');
+    const gasActive = isHeating && gasKw > 0.05;
 
     for (const stream of this.streams) {
       const { id, mesh, def, dummy } = stream;

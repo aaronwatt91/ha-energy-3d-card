@@ -457,23 +457,38 @@ export class HaEnergy3DCard extends HTMLElement {
     };
 
     // 4. Octopus Gas & Combi Boiler
-    // Directly hooked to thermostats: if either is on/calling for heat, the boiler is firing.
-    // If both are off/idle, the boiler is in Standby / Off.
-    const eitherThermostatHeating = Boolean(downThermo.is_heating || upThermo.is_heating);
-    let explicitBoilerActive = false;
-    if (cfg.boiler_status) {
-      const boilerRawState = this.getEntityState(cfg.boiler_status, '');
-      if (boilerRawState === 'on' || boilerRawState === 'heat' || boilerRawState === 'heating' || boilerRawState === 'Central Heating') {
-        explicitBoilerActive = true;
+    // Must be strictly 'Standby' when not actively heating
+    let isBoilerHeating = false;
+
+    if (cfg.boiler_status && this._hass?.states?.[cfg.boiler_status]) {
+      const bObj = this._hass.states[cfg.boiler_status];
+      const bState = (bObj.state || '').toLowerCase().trim();
+      const bAttr = bObj.attributes || {};
+      const activeWords = ['heating', 'heat', 'firing', 'on', 'central heating', 'hot water', 'active'];
+      const idleWords = ['standby', 'idle', 'off', 'ready', 'waiting', '0', 'false'];
+
+      if (activeWords.includes(bState) || bAttr.hvac_action === 'heating' || bAttr.is_heating === true) {
+        isBoilerHeating = true;
+      } else if (idleWords.includes(bState)) {
+        isBoilerHeating = false;
+      } else {
+        const num = parseFloat(bState);
+        if (!isNaN(num)) {
+          isBoilerHeating = num > 0.05;
+        } else {
+          isBoilerHeating = Boolean(downThermo.is_heating || upThermo.is_heating);
+        }
       }
+    } else {
+      // If no dedicated boiler entity, reflect active heating demand from thermostats
+      isBoilerHeating = Boolean(downThermo.is_heating || upThermo.is_heating);
     }
 
-    const isGasActive = eitherThermostatHeating || explicitBoilerActive;
-    const boilerStatus = isGasActive ? 'Heating' : 'Standby';
+    const boilerStatus = isBoilerHeating ? 'Heating' : 'Standby';
 
     this.energyData.octopus_gas = {
-      is_active: isGasActive,
-      power_kw: isGasActive ? 1.45 : 0.0,
+      is_active: isBoilerHeating,
+      power_kw: isBoilerHeating ? 1.45 : 0.0,
       boiler_status: boilerStatus,
       reading_30min_kwh: this.getEnergyInKwh(cfg.octopus_gas_30min, this.energyData.octopus_gas.reading_30min_kwh),
       day_kwh: this.getEnergyInKwh(cfg.octopus_gas_day, this.energyData.octopus_gas.day_kwh),
@@ -668,7 +683,15 @@ export class HaEnergy3DCard extends HTMLElement {
     }
 
     res.hvac_action = attr.hvac_action || (stateObj.state === 'heating' ? 'heating' : (stateObj.state === 'off' ? 'off' : 'idle'));
-    res.is_heating = res.hvac_action === 'heating' || (res.target_temp !== null && res.current_temp < res.target_temp && stateObj.state !== 'off');
+    if (attr.hvac_action) {
+      res.is_heating = attr.hvac_action === 'heating';
+    } else if (stateObj.state === 'heating') {
+      res.is_heating = true;
+    } else if (stateObj.state === 'off') {
+      res.is_heating = false;
+    } else {
+      res.is_heating = res.target_temp !== null && res.current_temp < res.target_temp;
+    }
     res.comfort = getComfortStatus(res.current_temp);
     return res;
   }
