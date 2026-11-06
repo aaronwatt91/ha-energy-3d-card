@@ -2490,7 +2490,7 @@ export class HUDOverlay {
                 <div class="stat-subtext" style="margin-top: 4px;">
                   Target Setpoint: ${downTarget.toFixed(1)}°C &bull; 
                   <span style="color: ${downHeating ? '#f97316' : '#94a3b8'}; font-weight: ${downHeating ? '700' : 'normal'};">
-                    ${downHeating ? '🔥 Calling for Heat' : '❄️ Thermostat Idle / Off'}
+                    ${downHeating ? '🔥 Calling for Heat' : (downTemp >= downTarget ? '✅ Set Temp Reached (Standby)' : '❄️ Thermostat Idle / Off')}
                   </span>
                 </div>
               </div>
@@ -2511,7 +2511,7 @@ export class HUDOverlay {
                 <div class="stat-subtext" style="margin-top: 4px;">
                   Target Setpoint: ${upTarget.toFixed(1)}°C &bull; 
                   <span style="color: ${upHeating ? '#f97316' : '#94a3b8'}; font-weight: ${upHeating ? '700' : 'normal'};">
-                    ${upHeating ? '🔥 Calling for Heat' : '❄️ Thermostat Idle / Off'}
+                    ${upHeating ? '🔥 Calling for Heat' : (upTemp >= upTarget ? '✅ Set Temp Reached (Standby)' : '❄️ Thermostat Idle / Off')}
                   </span>
                 </div>
               </div>

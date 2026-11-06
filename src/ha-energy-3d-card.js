@@ -457,31 +457,59 @@ export class HaEnergy3DCard extends HTMLElement {
     };
 
     // 4. Octopus Gas & Combi Boiler
-    // Must be strictly 'Standby' when not actively heating
+    // Rule:
+    // If a thermostat is set to heat but has reached or exceeded set temperature -> Standby.
+    // If both are set to heat, one has reached and other hasn't -> Heating.
+    // If both have reached it -> Standby. Only show heating if actual heating is occurring.
     let isBoilerHeating = false;
 
-    if (cfg.boiler_status && this._hass?.states?.[cfg.boiler_status]) {
-      const bObj = this._hass.states[cfg.boiler_status];
-      const bState = (bObj.state || '').toLowerCase().trim();
-      const bAttr = bObj.attributes || {};
-      const activeWords = ['heating', 'heat', 'firing', 'on', 'central heating', 'hot water', 'active'];
-      const idleWords = ['standby', 'idle', 'off', 'ready', 'waiting', '0', 'false'];
+    const hasDownThermo = Boolean(cfg.thermostat_downstairs && this._hass?.states?.[cfg.thermostat_downstairs]);
+    const hasUpThermo = Boolean(cfg.thermostat_upstairs && this._hass?.states?.[cfg.thermostat_upstairs]);
+    const thermostatsConfigured = hasDownThermo || hasUpThermo;
 
-      if (activeWords.includes(bState) || bAttr.hvac_action === 'heating' || bAttr.is_heating === true) {
-        isBoilerHeating = true;
-      } else if (idleWords.includes(bState)) {
-        isBoilerHeating = false;
-      } else {
-        const num = parseFloat(bState);
-        if (!isNaN(num)) {
-          isBoilerHeating = num > 0.05;
+    // Active heating demand from thermostats
+    const thermostatDemand = Boolean(
+      (hasDownThermo && downThermo.is_heating) ||
+      (hasUpThermo && upThermo.is_heating) ||
+      (!thermostatsConfigured && (downThermo.is_heating || upThermo.is_heating))
+    );
+
+    if (thermostatsConfigured) {
+      // Thermostats govern central heating demand
+      if (cfg.boiler_status && this._hass?.states?.[cfg.boiler_status]) {
+        const bObj = this._hass.states[cfg.boiler_status];
+        const bState = (bObj.state || '').toLowerCase().trim();
+        const idleWords = ['standby', 'idle', 'off', 'ready', 'waiting', '0', 'false'];
+        if (idleWords.includes(bState)) {
+          isBoilerHeating = false;
+        } else if (bState === 'hot water' || bState === 'hot_water') {
+          isBoilerHeating = true;
         } else {
-          isBoilerHeating = Boolean(downThermo.is_heating || upThermo.is_heating);
+          isBoilerHeating = thermostatDemand;
         }
+      } else {
+        isBoilerHeating = thermostatDemand;
       }
     } else {
-      // If no dedicated boiler entity, reflect active heating demand from thermostats
-      isBoilerHeating = Boolean(downThermo.is_heating || upThermo.is_heating);
+      // Fallback when no thermostats are configured
+      if (cfg.boiler_status && this._hass?.states?.[cfg.boiler_status]) {
+        const bObj = this._hass.states[cfg.boiler_status];
+        const bState = (bObj.state || '').toLowerCase().trim();
+        const bAttr = bObj.attributes || {};
+        const activeWords = ['heating', 'heat', 'firing', 'on', 'central heating', 'hot water', 'active'];
+        const idleWords = ['standby', 'idle', 'off', 'ready', 'waiting', '0', 'false'];
+
+        if (activeWords.includes(bState) || bAttr.hvac_action === 'heating' || bAttr.is_heating === true) {
+          isBoilerHeating = true;
+        } else if (idleWords.includes(bState)) {
+          isBoilerHeating = false;
+        } else {
+          const num = parseFloat(bState);
+          isBoilerHeating = !isNaN(num) ? num > 0.05 : false;
+        }
+      } else {
+        isBoilerHeating = Boolean(downThermo.is_heating || upThermo.is_heating);
+      }
     }
 
     const boilerStatus = isBoilerHeating ? 'Heating' : 'Standby';
@@ -682,16 +710,38 @@ export class HaEnergy3DCard extends HTMLElement {
       res.target_temp = parseFloat(attr.target_temp_high);
     }
 
-    res.hvac_action = attr.hvac_action || (stateObj.state === 'heating' ? 'heating' : (stateObj.state === 'off' ? 'off' : 'idle'));
-    if (attr.hvac_action) {
-      res.is_heating = attr.hvac_action === 'heating';
-    } else if (stateObj.state === 'heating') {
-      res.is_heating = true;
-    } else if (stateObj.state === 'off') {
-      res.is_heating = false;
+    const rawState = (stateObj.state || '').toLowerCase().trim();
+    const isOff = rawState === 'off' || rawState === 'standby' || rawState === 'idle';
+    const isSetToHeat = !isOff && (rawState === 'heat' || rawState === 'heating' || rawState === 'auto' || rawState === 'on' || rawState === 'boost' || rawState === 'comfort' || rawState === '');
+
+    const hasTarget = res.target_temp !== null && !isNaN(res.target_temp);
+    const hasCurrent = res.current_temp !== null && !isNaN(res.current_temp);
+    const action = (attr.hvac_action || '').toLowerCase().trim();
+
+    // Reached or exceeded set temperature check
+    // "if a thermostat is set to heat but it has reached its set temperture or exceeded it set the boiler to stand by."
+    const reachedOrExceeded = hasTarget && hasCurrent && (res.current_temp >= res.target_temp);
+
+    let isHeating = false;
+    if (!isOff && isSetToHeat) {
+      if (hasTarget && hasCurrent) {
+        if (reachedOrExceeded) {
+          // Reached or exceeded set temperature -> NOT heating
+          isHeating = false;
+        } else {
+          // Below set temperature: calling for heat unless explicitly idle or off
+          isHeating = action !== 'idle' && action !== 'off';
+        }
+      } else {
+        // Temperatures not numerical -> fall back to action or mode
+        isHeating = action === 'heating' || rawState === 'heating';
+      }
     } else {
-      res.is_heating = res.target_temp !== null && res.current_temp < res.target_temp;
+      isHeating = false;
     }
+
+    res.is_heating = isHeating;
+    res.hvac_action = isHeating ? 'heating' : (isOff ? 'off' : 'idle');
     res.comfort = getComfortStatus(res.current_temp);
     return res;
   }

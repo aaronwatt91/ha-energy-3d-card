@@ -150,7 +150,7 @@
   </style>
 
   <!-- Load bundled custom card module with cache-buster -->
-  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.2"></script>
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.3"></script>
 </head>
 <body>
 
@@ -237,7 +237,7 @@
         'sensor.octopus_energy_electricity_day': { state: '8.4' },
         'sensor.octopus_energy_electricity_week': { state: '54.2' },
         'sensor.octopus_energy_electricity_month': { state: '218.6' },
-        'sensor.boiler_status': { state: 'Heating' },
+        'sensor.boiler_status': { state: 'Standby' },
         'sensor.octopus_home_mini_gas_30min': { state: '0.72' },
         'sensor.octopus_energy_gas_day': { state: '12.8' },
         'sensor.octopus_energy_gas_week': { state: '78.5' },
@@ -263,7 +263,7 @@
         },
         'climate.upstairs': {
           state: 'heat',
-          attributes: { current_temperature: 19.4, temperature: 19.5, hvac_action: 'idle' }
+          attributes: { current_temperature: 19.5, temperature: 19.5, hvac_action: 'idle' }
         },
 
         // Room Lights
