@@ -801,6 +801,410 @@ export class SceneManager {
 
     this.appliancesGroup.add(washerGroup);
     this.applianceWasher = washerGroup;
+
+    // ==========================================
+    // 3. Living Room Sectional Corner Couch (Prop only, no tag)
+    // "it should face the tv and the shorter side on the wall the bathroom shares"
+    // TV at x = 3.38, z = -3.10. Bathroom wall at z = -4.30.
+    // ==========================================
+    const couchGroup = new THREE.Group();
+
+    const couchFabricMat = new THREE.MeshStandardMaterial({
+      color: 0x334155, // Slate charcoal upholstery
+      roughness: 0.85,
+      metalness: 0.05
+    });
+    const couchCushionMat = new THREE.MeshStandardMaterial({
+      color: 0x475569, // Soft textured seat cushion
+      roughness: 0.80,
+      metalness: 0.02
+    });
+    const pillowAmberMat = new THREE.MeshStandardMaterial({
+      color: 0xd97706, // Warm amber throw pillow
+      roughness: 0.70
+    });
+    const pillowCreamMat = new THREE.MeshStandardMaterial({
+      color: 0xf1f5f9, // Crisp cream throw pillow
+      roughness: 0.80
+    });
+    const couchLegsMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a, // Dark timber feet
+      roughness: 0.6
+    });
+
+    // Main long section (runs along outer wall at x ≈ 1.05, facing +X towards TV)
+    const baseLong = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.22, 2.10), couchFabricMat);
+    baseLong.position.set(0.99, 0.17, -3.05);
+    baseLong.castShadow = true;
+    baseLong.receiveShadow = true;
+    couchGroup.add(baseLong);
+
+    // Shorter L-return section (along the wall the bathroom shares, at z ≈ -4.00, facing +Z)
+    const baseShort = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.22, 0.88), couchFabricMat);
+    baseShort.position.set(1.905, 0.17, -3.66);
+    baseShort.castShadow = true;
+    baseShort.receiveShadow = true;
+    couchGroup.add(baseShort);
+
+    // Long section backrest (along outer wall on -X side)
+    const backLong = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.46, 2.10), couchFabricMat);
+    backLong.position.set(0.65, 0.51, -3.05);
+    backLong.castShadow = true;
+    backLong.receiveShadow = true;
+    couchGroup.add(backLong);
+
+    // Shorter section backrest (along the shared bathroom wall on -Z side)
+    const backShort = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.46, 0.20), couchFabricMat);
+    backShort.position.set(1.905, 0.51, -4.00);
+    backShort.castShadow = true;
+    backShort.receiveShadow = true;
+    couchGroup.add(backShort);
+
+    // Front armrest (front end of main section at z = -2.00)
+    const armFront = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.38, 0.16), couchFabricMat);
+    armFront.position.set(0.99, 0.41, -2.00);
+    armFront.castShadow = true;
+    armFront.receiveShadow = true;
+    couchGroup.add(armFront);
+
+    // Right armrest (far end of shorter section along bathroom wall at x = 2.38)
+    const armRight = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.38, 0.88), couchFabricMat);
+    armRight.position.set(2.38, 0.41, -3.66);
+    armRight.castShadow = true;
+    armRight.receiveShadow = true;
+    couchGroup.add(armRight);
+
+    // Seat cushions for long section (facing TV)
+    const cushion1 = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.13, 0.92), couchCushionMat);
+    cushion1.position.set(1.10, 0.345, -2.55);
+    cushion1.castShadow = true;
+    couchGroup.add(cushion1);
+
+    const cushion2 = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.13, 0.92), couchCushionMat);
+    cushion2.position.set(1.10, 0.345, -3.49);
+    cushion2.castShadow = true;
+    couchGroup.add(cushion2);
+
+    // Seat cushion for shorter section (along bathroom wall)
+    const cushionShort = new THREE.Mesh(new THREE.BoxGeometry(0.93, 0.13, 0.66), couchCushionMat);
+    cushionShort.position.set(1.905, 0.345, -3.56);
+    cushionShort.castShadow = true;
+    couchGroup.add(cushionShort);
+
+    // Accent throw pillows
+    const pillow1 = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.30, 0.10), pillowAmberMat);
+    pillow1.position.set(0.82, 0.52, -2.18);
+    pillow1.rotation.y = 0.25;
+    couchGroup.add(pillow1);
+
+    const pillow2 = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.30, 0.10), pillowCreamMat);
+    pillow2.position.set(0.84, 0.52, -3.88);
+    pillow2.rotation.y = 0.78;
+    couchGroup.add(pillow2);
+
+    const pillow3 = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.28, 0.10), pillowAmberMat);
+    pillow3.position.set(2.22, 0.52, -3.68);
+    pillow3.rotation.y = 1.35;
+    couchGroup.add(pillow3);
+
+    // Sofa legs
+    const legPositions = [
+      [0.60, -2.00], [1.38, -2.00],
+      [0.60, -4.05], [2.35, -4.05],
+      [2.35, -3.25], [1.38, -3.25]
+    ];
+    for (const [lx, lz] of legPositions) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.06, 8), couchLegsMat);
+      leg.position.set(lx, 0.03, lz);
+      couchGroup.add(leg);
+    }
+
+    this.appliancesGroup.add(couchGroup);
+    this.couchGroup = couchGroup;
+
+    // ==========================================
+    // 4. Dining Room Table & Chairs (In front of Patio Doors in Kitchen/Dining area)
+    // French patio doors at z ≈ -8.50, Dining area around x = 4.30, z = -7.40
+    // ==========================================
+    const diningGroup = new THREE.Group();
+
+    const tableWoodMat = new THREE.MeshStandardMaterial({
+      color: 0x9a6b47, // Warm natural oak
+      roughness: 0.45,
+      metalness: 0.08
+    });
+    const chairFabricMat = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      roughness: 0.8
+    });
+
+    // Tabletop
+    const tabletop = new THREE.Mesh(new THREE.BoxGeometry(1.40, 0.045, 0.85), tableWoodMat);
+    tabletop.position.set(4.30, 0.73, -7.40);
+    tabletop.castShadow = true;
+    tabletop.receiveShadow = true;
+    diningGroup.add(tabletop);
+
+    // Table Legs (4 corner legs)
+    const legOffsets = [
+      [-0.62, -0.36], [0.62, -0.36],
+      [-0.62, 0.36], [0.62, 0.36]
+    ];
+    for (const [ox, oz] of legOffsets) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.71, 0.05), tableWoodMat);
+      leg.position.set(4.30 + ox, 0.355, -7.40 + oz);
+      leg.castShadow = true;
+      diningGroup.add(leg);
+    }
+
+    // 4 Dining Chairs around the table (2 facing +Z towards patio doors, 2 facing -Z)
+    const chairPositions = [
+      { x: 4.02, z: -7.40 - 0.52, rotY: 0 },
+      { x: 4.58, z: -7.40 - 0.52, rotY: 0 },
+      { x: 4.02, z: -7.40 + 0.52, rotY: Math.PI },
+      { x: 4.58, z: -7.40 + 0.52, rotY: Math.PI }
+    ];
+
+    for (const cp of chairPositions) {
+      const chair = new THREE.Group();
+      chair.position.set(cp.x, 0, cp.z);
+      chair.rotation.y = cp.rotY;
+
+      // Seat pad
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.38), chairFabricMat);
+      seat.position.y = 0.44;
+      seat.castShadow = true;
+      chair.add(seat);
+
+      // Backrest
+      const back = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.38, 0.035), chairFabricMat);
+      back.position.set(0, 0.66, -0.17);
+      back.castShadow = true;
+      chair.add(back);
+
+      // 4 Chair Legs
+      const clegOffsets = [[-0.16, -0.16], [0.16, -0.16], [-0.16, 0.16], [0.16, 0.16]];
+      for (const [cx, cz] of clegOffsets) {
+        const cleg = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.42, 6), tableWoodMat);
+        cleg.position.set(cx, 0.21, cz);
+        chair.add(cleg);
+      }
+
+      diningGroup.add(chair);
+    }
+
+    this.appliancesGroup.add(diningGroup);
+    this.diningTable = diningGroup;
+
+    // ==========================================
+    // 5. Upstairs Bedroom Furniture (Master bed, Guest bed, Cot in bedroom 3)
+    // Placed in this.upstairsFurnitureGroup so they cleanly hide when downstairs view is chosen
+    // ==========================================
+    this.upstairsFurnitureGroup = new THREE.Group();
+    this.scene.add(this.upstairsFurnitureGroup);
+
+    const firstFloorY = 2.52; // First floor slab top level
+
+    // Master Bedroom Double Bed (External wall on -X at x ≈ 0.40, centered at z ≈ -2.15)
+    const masterBedGroup = new THREE.Group();
+    masterBedGroup.position.set(0.55, firstFloorY, -2.15);
+
+    const masterFrameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 });
+    const masterHeadboardMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+    const mattressMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.85 });
+    const masterDuvetMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.75 });
+    const pillowWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+
+    // Headboard on external wall (-X)
+    const mHeadboard = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.95, 1.62), masterHeadboardMat);
+    mHeadboard.position.set(0.04, 0.52, 0);
+    mHeadboard.castShadow = true;
+    masterBedGroup.add(mHeadboard);
+
+    // Bed frame base
+    const mBase = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.28, 1.55), masterFrameMat);
+    mBase.position.set(1.015, 0.14, 0);
+    mBase.castShadow = true;
+    masterBedGroup.add(mBase);
+
+    // Mattress
+    const mMattress = new THREE.Mesh(new THREE.BoxGeometry(1.90, 0.20, 1.48), mattressMat);
+    mMattress.position.set(1.02, 0.38, 0);
+    mMattress.castShadow = true;
+    masterBedGroup.add(mMattress);
+
+    // Duvet
+    const mDuvet = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.09, 1.52), masterDuvetMat);
+    mDuvet.position.set(1.26, 0.485, 0);
+    mDuvet.castShadow = true;
+    masterBedGroup.add(mDuvet);
+
+    // 2 Pillows
+    const mPillow1 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.58), pillowWhiteMat);
+    mPillow1.position.set(0.28, 0.51, -0.34);
+    masterBedGroup.add(mPillow1);
+
+    const mPillow2 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.58), pillowWhiteMat);
+    mPillow2.position.set(0.28, 0.51, 0.34);
+    masterBedGroup.add(mPillow2);
+
+    // 2 Bedside nightstands
+    for (const sz of [-0.98, 0.98]) {
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.44, 0.38), masterFrameMat);
+      stand.position.set(0.22, 0.22, sz);
+      masterBedGroup.add(stand);
+
+      const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.03, 12), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
+      lampBase.position.set(0.22, 0.455, sz);
+      masterBedGroup.add(lampBase);
+
+      const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.11, 0.16, 12), new THREE.MeshStandardMaterial({ color: 0xffedd5 }));
+      lampShade.position.set(0.22, 0.58, sz);
+      masterBedGroup.add(lampShade);
+    }
+
+    this.upstairsFurnitureGroup.add(masterBedGroup);
+
+    // Guest Bedroom Double Bed (Bedroom 2, on external wall on -X, centered at z ≈ -7.30)
+    const guestBedGroup = new THREE.Group();
+    guestBedGroup.position.set(0.55, firstFloorY, -7.30);
+
+    const guestFrameMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 });
+    const guestDuvetMat = new THREE.MeshStandardMaterial({ color: 0x4d695b, roughness: 0.75 }); // Sage green
+
+    // Headboard on external wall
+    const gHeadboard = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.88, 1.50), guestFrameMat);
+    gHeadboard.position.set(0.04, 0.48, 0);
+    gHeadboard.castShadow = true;
+    guestBedGroup.add(gHeadboard);
+
+    // Bed frame base
+    const gBase = new THREE.Mesh(new THREE.BoxGeometry(1.90, 0.26, 1.44), guestFrameMat);
+    gBase.position.set(0.99, 0.13, 0);
+    gBase.castShadow = true;
+    guestBedGroup.add(gBase);
+
+    // Mattress
+    const gMattress = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.18, 1.38), mattressMat);
+    gMattress.position.set(1.00, 0.35, 0);
+    gMattress.castShadow = true;
+    guestBedGroup.add(gMattress);
+
+    // Duvet
+    const gDuvet = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.08, 1.42), guestDuvetMat);
+    gDuvet.position.set(1.23, 0.445, 0);
+    gDuvet.castShadow = true;
+    guestBedGroup.add(gDuvet);
+
+    // 2 Pillows
+    const gPillow1 = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.11, 0.52), pillowWhiteMat);
+    gPillow1.position.set(0.27, 0.47, -0.32);
+    guestBedGroup.add(gPillow1);
+
+    const gPillow2 = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.11, 0.52), pillowWhiteMat);
+    gPillow2.position.set(0.27, 0.47, 0.32);
+    guestBedGroup.add(gPillow2);
+
+    // Bedside nightstand
+    const gStand = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.42, 0.36), guestFrameMat);
+    gStand.position.set(0.22, 0.21, 0.92);
+    guestBedGroup.add(gStand);
+
+    this.upstairsFurnitureGroup.add(guestBedGroup);
+
+    // Bedroom 3 Baby Cot (Smallest room, centre on party wall on +X at x ≈ 5.18, z ≈ -7.30)
+    const cotGroup = new THREE.Group();
+    cotGroup.position.set(5.18, firstFloorY, -7.30);
+
+    const cotWhiteMat = new THREE.MeshStandardMaterial({
+      color: 0xf8fafc,
+      roughness: 0.35
+    });
+    const cotMattressMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.8
+    });
+    const cotBlanketMat = new THREE.MeshStandardMaterial({
+      color: 0xfef08a, // Soft pastel yellow baby blanket
+      roughness: 0.7
+    });
+
+    // 4 Corner Posts
+    const cPostOffsets = [
+      [0.0, -0.58], [-0.64, -0.58],
+      [0.0, 0.58], [-0.64, 0.58]
+    ];
+    for (const [px, pz] of cPostOffsets) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.82, 0.04), cotWhiteMat);
+      post.position.set(px, 0.41, pz);
+      post.castShadow = true;
+      cotGroup.add(post);
+    }
+
+    // Top Rails (around 4 sides)
+    const railTopParty = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 1.20), cotWhiteMat);
+    railTopParty.position.set(0.0, 0.80, 0);
+    cotGroup.add(railTopParty);
+
+    const railTopRoom = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 1.20), cotWhiteMat);
+    railTopRoom.position.set(-0.64, 0.80, 0);
+    cotGroup.add(railTopRoom);
+
+    const railTopHead = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.035, 0.035), cotWhiteMat);
+    railTopHead.position.set(-0.32, 0.80, -0.58);
+    cotGroup.add(railTopHead);
+
+    const railTopFoot = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.035, 0.035), cotWhiteMat);
+    railTopFoot.position.set(-0.32, 0.80, 0.58);
+    cotGroup.add(railTopFoot);
+
+    // Bottom Rails
+    const railBotParty = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 1.20), cotWhiteMat);
+    railBotParty.position.set(0.0, 0.22, 0);
+    cotGroup.add(railBotParty);
+
+    const railBotRoom = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 1.20), cotWhiteMat);
+    railBotRoom.position.set(-0.64, 0.22, 0);
+    cotGroup.add(railBotRoom);
+
+    // Slats along the front (room-facing side)
+    for (let sz = -0.50; sz <= 0.50; sz += 0.10) {
+      const slat = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.55, 6), cotWhiteMat);
+      slat.position.set(-0.64, 0.51, sz);
+      cotGroup.add(slat);
+    }
+
+    // Slats along the party wall back
+    for (let sz = -0.50; sz <= 0.50; sz += 0.10) {
+      const slat = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.55, 6), cotWhiteMat);
+      slat.position.set(0.0, 0.51, sz);
+      cotGroup.add(slat);
+    }
+
+    // Slats on the two ends
+    for (let sx = -0.52; sx <= -0.10; sx += 0.10) {
+      const slat1 = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.55, 6), cotWhiteMat);
+      slat1.position.set(sx, 0.51, -0.58);
+      cotGroup.add(slat1);
+
+      const slat2 = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.55, 6), cotWhiteMat);
+      slat2.position.set(sx, 0.51, 0.58);
+      cotGroup.add(slat2);
+    }
+
+    // Cot Mattress
+    const cotMattress = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.10, 1.14), cotMattressMat);
+    cotMattress.position.set(-0.32, 0.27, 0);
+    cotMattress.castShadow = true;
+    cotGroup.add(cotMattress);
+
+    // Cot Baby Blanket
+    const cotBlanket = new THREE.Mesh(new THREE.BoxGeometry(0.61, 0.03, 0.76), cotBlanketMat);
+    cotBlanket.position.set(-0.32, 0.33, 0.19);
+    cotBlanket.castShadow = true;
+    cotGroup.add(cotBlanket);
+
+    this.upstairsFurnitureGroup.add(cotGroup);
   }
 
   updateAppliances(appliances) {
@@ -1062,6 +1466,11 @@ export class SceneManager {
     // 1. Hide top floor structures (ceiling, roof, first floor interior walls, carpets, first floor slab)
     for (const item of this.topFloorMeshes) {
       item.mesh.visible = !isDownstairs;
+    }
+
+    // 1b. Hide upstairs beds and furniture when viewing downstairs
+    if (this.upstairsFurnitureGroup) {
+      this.upstairsFurnitureGroup.visible = !isDownstairs;
     }
 
     // 2. Slice exterior walls at ground floor ceiling level so ground floor is 100% visible from above

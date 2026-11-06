@@ -87,6 +87,15 @@ export class HUDOverlay {
     this.onEnableClickToPlace = options.onEnableClickToPlace || (() => {});
     this.onDisableClickToPlace = options.onDisableClickToPlace || (() => {});
     this.editingLight = null;
+    this.showTags = true;
+    this.tagCategories = {
+      solar: true,
+      grid: true,
+      boiler: true,
+      ev: true,
+      thermostats: true,
+      appliances: true
+    };
 
     this.initDOM();
   }
@@ -239,6 +248,95 @@ export class HUDOverlay {
           height: 18px;
           background: rgba(255, 255, 255, 0.12);
           align-self: center;
+        }
+
+        /* Bottom Tags Popover Menu */
+        .tags-menu-wrap {
+          position: relative;
+          display: inline-flex;
+        }
+
+        .tags-popover-menu {
+          position: absolute;
+          bottom: calc(100% + 12px);
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(15, 23, 42, 0.95);
+          backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          border-radius: 14px;
+          padding: 10px 14px;
+          min-width: 240px;
+          box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+          z-index: 100;
+          display: none;
+          flex-direction: column;
+          gap: 6px;
+          pointer-events: auto;
+        }
+
+        .tags-popover-menu.open {
+          display: flex;
+        }
+
+        .tags-menu-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 12px;
+          font-weight: 700;
+          color: #f8fafc;
+          padding-bottom: 6px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tags-menu-close {
+          background: none;
+          border: none;
+          color: #94a3b8;
+          font-size: 16px;
+          cursor: pointer;
+          padding: 0 4px;
+          line-height: 1;
+        }
+
+        .tags-menu-close:hover {
+          color: #fff;
+        }
+
+        .tags-menu-item {
+          display: flex;
+          align-items: center;
+        }
+
+        .tag-switch-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          font-size: 11px;
+          color: #cbd5e1;
+          cursor: pointer;
+          padding: 3px 0;
+          user-select: none;
+        }
+
+        .tag-switch-label:hover {
+          color: #f8fafc;
+        }
+
+        .tag-switch-label input[type="checkbox"] {
+          accent-color: #38bdf8;
+          cursor: pointer;
+          width: 15px;
+          height: 15px;
+          margin-left: 8px;
+        }
+
+        .tags-menu-divider {
+          height: 1px;
+          background: rgba(255, 255, 255, 0.08);
+          margin: 3px 0;
         }
 
         /* 3D Hotspot Pins */
@@ -1523,6 +1621,59 @@ export class HUDOverlay {
         <button class="hud-btn" id="btn-xray">👁️ X-Ray</button>
         <button class="hud-btn" id="btn-night">🌙 Night</button>
         <button class="hud-btn" id="btn-rotate">🔄 Orbit</button>
+        <div class="hud-btn-divider"></div>
+        <div class="tags-menu-wrap">
+          <button class="hud-btn active" id="btn-tags-menu">🏷️ Tags ▾</button>
+          <div class="tags-popover-menu" id="tags-popover-menu">
+            <div class="tags-menu-header">
+              <span>🏷️ 3D Tags & Badges</span>
+              <button class="tags-menu-close" id="btn-tags-menu-close">&times;</button>
+            </div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label" style="font-weight:700;color:#f8fafc;">
+                <span>👁️ Show All 3D Tags</span>
+                <input type="checkbox" id="chk-tag-all" checked>
+              </label>
+            </div>
+            <div class="tags-menu-divider"></div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label">
+                <span>☀️ Solax Solar</span>
+                <input type="checkbox" class="chk-tag-cat" data-tag-cat="solar" checked>
+              </label>
+            </div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label">
+                <span>⚡ Octopus Meter</span>
+                <input type="checkbox" class="chk-tag-cat" data-tag-cat="grid" checked>
+              </label>
+            </div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label">
+                <span>🔥 Combi Boiler</span>
+                <input type="checkbox" class="chk-tag-cat" data-tag-cat="boiler" checked>
+              </label>
+            </div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label">
+                <span>🚗 EV & Zappi</span>
+                <input type="checkbox" class="chk-tag-cat" data-tag-cat="ev" checked>
+              </label>
+            </div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label">
+                <span>🌡️ Thermostats</span>
+                <input type="checkbox" class="chk-tag-cat" data-tag-cat="thermostats" checked>
+              </label>
+            </div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label">
+                <span>📺 Appliances (TV/Fridge/Washer)</span>
+                <input type="checkbox" class="chk-tag-cat" data-tag-cat="appliances" checked>
+              </label>
+            </div>
+          </div>
+        </div>
         <button class="hud-btn" id="btn-drawer">📊 Stats</button>
         <button class="hud-btn" id="btn-sensors">⚙️ Sensors</button>
       </div>
@@ -1562,6 +1713,68 @@ export class HUDOverlay {
       btnRotate.classList.toggle('active');
       this.onToggleRotate(btnRotate.classList.contains('active'));
     });
+
+    // Tags Popover Menu
+    const btnTagsMenu = this.el.querySelector('#btn-tags-menu');
+    const tagsMenu = this.el.querySelector('#tags-popover-menu');
+    const btnTagsClose = this.el.querySelector('#btn-tags-menu-close');
+    const chkTagAll = this.el.querySelector('#chk-tag-all');
+    const chkTagCats = this.el.querySelectorAll('.chk-tag-cat');
+
+    if (btnTagsMenu && tagsMenu) {
+      btnTagsMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        tagsMenu.classList.toggle('open');
+      });
+
+      if (btnTagsClose) {
+        btnTagsClose.addEventListener('click', (e) => {
+          e.stopPropagation();
+          tagsMenu.classList.remove('open');
+        });
+      }
+
+      // Close menu if clicked outside
+      document.addEventListener('click', (e) => {
+        if (!tagsMenu.contains(e.target) && !btnTagsMenu.contains(e.target)) {
+          tagsMenu.classList.remove('open');
+        }
+      });
+
+      // Prevent closing when clicking inside popover menu
+      tagsMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      if (chkTagAll) {
+        chkTagAll.addEventListener('change', () => {
+          this.showTags = chkTagAll.checked;
+          btnTagsMenu.classList.toggle('active', this.showTags);
+          btnTagsMenu.innerHTML = this.showTags ? '🏷️ Tags ▾' : '🏷️ Tags (Off) ▾';
+          chkTagCats.forEach((chk) => {
+            chk.checked = this.showTags;
+            const cat = chk.getAttribute('data-tag-cat');
+            if (cat) this.tagCategories[cat] = this.showTags;
+          });
+          const container = this.el.querySelector('#hotspots-container');
+          if (container && !this.showTags) container.innerHTML = '';
+        });
+      }
+
+      chkTagCats.forEach((chk) => {
+        chk.addEventListener('change', () => {
+          const cat = chk.getAttribute('data-tag-cat');
+          if (cat) this.tagCategories[cat] = chk.checked;
+          const anyActive = Object.values(this.tagCategories).some(Boolean);
+          this.showTags = anyActive;
+          if (chkTagAll) chkTagAll.checked = anyActive;
+          btnTagsMenu.classList.toggle('active', this.showTags);
+          btnTagsMenu.innerHTML = this.showTags ? '🏷️ Tags ▾' : '🏷️ Tags (Off) ▾';
+          const container = this.el.querySelector('#hotspots-container');
+          if (container && !this.showTags) container.innerHTML = '';
+        });
+      });
+    }
 
     // Drawer toggle
     const btnDrawer = this.el.querySelector('#btn-drawer');
@@ -2698,8 +2911,32 @@ export class HUDOverlay {
     const container = this.el.querySelector('#hotspots-container');
     container.innerHTML = '';
 
+    if (!this.showTags) {
+      container.style.display = 'none';
+      if (this.el.querySelector('#hud-drawer').classList.contains('open')) {
+        this.renderDrawerContent();
+      }
+      return;
+    }
+    container.style.display = 'block';
+
+    const catMap = {
+      solar: 'solar',
+      grid: 'grid',
+      boiler: 'boiler',
+      ev: 'ev',
+      ev_charger: 'ev',
+      thermostat_downstairs: 'thermostats',
+      thermostat_upstairs: 'thermostats',
+      appliance_fridge: 'appliances',
+      appliance_washer: 'appliances',
+      appliance_tv: 'appliances'
+    };
+
     for (const spot of projectedHotspots) {
       if (!spot.visible) continue;
+      const cat = catMap[spot.id];
+      if (cat && this.tagCategories && this.tagCategories[cat] === false) continue;
 
       let badgeHtml = '';
       if (spot.id === 'solar') {
@@ -2753,7 +2990,7 @@ export class HUDOverlay {
       } else if (spot.id === 'appliance_tv') {
         const tv = data.appliances?.tv || {};
         const isTvOn = Boolean(tv.is_on);
-        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${isTvOn ? '▶ Playing' : 'OFF'}</span> ${isTvOn ? '<button class="btn-tv-audio" style="margin-left:4px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,0.2);border:none;color:#fff;cursor:pointer;font-size:9px;">🔊 Sound</button>' : ''}`;
+        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${isTvOn ? '▶ Playing' : 'OFF'}</span>`;
       }
 
       const badge = document.createElement('div');
@@ -2764,11 +3001,6 @@ export class HUDOverlay {
 
       badge.addEventListener('click', (e) => {
         if (spot.id === 'appliance_tv') {
-          if (e.target.closest('.btn-tv-audio')) {
-            e.stopPropagation();
-            if (this.onToggleTvAudio) this.onToggleTvAudio();
-            return;
-          }
           const tv = data.appliances?.tv;
           if (tv?.entity_id) {
             this.onToggleLight(tv.entity_id);
