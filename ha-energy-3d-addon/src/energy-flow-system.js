@@ -87,8 +87,9 @@ export class EnergyFlowSystem {
       solar: {
         curve: this.paths.solar,
         color: new THREE.Color(0xffb700), // Golden solar
-        baseSpeed: 0.40,
-        size: 0.058
+        baseSpeed: 0.20, // Halved speed (was 0.40) to slow down flow by 50%
+        size: 0.058,
+        particleCount: 24 // Halved amount of balls (was 48)
       },
       grid: {
         curve: this.paths.grid,
@@ -251,7 +252,7 @@ export class EnergyFlowSystem {
         if (solarKw > 0.02) {
           const ratio = Math.min(solarKw / 4.0, 2.5);
           // Speed scales directly with kW: slower with less energy, faster with more
-          speed = Math.max(ratio * def.baseSpeed, 0.04);
+          speed = Math.max(ratio * def.baseSpeed, 0.02);
           direction = 1; // Always panels -> meter box
         } else {
           speed = 0; // Frozen stopped!

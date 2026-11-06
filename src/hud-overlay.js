@@ -9,6 +9,29 @@ function toKw(val) {
   return num;
 }
 
+function formatSolarPower(valKw) {
+  const kw = Number(valKw) || 0;
+  if (Math.abs(kw) < 1.0) {
+    const watts = Math.round(kw * 1000);
+    return `${watts} W`;
+  }
+  return `${kw.toFixed(2)} kW`;
+}
+
+function getSolarPowerParts(valKw) {
+  const kw = Number(valKw) || 0;
+  if (Math.abs(kw) < 1.0) {
+    return {
+      value: Math.round(kw * 1000).toString(),
+      unit: 'W'
+    };
+  }
+  return {
+    value: kw.toFixed(2),
+    unit: 'kW'
+  };
+}
+
 function getComfortStatus(temp) {
   const t = Number(temp);
   if (isNaN(t)) {
@@ -973,7 +996,7 @@ export class HUDOverlay {
         <div class="hud-flow-summary" id="flow-summary">
           <div class="hud-flow-item">
             <span>☀️</span>
-            <span class="hud-flow-val color-solar" id="hdr-solar-kw">0.00 kW</span>
+            <span class="hud-flow-val color-solar" id="hdr-solar-kw">0 W</span>
           </div>
           <div class="hud-flow-item">
             <span>⚡</span>
@@ -2254,11 +2277,12 @@ export class HUDOverlay {
       const s = data.solar || {};
       const kw = toKw(s.power_kw);
       const isGenerating = kw > 0.04;
+      const parts = getSolarPowerParts(kw);
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
             <div class="stat-label">SOLAX LIVE GENERATION</div>
-            <div class="stat-val color-solar">${kw.toFixed(2)} <span class="stat-unit">kW</span></div>
+            <div class="stat-val color-solar">${parts.value} <span class="stat-unit">${parts.unit}</span></div>
             <div class="stat-subtext">Status: ${isGenerating ? 'Generating • Active Flow' : 'Frozen (No Generation)'}</div>
           </div>
           <div class="stat-card">
@@ -2642,7 +2666,7 @@ export class HUDOverlay {
     const hdrEv = this.el.querySelector('#hdr-ev-kw');
     const hdrGas = this.el.querySelector('#hdr-gas-val');
 
-    if (hdrSolar) hdrSolar.innerText = `${solarKw.toFixed(2)} kW`;
+    if (hdrSolar) hdrSolar.innerText = formatSolarPower(solarKw);
     if (hdrGrid) {
       hdrGrid.innerText = `${isExporting ? 'Export ' : 'Import '}${Math.abs(gridKw).toFixed(2)} kW`;
       hdrGrid.className = `hud-flow-val ${isExporting ? 'color-grid-export' : 'color-grid-import'}`;
@@ -2662,7 +2686,7 @@ export class HUDOverlay {
       let badgeHtml = '';
       if (spot.id === 'solar') {
         const isGen = solarKw > 0.04;
-        badgeHtml = `<span>☀️ Solax</span> <span class="color-solar">${solarKw.toFixed(2)} kW</span> <span style="font-size:9px;color:${isGen ? '#10b981' : '#64748b'}">●</span>`;
+        badgeHtml = `<span>☀️ Solax</span> <span class="color-solar">${formatSolarPower(solarKw)}</span> <span style="font-size:9px;color:${isGen ? '#10b981' : '#64748b'}">●</span>`;
       } else if (spot.id === 'grid') {
         const rate = Number(data.octopus_electric?.current_rate_p || 0).toFixed(1);
         badgeHtml = `<span>⚡ Octopus</span> <span>${Math.abs(gridKw).toFixed(1)} kW</span> <span style="color:#94a3b8">(${rate}p)</span>`;
