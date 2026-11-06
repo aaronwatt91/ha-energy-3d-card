@@ -528,36 +528,61 @@ export class HaEnergy3DCard extends HTMLElement {
 
     // 5. myenergi Zappi & Peugeot e-2008 (Auto-figures Watts vs kW, e.g. 7200W -> 7.2 kW)
     const evChargerKw = this.getPowerInKw(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
-    const evStatusRaw = this.getEntityState(cfg.myenergi_status, '').toLowerCase();
 
-    let isConnected = true;
-    let statusText = 'Connected';
+    // Look for status entity with auto-fallback to plug_status if not explicitly configured
+    let zappiStatusEntity = cfg.myenergi_status;
+    if ((!zappiStatusEntity || !this._hass?.states?.[zappiStatusEntity]) && this._hass?.states) {
+      const found = Object.keys(this._hass.states).find(id =>
+        (id.includes('zappi') || id.includes('myenergi')) && (id.includes('plug_status') || id.includes('status'))
+      );
+      if (found) zappiStatusEntity = found;
+    }
+
+    const evStatusRaw = this.getEntityState(zappiStatusEntity, '').toLowerCase().trim();
+
+    let isConnected = false;
+    let statusText = 'Disconnected';
 
     if (evStatusRaw) {
-      if (evStatusRaw.includes('charg')) {
-        isConnected = true;
-        statusText = 'Charging';
-      } else if (evStatusRaw.includes('connect') || evStatusRaw.includes('wait') || evStatusRaw.includes('pause') || evStatusRaw.includes('plug') || evStatusRaw.includes('complete')) {
-        isConnected = true;
-        statusText = 'Connected (Idle)';
-      } else if (evStatusRaw.includes('disconn') || evStatusRaw === 'off') {
+      // IMPORTANT: Check for disconnected/unplugged FIRST!
+      // Substrings: "ev disconnected" contains "connect", so checking "connect" first produces false "Connected"!
+      if (
+        evStatusRaw.includes('disconn') ||
+        evStatusRaw.includes('unplug') ||
+        evStatusRaw === 'off' ||
+        evStatusRaw === 'unavailable' ||
+        evStatusRaw === 'unknown'
+      ) {
         isConnected = false;
         statusText = 'Disconnected';
+      } else if (evStatusRaw.includes('charg')) {
+        isConnected = true;
+        statusText = 'Charging';
+      } else if (
+        evStatusRaw.includes('connect') ||
+        evStatusRaw.includes('wait') ||
+        evStatusRaw.includes('pause') ||
+        evStatusRaw.includes('plug') ||
+        evStatusRaw.includes('complete') ||
+        evStatusRaw.includes('stop')
+      ) {
+        isConnected = true;
+        statusText = 'Connected (Idle)';
       } else {
-        statusText = evStatusRaw.charAt(0).toUpperCase() + evStatusRaw.slice(1);
+        isConnected = evChargerKw > 0.04;
+        statusText = isConnected ? (evStatusRaw.charAt(0).toUpperCase() + evStatusRaw.slice(1)) : 'Disconnected';
       }
     } else {
       if (evChargerKw > 0.04) {
         isConnected = true;
         statusText = 'Charging';
       } else {
-        const hasCar = this.getEntityNumericValue(cfg.peugeot_battery, 0) > 0;
-        isConnected = hasCar;
-        statusText = hasCar ? 'Connected (Idle)' : 'Disconnected';
+        isConnected = false;
+        statusText = 'Disconnected';
       }
     }
 
-    const isCharging = evChargerKw > 0.04;
+    const isCharging = isConnected && evChargerKw > 0.04;
     if (isCharging) {
       statusText = `Charging @ ${evChargerKw.toFixed(1)} kW`;
     }
@@ -566,7 +591,7 @@ export class HaEnergy3DCard extends HTMLElement {
       is_charging: isCharging,
       is_connected: isConnected,
       status_text: statusText,
-      charger_power_kw: evChargerKw,
+      charger_power_kw: isConnected ? evChargerKw : 0.0,
       energy_added_kwh: this.getEnergyInKwh(cfg.myenergi_energy, this.energyData.ev.energy_added_kwh),
       charger_mode: evChargerKw > 3.0 ? 'Fast' : 'Eco+',
       battery_soc_pct: this.getEntityNumericValue(cfg.peugeot_battery, this.energyData.ev.battery_soc_pct),

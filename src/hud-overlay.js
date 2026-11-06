@@ -2449,7 +2449,7 @@ export class HUDOverlay {
     setIfFound('#cfg-gas-month', 'gas_month');
 
     setIfFound('#cfg-zappi-power', 'zappi_power', 'myenergi_power', 'ev_power', 'charger_power');
-    setIfFound('#cfg-zappi-status', 'zappi_status', 'zappi_plug_status', 'myenergi_status', 'charger_status');
+    setIfFound('#cfg-zappi-status', 'plug_status', 'zappi_plug_status', 'zappi_status', 'myenergi_status', 'charger_status');
     setIfFound('#cfg-zappi-energy', 'charge_added_session', 'zappi_energy', 'zappi_today');
     setIfFound('#cfg-peugeot-battery', 'e2008_battery', 'peugeot_battery', 'battery_level', 'soc');
     setIfFound('#cfg-peugeot-range', 'e2008_range', 'peugeot_range', 'range');
@@ -2619,8 +2619,8 @@ export class HUDOverlay {
       const ev = data.ev || {};
       const soc = Math.min(Math.max(Number(ev.battery_soc_pct || 0), 0), 100);
       const evKw = toKw(ev.charger_power_kw);
-      const isCharging = Boolean(ev.is_charging && evKw > 0.04);
-      const isConnected = ev.is_connected !== false;
+      const isConnected = Boolean(ev.is_connected);
+      const isCharging = Boolean(ev.is_charging && evKw > 0.04 && isConnected);
       const statusText = ev.status_text || (isCharging ? `Charging @ ${evKw.toFixed(1)} kW` : (isConnected ? 'Connected (Idle)' : 'Disconnected'));
 
       content.innerHTML = `
@@ -2955,8 +2955,8 @@ export class HUDOverlay {
         badgeHtml = `<span>🚗 Peugeot</span> <span class="color-ev">${data.ev?.battery_soc_pct || 68}%</span>`;
       } else if (spot.id === 'ev_charger') {
         const ev = data.ev || {};
-        const isCharging = Boolean(ev.is_charging);
-        const isConnected = ev.is_connected !== false;
+        const isConnected = Boolean(ev.is_connected);
+        const isCharging = Boolean(ev.is_charging && isConnected);
         const evKw = Number(ev.charger_power_kw || 0);
         let rateText = 'Disconnected';
         if (isCharging) {

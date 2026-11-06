@@ -288,8 +288,9 @@ export class EnergyFlowSystem {
         }
       } else if (id === 'ev') {
         // EV: Flows strictly towards the car (direction = 1).
-        // Slower as energy drops, completely stops at 0 kW!
-        if (evKw > 0.04) {
+        // Slower as energy drops, completely stops at 0 kW or when disconnected!
+        const isEvConnected = Boolean(energyData.ev?.is_connected);
+        if (isEvConnected && evKw > 0.04) {
           const ratio = Math.min(evKw / 7.2, 2.5);
           speed = Math.max(ratio * def.baseSpeed, 0.04);
           direction = 1; // Always towards the car
@@ -308,9 +309,15 @@ export class EnergyFlowSystem {
       }
 
       // If STOPPED (speed === 0): keep balls visible but completely still & dimmed
+      // If EV is disconnected: hide EV cable flow balls completely
       if (speed === 0) {
-        mesh.material.opacity = 0.20;
-        if (this.glowLines[id]) this.glowLines[id].material.opacity = 0.12;
+        if (id === 'ev' && energyData.ev?.is_connected === false) {
+          mesh.material.opacity = 0.0;
+          if (this.glowLines[id]) this.glowLines[id].material.opacity = 0.0;
+        } else {
+          mesh.material.opacity = 0.20;
+          if (this.glowLines[id]) this.glowLines[id].material.opacity = 0.12;
+        }
         continue;
       }
 
