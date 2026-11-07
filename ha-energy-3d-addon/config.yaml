@@ -1,7 +1,7 @@
 name: "Home Energy 3D"
 slug: "ha_energy_3d"
 description: "Interactive 3D Home Energy Monitor for Solax Solar, Octopus Energy, myenergi Zappi & Peugeot e-2008"
-version: "1.2.15"
+version: "1.2.16"
 startup: services
 boot: auto
 ingress: true

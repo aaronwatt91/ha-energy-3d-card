@@ -128,29 +128,10 @@
       gap: 16px;
     }
 
-    /* Integration Specs Banner */
-    .specs-banner {
-      background: #0f172a;
-      border: 1px solid #1e293b;
-      border-radius: 16px;
-      padding: 18px 22px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    .spec-item strong {
-      color: #f1f5f9;
-      display: block;
-      margin-bottom: 4px;
-      font-size: 13px;
-    }
   </style>
 
   <!-- Load bundled custom card module with cache-buster -->
-  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.15"></script>
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.16"></script>
 </head>
 <body>
 
@@ -172,8 +153,6 @@
         <span id="ha-conn-text">Checking Home Assistant...</span>
       </div>
       <div class="nav-links">
-        <a class="nav-link" href="#simulation">🎮 Controls</a>
-        <a class="nav-link" href="#integrations">🔌 Integrations</a>
         <a class="nav-link" href="https://github.com/aaronwatt91/ha-energy-3d-card" target="_blank">📦 GitHub</a>
       </div>
     </div>
@@ -184,30 +163,6 @@
     <div class="card-stage">
       <ha-energy-3d-card id="energy-card"></ha-energy-3d-card>
     </div>
-
-    <!-- Specifications Banner -->
-    <section class="specs-banner" id="integrations">
-      <div class="spec-item">
-        <strong>☀️ Solax Solar Integration</strong>
-        Monitors live generation (kW), Today, Week, Month, and Year (kWh). Animates DC cabling from rear roof 5-panel array through loft into entrance hall meter cupboard.
-      </div>
-      <div class="spec-item">
-        <strong>⚡ Octopus Electricity & Tariff Rate</strong>
-        Live import and export power with glowing catenary service drop from roadside utility pylon. Records current tariff rate (p/kWh), estimated monthly spend (£), and Octopus Home Mini 30-min readings.
-      </div>
-      <div class="spec-item">
-        <strong>🔥 Octopus Gas, Heating & Thermostats</strong>
-        Monitors combi boiler firing state, upstairs & downstairs heating thermostats (°C target vs current), and lights up external LPG supply pipework.
-      </div>
-      <div class="spec-item">
-        <strong>💡 Interactive 3D Room Lights</strong>
-        Select and monitor lights for each of the 12 rooms. Turning lights on in Home Assistant illuminates the corresponding 3D room inside the model!
-      </div>
-      <div class="spec-item">
-        <strong>🚗 myenergi Zappi & Peugeot e-2008</strong>
-        Shows live charging speed (kW), session energy added (kWh), and Peugeot battery percentage (% SoC) with remaining mileage range and glowing catenary EV cable.
-      </div>
-    </section>
   </main>
 
   <!-- Interactive & Live HA Polling Script -->
