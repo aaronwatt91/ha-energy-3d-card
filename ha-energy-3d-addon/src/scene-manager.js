@@ -137,7 +137,7 @@ export class SceneManager {
     };
 
     this.hotspots = [
-      { id: 'solar', name: 'Solax Solar PV', pos: new THREE.Vector3(2.80, 6.60, -6.80) },
+      { id: 'solar', name: 'Solax Solar Inverter', pos: new THREE.Vector3(5.08, 2.05, -1.15) },
       { id: 'grid', name: 'Octopus Grid & Meter', pos: new THREE.Vector3(5.30, 2.00, -0.85) },
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
       { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) },
@@ -229,11 +229,11 @@ export class SceneManager {
     // 5. Lighting
     this.initLighting();
 
-    // 6. Appliances & Interactive Furniture (Fridge, Wall TV, Corner Lamp)
-    this.initAppliancesAndFurniture();
-
-    // 7. Energy Flow Particle System
+    // 6. Energy Flow Particle System
     this.energyFlow = new EnergyFlowSystem(this.scene);
+
+    // 7. Appliances & Interactive Furniture (Fridge, Wall TV, Corner Lamp, Couch, Beds, Cot, Inverter)
+    this.initAppliancesAndFurniture();
 
     // 8. Load GLTF 3D House Model with smart fallback chain
     this.loadModelWithFallbacks(this.options.modelUrl);
@@ -1205,10 +1205,168 @@ export class SceneManager {
     cotGroup.add(cotBlanket);
 
     this.upstairsFurnitureGroup.add(cotGroup);
+
+    // ==========================================
+    // 6. Solax Solar Inverter on the Party Wall & Cable Conduit
+    // Mounted on the party wall at x = 5.27, y = 2.02, z = -1.15
+    // Solar cable runs from panels, onto party wall, and cascades straight DOWN into inverter
+    // ==========================================
+    const inverterGroup = new THREE.Group();
+    inverterGroup.position.set(5.27, 2.02, -1.15);
+    inverterGroup.rotation.y = -Math.PI / 2; // Face -X into hallway/entrance
+
+    // Main inverter body (Clean modern white casing with bevels)
+    const invBody = new THREE.Mesh(
+      new THREE.BoxGeometry(0.44, 0.58, 0.16),
+      new THREE.MeshStandardMaterial({
+        color: 0xf8fafc,
+        roughness: 0.35,
+        metalness: 0.2
+      })
+    );
+    invBody.castShadow = true;
+    invBody.receiveShadow = true;
+    inverterGroup.add(invBody);
+
+    // Dark grey aluminum heatsink fins on rear
+    const invHeatsink = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.54, 0.04),
+      new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6, metalness: 0.8 })
+    );
+    invHeatsink.position.z = -0.09;
+    inverterGroup.add(invHeatsink);
+
+    // Front dark glass display panel
+    const invGlass = new THREE.Mesh(
+      new THREE.BoxGeometry(0.38, 0.22, 0.01),
+      new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.1, metalness: 0.8 })
+    );
+    invGlass.position.set(0, 0.08, 0.085);
+    inverterGroup.add(invGlass);
+
+    // Solax Red Brand Accent Strip
+    const invRedStrip = new THREE.Mesh(
+      new THREE.BoxGeometry(0.38, 0.014, 0.012),
+      new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 })
+    );
+    invRedStrip.position.set(0, -0.035, 0.086);
+    inverterGroup.add(invRedStrip);
+
+    // Digital OLED Screen (glowing cyan / blue)
+    const invScreen = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.18, 0.07),
+      new THREE.MeshBasicMaterial({ color: 0x0284c7 })
+    );
+    invScreen.position.set(0, 0.08, 0.092);
+    inverterGroup.add(invScreen);
+    this.applianceInverterScreen = invScreen;
+
+    // Status LED 1: Solar Generation Indicator (Bright green when generating)
+    const ledSolar = new THREE.Mesh(
+      new THREE.SphereGeometry(0.007, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x00f59b })
+    );
+    ledSolar.position.set(-0.11, 0.01, 0.093);
+    inverterGroup.add(ledSolar);
+    this.applianceInverterLed = ledSolar;
+
+    // Status LED 2: Normal/Grid Indicator (Cyan)
+    const ledGrid = new THREE.Mesh(
+      new THREE.SphereGeometry(0.007, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+    );
+    ledGrid.position.set(-0.06, 0.01, 0.093);
+    inverterGroup.add(ledGrid);
+
+    // Rotary DC Isolator Switch (red/yellow safety dial on side)
+    const dcIsoBase = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.06, 0.02),
+      new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5 })
+    );
+    dcIsoBase.position.set(0.24, -0.16, 0.02);
+    inverterGroup.add(dcIsoBase);
+
+    const dcIsoKnob = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.022, 0.022, 0.025, 12),
+      new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.4 })
+    );
+    dcIsoKnob.rotation.z = Math.PI / 2;
+    dcIsoKnob.position.set(0.255, -0.16, 0.02);
+    inverterGroup.add(dcIsoKnob);
+
+    // Top DC Cable Glands (where solar cable enters from party wall above)
+    for (const gx of [-0.06, 0.06]) {
+      const gland = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.04, 8),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 })
+      );
+      gland.position.set(gx, 0.30, 0);
+      inverterGroup.add(gland);
+    }
+
+    // Bottom AC Output Gland (leads down to meter/consumer unit)
+    const glandBot = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.018, 0.018, 0.04, 8),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 })
+    );
+    glandBot.position.set(0, -0.30, 0);
+    inverterGroup.add(glandBot);
+
+    this.appliancesGroup.add(inverterGroup);
+    this.applianceInverter = inverterGroup;
+
+    // Physical Solar DC Cable Conduit:
+    // Runs from under roof panels, along the top of party wall, and straight down into the inverter
+    const solarCurve = this.energyFlow?.paths?.solar || new THREE.CatmullRomCurve3([
+      new THREE.Vector3(2.50, 6.45, -6.50),
+      new THREE.Vector3(4.10, 6.55, -6.50),
+      new THREE.Vector3(5.27, 6.55, -6.50),
+      new THREE.Vector3(5.27, 5.50, -4.60),
+      new THREE.Vector3(5.27, 4.30, -3.00),
+      new THREE.Vector3(5.27, 3.20, -1.80),
+      new THREE.Vector3(5.27, 2.45, -1.15),
+      new THREE.Vector3(5.27, 2.05, -1.15),
+      new THREE.Vector3(5.27, 1.65, -1.05),
+      new THREE.Vector3(5.27, 1.30, -0.90)
+    ]);
+
+    const cableGeom = new THREE.TubeGeometry(solarCurve, 84, 0.016, 8, false);
+    const cableMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.45,
+      metalness: 0.2
+    });
+    const solarCableConduit = new THREE.Mesh(cableGeom, cableMat);
+    solarCableConduit.name = 'Solar_PV_Cabling_Wall';
+    solarCableConduit.castShadow = true;
+    this.appliancesGroup.add(solarCableConduit);
+    this.solarCableConduit = solarCableConduit;
+
+    // Cable wall saddles / mounting cleats along the party wall
+    const saddleMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3, metalness: 0.8 });
+    for (let t = 0.32; t <= 0.88; t += 0.08) {
+      const pt = solarCurve.getPointAt(t);
+      const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.04, 0.045), saddleMat);
+      saddle.position.set(5.28, pt.y, pt.z);
+      this.appliancesGroup.add(saddle);
+    }
   }
 
   updateAppliances(appliances) {
     if (!appliances) return;
+
+    // 1. Solax Inverter Screen & LED Glow based on live solar generation
+    if (this.applianceInverterLed && this.applianceInverterScreen) {
+      const solarKw = Number(this.currentEnergyData?.solar?.power_kw || 0);
+      const isGenerating = solarKw > 0.04;
+      if (isGenerating) {
+        this.applianceInverterLed.material.color.setHex(0x00f59b);
+        this.applianceInverterScreen.material.color.setHex(0x0284c7);
+      } else {
+        this.applianceInverterLed.material.color.setHex(0x64748b);
+        this.applianceInverterScreen.material.color.setHex(0x0a192f);
+      }
+    }
 
     // 1. Living Room TV Screen, YouTube Video Stream & Glow
     if (this.applianceTvScreen && this.applianceTvLight) {
@@ -1513,9 +1671,9 @@ export class SceneManager {
         xray: false
       },
       solar: {
-        pos: new THREE.Vector3(3.2, 10.5, -13.5),
-        target: new THREE.Vector3(2.8, 6.2, -6.8),
-        xray: false
+        pos: new THREE.Vector3(2.70, 2.30, -0.65),
+        target: new THREE.Vector3(5.20, 2.00, -1.15),
+        xray: true
       },
       meter: {
         pos: new THREE.Vector3(7.2, 2.3, 0.5),
@@ -1588,7 +1746,7 @@ export class SceneManager {
     return this.hotspots
       .filter((spot) => {
         if (this.cutawayMode === 'downstairs') {
-          if (spot.id === 'solar' || spot.id === 'thermostat_upstairs') return false;
+          if (spot.id === 'thermostat_upstairs') return false;
         }
         return true;
       })

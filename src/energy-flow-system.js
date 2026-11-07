@@ -20,16 +20,18 @@ export class EnergyFlowSystem {
 
     // Exact centerline 3D splines matching the geometry of Taylor Wimpey Blair model
     this.paths = {
-      // 1. Solar PV: Underside of panels -> isolator -> cowl -> loft -> party wall -> inverter -> meter
+      // 1. Solar PV: Underside of panels -> party wall -> runs down party wall into inverter -> meter
       solar: new THREE.CatmullRomCurve3([
-        new THREE.Vector3(2.50, 6.454, -6.20), // Solar string cable under panels
-        new THREE.Vector3(4.10, 6.534, -6.20), // DC isolator switch box
-        new THREE.Vector3(4.15, 6.709, -5.80), // Roof penetration cowl
-        new THREE.Vector3(4.15, 5.250, -5.80), // Loft tie level (INTERNAL)
-        new THREE.Vector3(5.26, 5.250, -1.10), // Along roof truss to party wall (INTERNAL)
-        new THREE.Vector3(5.26, 2.450, -1.10), // Down party wall chase (INTERNAL)
-        new THREE.Vector3(5.28, 2.020, -0.85), // Solax generation inverter in cupboard (INTERNAL)
-        new THREE.Vector3(5.28, 1.650, -0.95)  // Main consumer unit / meter (INTERNAL)
+        new THREE.Vector3(2.50, 6.45, -6.50), // Under panels
+        new THREE.Vector3(4.10, 6.55, -6.50), // Cable run under panel array
+        new THREE.Vector3(5.27, 6.55, -6.50), // Reaching party wall top
+        new THREE.Vector3(5.27, 5.50, -4.60), // Along party wall (upper level)
+        new THREE.Vector3(5.27, 4.30, -3.00), // Along party wall (mid level)
+        new THREE.Vector3(5.27, 3.20, -1.80), // Transition to vertical drop
+        new THREE.Vector3(5.27, 2.45, -1.15), // Running straight DOWN party wall
+        new THREE.Vector3(5.27, 2.05, -1.15), // Inside Solax Inverter
+        new THREE.Vector3(5.27, 1.65, -1.05), // Inverter AC output cable drop
+        new THREE.Vector3(5.27, 1.30, -0.90)  // Consumer unit / smart meter
       ]),
 
       // 2. Grid Overhead Service: Pylon distribution box (t=0) -> Catenary sag -> House bracket -> PVC drop -> Smart meter (t=1)
@@ -211,6 +213,13 @@ export class EnergyFlowSystem {
         this.meshes.meterBox.push(child);
       }
     });
+
+    // Check scene for dynamic party wall solar cable conduit
+    this.scene.traverse((child) => {
+      if (child.name === 'Solar_PV_Cabling_Wall') {
+        this.meshes.solarCableWall = child;
+      }
+    });
   }
 
   /**
@@ -370,6 +379,13 @@ export class EnergyFlowSystem {
       mat.emissive = mat.emissive || new THREE.Color();
       mat.emissive.setHex(0xffaa00);
       mat.emissiveIntensity = solarKw > 0.05 ? 0.8 : 0.0;
+    }
+
+    if (this.meshes.solarCableWall?.material) {
+      const mat = this.meshes.solarCableWall.material;
+      mat.emissive = mat.emissive || new THREE.Color();
+      mat.emissive.setHex(0xffaa00);
+      mat.emissiveIntensity = solarKw > 0.05 ? 0.45 : 0.0;
     }
 
     if (this.meshes.evCable?.material) {
