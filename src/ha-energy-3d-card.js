@@ -227,17 +227,24 @@ export class HaEnergy3DCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          display: block;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          height: 100%;
+          width: 100%;
           position: relative;
           border-radius: var(--ha-card-border-radius, 16px);
           overflow: hidden;
           background: #070b14;
           box-shadow: var(--ha-card-box-shadow, 0 8px 30px rgba(0, 0, 0, 0.4));
+          min-height: 0;
         }
         .container {
           position: relative;
           width: 100%;
           height: ${cardHeight};
+          flex: 1;
+          min-height: ${cardHeight === '100%' ? '560px' : cardHeight};
           overflow: hidden;
         }
         .viewport {

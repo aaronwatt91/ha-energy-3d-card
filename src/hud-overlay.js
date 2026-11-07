@@ -101,7 +101,8 @@ export class HUDOverlay {
       boiler: true,
       ev: true,
       thermostats: true,
-      appliances: true
+      appliances: true,
+      lighting: true
     };
 
     this.initDOM();
@@ -1378,6 +1379,10 @@ export class HUDOverlay {
             <span>🔥</span>
             <span class="hud-flow-val color-gas" id="hdr-gas-val" style="color:#94a3b8;">Standby</span>
           </div>
+          <div class="hud-flow-item" id="hdr-lights-item" title="Lighting Energy Usage (7W per active bulb)" style="cursor:pointer;">
+            <span>💡</span>
+            <span class="hud-flow-val" id="hdr-lights-val" style="color:#f59e0b;">0 W</span>
+          </div>
         </div>
       </div>
 
@@ -1935,6 +1940,12 @@ export class HUDOverlay {
                 <input type="checkbox" class="chk-tag-cat" data-tag-cat="appliances" checked>
               </label>
             </div>
+            <div class="tags-menu-item">
+              <label class="tag-switch-label">
+                <span>💡 Lighting Energy Usage (7W/bulb)</span>
+                <input type="checkbox" class="chk-tag-cat" data-tag-cat="lighting" checked>
+              </label>
+            </div>
           </div>
         </div>
         <button class="hud-btn" id="btn-drawer">📊 Stats</button>
@@ -1976,6 +1987,13 @@ export class HUDOverlay {
       btnRotate.classList.toggle('active');
       this.onToggleRotate(btnRotate.classList.contains('active'));
     });
+
+    const hdrLightsItem = this.el.querySelector('#hdr-lights-item');
+    if (hdrLightsItem) {
+      hdrLightsItem.addEventListener('click', () => {
+        this.openTab('lights');
+      });
+    }
 
     // Tags Popover Menu
     const btnTagsMenu = this.el.querySelector('#btn-tags-menu');
@@ -3322,6 +3340,8 @@ export class HUDOverlay {
         else groundCount++;
       }
 
+      const totalWatts = countOn * 7;
+
       const visibleLights = lights.filter((lt) => {
         const isUpstairs = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0);
         if (filterFloor === 'ground') return !isUpstairs;
@@ -3348,7 +3368,7 @@ export class HUDOverlay {
               </div>
               <div class="light-info">
                 <div class="light-name">${lt.name}</div>
-                <div class="light-subtext">${floorText} &bull; <span style="color:${isOn ? '#f59e0b' : '#94a3b8'};font-weight:${isOn ? '600' : 'normal'};">${isOn ? `${bri}% Brightness` : 'Off'}</span></div>
+                <div class="light-subtext">${floorText} &bull; <span style="color:${isOn ? '#f59e0b' : '#94a3b8'};font-weight:${isOn ? '600' : 'normal'};">${isOn ? `${bri}% Brightness (7W)` : 'Off (0W)'}</span></div>
               </div>
               <div class="light-actions">
                 <button class="light-toggle-btn ${isOn ? 'on' : 'off'}" data-entity="${mappedEntity}" data-light-id="${lt.id}">
@@ -3364,6 +3384,23 @@ export class HUDOverlay {
       }
 
       content.innerHTML = `
+        <div class="stat-card stat-card-full" style="margin-bottom:12px;background:rgba(245, 158, 11, 0.08);border-color:rgba(245, 158, 11, 0.25);">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div>
+              <div class="stat-label">TOTAL LIGHTING ENERGY USAGE</div>
+              <div class="stat-val" style="color:#f59e0b;font-size:24px;">
+                ${totalWatts} <span class="stat-unit">W</span>
+                <span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(245, 158, 11, 0.15);color:#f59e0b;vertical-align:middle;margin-left:6px;">
+                  ${countOn} of ${lights.length} BULBS ACTIVE
+                </span>
+              </div>
+              <div class="stat-subtext" style="margin-top:4px;">
+                Formula: <strong>7W per bulb</strong> &bull; ${countOn} active &times; 7W = <strong>${totalWatts} Watts</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; flex-wrap:wrap;">
           <div style="display:flex; gap:6px;">
             <button class="thermo-preset-pill ${filterFloor === 'all' ? 'active' : ''}" data-filter-floor="all">All (${lights.length})</button>
@@ -3523,6 +3560,19 @@ export class HUDOverlay {
       hdrGas.innerText = isHeating ? 'Heating' : 'Standby';
       hdrGas.style.color = isHeating ? '#f97316' : '#94a3b8';
     }
+    const hdrLights = this.el.querySelector('#hdr-lights-val');
+    if (hdrLights) {
+      let countOn = 0;
+      for (const [id, l] of Object.entries(data.room_lights || {})) {
+        if (l && (l.is_on || l.state === 'on')) countOn++;
+      }
+      if (data.appliances?.living_lamp?.is_on && !data.room_lights?.living_lamp?.is_on) {
+        countOn++;
+      }
+      const totalW = countOn * 7;
+      hdrLights.innerText = `${totalW} W`;
+      hdrLights.style.color = countOn > 0 ? '#f59e0b' : '#94a3b8';
+    }
 
     // 3D Hotspot Badges
     const container = this.el.querySelector('#hotspots-container');
@@ -3544,7 +3594,8 @@ export class HUDOverlay {
       thermostat_upstairs: 'thermostats',
       appliance_fridge: 'appliances',
       appliance_washer: 'appliances',
-      appliance_tv: 'appliances'
+      appliance_tv: 'appliances',
+      lighting: 'lighting'
     };
 
     for (const spot of projectedHotspots) {
@@ -3606,6 +3657,18 @@ export class HUDOverlay {
         const isTvOn = Boolean(tv.is_on);
         const pVal = tv.power_w !== undefined ? `${tv.power_w} W` : (isTvOn ? 'ON' : 'OFF');
         badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isTvOn ? '#10b981' : '#64748b'}">●</span>`;
+      } else if (spot.id === 'lighting') {
+        const roomLights = data.room_lights || {};
+        let countOn = 0;
+        for (const [id, l] of Object.entries(roomLights)) {
+          if (l && (l.is_on || l.state === 'on')) countOn++;
+        }
+        if (data.appliances?.living_lamp?.is_on && !roomLights.living_lamp?.is_on) {
+          countOn++;
+        }
+        const totalW = countOn * 7;
+        const color = countOn > 0 ? '#f59e0b' : '#94a3b8';
+        badgeHtml = `<span>💡 Lighting</span> <span style="color:${color};font-weight:700;">${totalW} W</span> <span style="font-size:10px;color:#94a3b8;">(${countOn} on @ 7W)</span>`;
       }
 
       const badge = document.createElement('div');
@@ -3615,6 +3678,10 @@ export class HUDOverlay {
       badge.innerHTML = badgeHtml;
 
       badge.addEventListener('click', (e) => {
+        if (spot.id === 'lighting') {
+          this.openTab('lights');
+          return;
+        }
         if (spot.id === 'appliance_tv') {
           const tv = data.appliances?.tv;
           let entId = tv?.entity_id || 'switch.living_room_tv_plug';

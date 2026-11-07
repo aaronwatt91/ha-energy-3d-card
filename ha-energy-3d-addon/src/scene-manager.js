@@ -146,7 +146,8 @@ export class SceneManager {
       { id: 'thermostat_upstairs', name: 'Upstairs Heating', pos: new THREE.Vector3(3.30, 4.05, -4.95) },
       { id: 'appliance_fridge', name: 'Kitchen Fridge Freezer', pos: new THREE.Vector3(2.45, 1.45, -6.65) },
       { id: 'appliance_washer', name: 'Kitchen Washing Machine', pos: new THREE.Vector3(2.15, 0.90, -8.20) },
-      { id: 'appliance_tv', name: 'Living Room TV', pos: new THREE.Vector3(3.35, 1.40, -3.10) }
+      { id: 'appliance_tv', name: 'Living Room TV', pos: new THREE.Vector3(3.35, 1.40, -3.10) },
+      { id: 'lighting', name: 'Lighting Energy Usage', pos: new THREE.Vector3(3.60, 2.30, -3.80) }
     ];
 
     this.roofParts = [];
@@ -240,9 +241,13 @@ export class SceneManager {
     // 8. Load GLTF 3D House Model with smart fallback chain
     this.loadModelWithFallbacks(this.options.modelUrl);
 
-    // 8. Resize Listener
+    // 8. Resize Listener & ResizeObserver
     this.handleResize = this.onResize.bind(this);
     window.addEventListener('resize', this.handleResize);
+    if (typeof window !== 'undefined' && window.ResizeObserver && this.container) {
+      this.resizeObserver = new ResizeObserver(() => this.onResize());
+      this.resizeObserver.observe(this.container);
+    }
 
     // Start Render Loop
     this.clock = new THREE.Clock();
@@ -2714,6 +2719,9 @@ export class SceneManager {
     this.isRunning = false;
     this.stopCameraAnimation();
     window.removeEventListener('resize', this.handleResize);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
     this.controls?.dispose();
     if (this.tvIframe) {
       this.tvIframe.src = '';
