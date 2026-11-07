@@ -150,7 +150,7 @@
   </style>
 
   <!-- Load bundled custom card module with cache-buster -->
-  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.13"></script>
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.14"></script>
 </head>
 <body>
 
@@ -279,6 +279,20 @@
       }
     };
 
+    const callServiceFn = async (domain, service, serviceData) => {
+      try {
+        const res = await fetch('api/ha-service', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain, service, serviceData })
+        });
+        return await res.json();
+      } catch (e) {
+        console.warn('callService error:', e);
+      }
+    };
+
+    currentHass.callService = callServiceFn;
     card.hass = currentHass;
 
     // Check Home Assistant Live API (Add-on Mode)
@@ -301,7 +315,7 @@
             statesMap[s.entity_id] = s;
           }
 
-          currentHass = { states: statesMap };
+          currentHass = { states: statesMap, callService: callServiceFn };
           card.hass = currentHass;
           return;
         }

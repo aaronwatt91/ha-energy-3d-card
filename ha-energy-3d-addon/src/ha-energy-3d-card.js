@@ -971,26 +971,7 @@ export class HaEnergy3DCard extends HTMLElement {
     }
 
     const domain = cleanId.startsWith('switch.') ? 'switch' : (cleanId.startsWith('light.') ? 'light' : 'homeassistant');
-    const service = targetOn ? 'turn_on' : 'turn_off';
-
-    if (this._hass) {
-      try {
-        this._hass.callService(domain, 'toggle', { entity_id: cleanId }, { entity_id: cleanId })
-          .catch((err) => {
-            console.warn(`callService ${domain}.toggle error, trying ${service}:`, err);
-            this._hass.callService(domain, service, { entity_id: cleanId }, { entity_id: cleanId })
-              .catch((e2) => console.warn(`callService ${domain}.${service} error:`, e2));
-          });
-      } catch (e) {
-        console.warn('Call service error:', e);
-      }
-    }
-
-    this.dispatchEvent(new CustomEvent('hass-call-service', {
-      detail: { domain, service: 'toggle', serviceData: { entity_id: cleanId } },
-      bubbles: true,
-      composed: true
-    }));
+    this.callHAService(domain, 'toggle', { entity_id: cleanId });
   }
 
   setThermostatTemperature(entityId, temp) {
@@ -1045,27 +1026,14 @@ export class HaEnergy3DCard extends HTMLElement {
     }
     this._thermoDebounceTimers[cleanId] = setTimeout(() => {
       delete this._thermoDebounceTimers[cleanId];
-      if (this._hass) {
-        try {
-          this._hass.callService('climate', 'set_temperature', {
-            entity_id: cleanId,
-            temperature: numTemp
-          }, {
-            entity_id: cleanId
-          }).catch(err => console.warn('set_temperature error:', err));
-        } catch (e) {
-          console.warn('Call climate set_temperature error:', e);
-        }
+      const curState = (this.energyData.thermostats?.downstairs?.entity_id === cleanId
+        ? this.energyData.thermostats?.downstairs?.state
+        : this.energyData.thermostats?.upstairs?.state) || '';
+      const payload = { entity_id: cleanId, temperature: numTemp };
+      if (curState.toLowerCase() === 'off') {
+        payload.hvac_mode = 'heat';
       }
-      this.dispatchEvent(new CustomEvent('hass-call-service', {
-        detail: {
-          domain: 'climate',
-          service: 'set_temperature',
-          serviceData: { entity_id: cleanId, temperature: numTemp }
-        },
-        bubbles: true,
-        composed: true
-      }));
+      this.callHAService('climate', 'set_temperature', payload);
     }, 250);
   }
 
@@ -1111,27 +1079,49 @@ export class HaEnergy3DCard extends HTMLElement {
       this.hud.renderDrawerContent();
     }
 
-    if (this._hass) {
+    this.callHAService('climate', 'set_hvac_mode', {
+      entity_id: cleanId,
+      hvac_mode: mode
+    });
+  }
+
+  async callHAService(domain, service, serviceData = {}) {
+    console.log(`[HA-3D] Calling service: ${domain}.${service}`, serviceData);
+
+    // 1. If running as a Lovelace card with standard hass object
+    if (this._hass && typeof this._hass.callService === 'function') {
       try {
-        this._hass.callService('climate', 'set_hvac_mode', {
-          entity_id: cleanId,
-          hvac_mode: mode
-        }, {
-          entity_id: cleanId
-        }).catch(err => console.warn('set_hvac_mode error:', err));
-      } catch (e) {
-        console.warn('Call climate set_hvac_mode error:', e);
+        await this._hass.callService(domain, service, serviceData);
+        console.log(`[HA-3D] Service ${domain}.${service} succeeded via hass.callService`);
+        return true;
+      } catch (err) {
+        console.warn(`[HA-3D] hass.callService(${domain}, ${service}) error:`, err);
       }
     }
-    this.dispatchEvent(new CustomEvent('hass-call-service', {
-      detail: {
-        domain: 'climate',
-        service: 'set_hvac_mode',
-        serviceData: { entity_id: cleanId, hvac_mode: mode }
-      },
-      bubbles: true,
-      composed: true
-    }));
+
+    // 2. Dispatch standard Lovelace 'hass-call-service' custom event
+    try {
+      this.dispatchEvent(new CustomEvent('hass-call-service', {
+        detail: { domain, service, serviceData },
+        bubbles: true,
+        composed: true
+      }));
+    } catch (e) {}
+
+    // 3. If running inside the Addon / Ingress web page (or local server proxy)
+    try {
+      const res = await fetch('api/ha-service', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain, service, serviceData })
+      });
+      if (res.ok) {
+        console.log(`[HA-3D] Service ${domain}.${service} succeeded via /api/ha-service proxy`);
+        return true;
+      }
+    } catch (e) {}
+
+    return false;
   }
 
   getCardSize() {

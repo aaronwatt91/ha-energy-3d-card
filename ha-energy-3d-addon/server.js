@@ -25,7 +25,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   let pathname = url.pathname;
 
-  // 1. Home Assistant Supervisor API Proxy
+  // 1. Home Assistant Supervisor API Proxy: States
   if (pathname === '/api/ha-states') {
     if (!SUPERVISOR_TOKEN) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -47,6 +47,45 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: err.message }));
     }
+    return;
+  }
+
+  // 2. Home Assistant Supervisor API Proxy: Services (Call service e.g. light, switch, climate)
+  if (pathname === '/api/ha-service' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { domain, service, serviceData } = JSON.parse(body || '{}');
+        if (!domain || !service) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing domain or service' }));
+          return;
+        }
+
+        if (!SUPERVISOR_TOKEN) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ standalone: true, success: true }));
+          return;
+        }
+
+        const haUrl = `http://supervisor/core/api/services/${domain}/${service}`;
+        const response = await fetch(haUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${SUPERVISOR_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(serviceData || {})
+        });
+        const data = await response.json().catch(() => ({}));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: response.ok, data }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
     return;
   }
 
