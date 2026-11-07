@@ -94,6 +94,7 @@ export class HUDOverlay {
     this.onEnableClickToPlace = options.onEnableClickToPlace || (() => {});
     this.onDisableClickToPlace = options.onDisableClickToPlace || (() => {});
     this.editingLight = null;
+    this.activePreset = 'overview';
     this.showTags = true;
     this.tagCategories = {
       solar: true,
@@ -2575,7 +2576,7 @@ export class HUDOverlay {
   clearActivePreset() {
     const presetBtns = this.el.querySelectorAll('[data-preset]');
     presetBtns.forEach((b) => b.classList.remove('active'));
-    this.activePreset = null;
+    this.activePreset = 'overview';
   }
 
   setActivePreset(preset) {
@@ -3568,8 +3569,25 @@ export class HUDOverlay {
       lighting: 'lighting'
     };
 
+    // Filter tags to only show what is relevant to the selected button
+    const presetRelevantMap = {
+      overview: null, // Show all tags
+      solar: ['solar'],
+      meter: ['grid'],
+      boiler: ['boiler'],
+      ev: ['ev', 'ev_charger'],
+      charger: ['ev_charger', 'ev'],
+      downstairs: ['thermostat_downstairs', 'appliance_tv', 'appliance_fridge', 'appliance_washer', 'lighting'],
+      upstairs: ['thermostat_upstairs', 'lighting'],
+      heating: ['thermostat_downstairs', 'thermostat_upstairs', 'boiler']
+    };
+
+    const currentPreset = this.activePreset || 'overview';
+    const relevantSpots = presetRelevantMap[currentPreset];
+
     for (const spot of projectedHotspots) {
       if (!spot.visible) continue;
+      if (relevantSpots && !relevantSpots.includes(spot.id)) continue;
       const cat = catMap[spot.id];
       if (cat && this.tagCategories && this.tagCategories[cat] === false) continue;
 
