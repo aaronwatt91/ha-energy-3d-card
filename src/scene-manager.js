@@ -137,7 +137,7 @@ export class SceneManager {
     };
 
     this.hotspots = [
-      { id: 'solar', name: 'Solax Solar Inverter', pos: new THREE.Vector3(5.08, 2.05, -1.15) },
+      { id: 'solar', name: 'Solax Solar Inverter', pos: new THREE.Vector3(5.58, 1.78, -0.50) },
       { id: 'grid', name: 'Octopus Grid & Meter', pos: new THREE.Vector3(5.30, 2.00, -0.85) },
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
       { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) },
@@ -1207,13 +1207,13 @@ export class SceneManager {
     this.upstairsFurnitureGroup.add(cotGroup);
 
     // ==========================================
-    // 6. Solax Solar Inverter on the Party Wall & Cable Conduit
-    // Mounted on the party wall at x = 5.27, y = 2.02, z = -1.15
-    // Solar cable runs from panels, onto party wall, and cascades straight DOWN into inverter
+    // 6. Solax Solar Inverter on Exterior Brick Wall & Cable Conduit
+    // Mounted on the right exterior brick wall (driveway side) at x = 5.42, y = 1.75, z = -0.50
+    // Solar cable runs along roof eaves and cascades straight DOWN the outside brick wall into inverter
     // ==========================================
     const inverterGroup = new THREE.Group();
-    inverterGroup.position.set(5.27, 2.02, -1.15);
-    inverterGroup.rotation.y = -Math.PI / 2; // Face -X into hallway/entrance
+    inverterGroup.position.set(5.42, 1.75, -0.50);
+    inverterGroup.rotation.y = Math.PI / 2; // Face +X outwards into driveway
 
     // Main inverter body (Clean modern white casing with bevels)
     const invBody = new THREE.Mesh(
@@ -1294,7 +1294,7 @@ export class SceneManager {
     dcIsoKnob.position.set(0.255, -0.16, 0.02);
     inverterGroup.add(dcIsoKnob);
 
-    // Top DC Cable Glands (where solar cable enters from party wall above)
+    // Top DC Cable Glands (where solar cable enters from roof above)
     for (const gx of [-0.06, 0.06]) {
       const gland = new THREE.Mesh(
         new THREE.CylinderGeometry(0.015, 0.015, 0.04, 8),
@@ -1316,18 +1316,18 @@ export class SceneManager {
     this.applianceInverter = inverterGroup;
 
     // Physical Solar DC Cable Conduit:
-    // Runs from under roof panels, along the top of party wall, and straight down into the inverter
+    // Runs from under roof panels, along exterior eaves to right side wall, and straight down outside into the inverter
     const solarCurve = this.energyFlow?.paths?.solar || new THREE.CatmullRomCurve3([
       new THREE.Vector3(2.50, 6.45, -6.50),
       new THREE.Vector3(4.10, 6.55, -6.50),
-      new THREE.Vector3(5.27, 6.55, -6.50),
-      new THREE.Vector3(5.27, 5.50, -4.60),
-      new THREE.Vector3(5.27, 4.30, -3.00),
-      new THREE.Vector3(5.27, 3.20, -1.80),
-      new THREE.Vector3(5.27, 2.45, -1.15),
-      new THREE.Vector3(5.27, 2.05, -1.15),
-      new THREE.Vector3(5.27, 1.65, -1.05),
-      new THREE.Vector3(5.27, 1.30, -0.90)
+      new THREE.Vector3(5.42, 6.55, -6.50),
+      new THREE.Vector3(5.42, 5.20, -4.50),
+      new THREE.Vector3(5.42, 3.80, -2.50),
+      new THREE.Vector3(5.42, 2.60, -1.00),
+      new THREE.Vector3(5.42, 2.05, -0.50),
+      new THREE.Vector3(5.42, 1.75, -0.50),
+      new THREE.Vector3(5.42, 1.40, -0.50),
+      new THREE.Vector3(5.35, 1.25, -0.75)
     ]);
 
     const cableGeom = new THREE.TubeGeometry(solarCurve, 84, 0.016, 8, false);
@@ -1342,12 +1342,12 @@ export class SceneManager {
     this.appliancesGroup.add(solarCableConduit);
     this.solarCableConduit = solarCableConduit;
 
-    // Cable wall saddles / mounting cleats along the party wall
+    // Cable wall saddles / mounting cleats along the exterior brick wall
     const saddleMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3, metalness: 0.8 });
-    for (let t = 0.32; t <= 0.88; t += 0.08) {
+    for (let t = 0.30; t <= 0.88; t += 0.08) {
       const pt = solarCurve.getPointAt(t);
       const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.04, 0.045), saddleMat);
-      saddle.position.set(5.28, pt.y, pt.z);
+      saddle.position.set(5.43, pt.y, pt.z);
       this.appliancesGroup.add(saddle);
     }
   }
@@ -1486,6 +1486,532 @@ export class SceneManager {
     }
   }
 
+  createRealisticTextures() {
+    if (typeof document === 'undefined') return null;
+
+    try {
+      const createCanvas = (w, h) => {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        return c;
+      };
+
+      // 1. Scottish Brickwork Texture & Bump Map (Warm Scottish red-buff brick with sand mortar)
+      const brickC = createCanvas(512, 512);
+      const bCtx = brickC.getContext('2d');
+      const brickBumpC = createCanvas(512, 512);
+      const bbCtx = brickBumpC.getContext('2d');
+
+      // Mortar base
+      bCtx.fillStyle = '#cfc9be';
+      bCtx.fillRect(0, 0, 512, 512);
+      bbCtx.fillStyle = '#181818';
+      bbCtx.fillRect(0, 0, 512, 512);
+
+      // Add sand grains to mortar
+      for (let i = 0; i < 400; i++) {
+        const mx = Math.random() * 512;
+        const my = Math.random() * 512;
+        bCtx.fillStyle = Math.random() > 0.5 ? '#b8b2a7' : '#dedad2';
+        bCtx.fillRect(mx, my, 1.5, 1.5);
+      }
+
+      const rows = 8;
+      const rh = 512 / rows; // 64px per row
+      const bw = 128; // 4 bricks per row
+      const gap = 5;
+      const brickColors = ['#a3432d', '#b54e36', '#9c3d27', '#ab4932', '#8d3420', '#bd5a40'];
+
+      for (let r = 0; r < rows; r++) {
+        const y = r * rh;
+        const xOffset = (r % 2 === 0) ? 0 : -bw / 2;
+        for (let x = xOffset - bw; x < 512 + bw; x += bw) {
+          const bx = x + gap / 2;
+          const by = y + gap / 2;
+          const w = bw - gap;
+          const h = rh - gap;
+
+          // Brick face color variation
+          const baseCol = brickColors[Math.floor(Math.random() * brickColors.length)];
+          bCtx.fillStyle = baseCol;
+          bCtx.fillRect(bx, by, w, h);
+
+          // Subtle gradient across brick
+          const bGrad = bCtx.createLinearGradient(bx, by, bx, by + h);
+          bGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+          bGrad.addColorStop(1, 'rgba(0, 0, 0, 0.12)');
+          bCtx.fillStyle = bGrad;
+          bCtx.fillRect(bx, by, w, h);
+
+          // Surface grain / speckle
+          for (let p = 0; p < 25; p++) {
+            const px = bx + Math.random() * w;
+            const py = by + Math.random() * h;
+            bCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.15)' : 'rgba(255,200,180,0.18)';
+            bCtx.fillRect(px, py, 1.5, 1.5);
+          }
+
+          // Bump map: raised brick surface with beveled edges
+          bbCtx.fillStyle = '#e5e5e5';
+          bbCtx.fillRect(bx + 1, by + 1, w - 2, h - 2);
+          bbCtx.strokeStyle = '#777777';
+          bbCtx.lineWidth = 1;
+          bbCtx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
+        }
+      }
+
+      // 2. Slate Roof Tiles & Bump (Modern Scottish charcoal interlocking slate)
+      const roofC = createCanvas(512, 512);
+      const rCtx = roofC.getContext('2d');
+      const roofBumpC = createCanvas(512, 512);
+      const rbCtx = roofBumpC.getContext('2d');
+
+      rCtx.fillStyle = '#1c2026';
+      rCtx.fillRect(0, 0, 512, 512);
+      rbCtx.fillStyle = '#111111';
+      rbCtx.fillRect(0, 0, 512, 512);
+
+      const roofRows = 10;
+      const rrh = 512 / roofRows;
+      const rsw = 512 / 6;
+      const slateColors = ['#272b33', '#2e333d', '#22252c', '#343a44', '#2a2f37'];
+
+      for (let r = 0; r < roofRows; r++) {
+        const y = r * rrh;
+        const xOffset = (r % 2 === 0) ? 0 : -rsw / 2;
+        for (let x = xOffset - rsw; x < 512 + rsw; x += rsw) {
+          const col = slateColors[Math.floor(Math.random() * slateColors.length)];
+          rCtx.fillStyle = col;
+          rCtx.fillRect(x + 1, y, rsw - 2, rrh);
+
+          // Subtle slate grain striations
+          for (let s = 0; s < 12; s++) {
+            rCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+            rCtx.fillRect(x + Math.random() * rsw, y, 1, rrh);
+          }
+
+          // Bottom slate shadow / lip
+          rCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+          rCtx.fillRect(x, y + rrh - 2.5, rsw, 2.5);
+
+          // Roof Bump: stepped gradient for overlapping tile courses
+          const bGrad = rbCtx.createLinearGradient(x, y, x, y + rrh);
+          bGrad.addColorStop(0, '#555555');
+          bGrad.addColorStop(0.9, '#eeeeee');
+          bGrad.addColorStop(1, '#111111');
+          rbCtx.fillStyle = bGrad;
+          rbCtx.fillRect(x + 1, y, rsw - 2, rrh);
+        }
+      }
+
+      // 3. Warm Oak Plank Hardwood Flooring
+      const woodC = createCanvas(512, 512);
+      const wCtx = woodC.getContext('2d');
+      const woodBumpC = createCanvas(512, 512);
+      const wbCtx = woodBumpC.getContext('2d');
+
+      wCtx.fillStyle = '#c49760';
+      wCtx.fillRect(0, 0, 512, 512);
+      wbCtx.fillStyle = '#222222';
+      wbCtx.fillRect(0, 0, 512, 512);
+
+      const plankCols = 6;
+      const pw = 512 / plankCols;
+      const oakShades = ['#caa06a', '#be925b', '#d3a973', '#b68953', '#cf9f67'];
+
+      for (let c = 0; c < plankCols; c++) {
+        const px = c * pw;
+        const numPlanks = 4;
+        const ph = 512 / numPlanks;
+        const yOffset = (c * 73) % ph;
+
+        for (let y = -yOffset; y < 512 + ph; y += ph) {
+          const shade = oakShades[Math.floor(Math.random() * oakShades.length)];
+          wCtx.fillStyle = shade;
+          wCtx.fillRect(px + 1.5, y + 1.5, pw - 3, ph - 3);
+
+          // Wood grain lines
+          for (let g = 0; g < 15; g++) {
+            const gx = px + Math.random() * pw;
+            wCtx.fillStyle = 'rgba(70, 45, 18, 0.07)';
+            wCtx.fillRect(gx, y, 1, ph);
+          }
+
+          // V-groove borders
+          wCtx.fillStyle = 'rgba(45, 25, 10, 0.4)';
+          wCtx.fillRect(px, y, pw, 1.5);
+          wCtx.fillRect(px, y, 1.5, ph);
+
+          // Bump map
+          wbCtx.fillStyle = '#dcdcdc';
+          wbCtx.fillRect(px + 1.5, y + 1.5, pw - 3, ph - 3);
+          wbCtx.fillStyle = '#111111';
+          wbCtx.fillRect(px, y, pw, 1.5);
+          wbCtx.fillRect(px, y, 1.5, ph);
+        }
+      }
+
+      // 4. Porcelain Marble Floor Tiles (Kitchen & Bathrooms)
+      const tileC = createCanvas(512, 512);
+      const tCtx = tileC.getContext('2d');
+      const tileBumpC = createCanvas(512, 512);
+      const tbCtx = tileBumpC.getContext('2d');
+
+      tCtx.fillStyle = '#9ca3af'; // Grout line color
+      tCtx.fillRect(0, 0, 512, 512);
+      tbCtx.fillStyle = '#151515';
+      tbCtx.fillRect(0, 0, 512, 512);
+
+      const tileGrid = 4;
+      const tSize = 512 / tileGrid;
+      const tGap = 4;
+
+      for (let gx = 0; gx < tileGrid; gx++) {
+        for (let gy = 0; gy < tileGrid; gy++) {
+          const tx = gx * tSize + tGap / 2;
+          const ty = gy * tSize + tGap / 2;
+          const ts = tSize - tGap;
+
+          // Off-white porcelain with gentle marble clouds
+          tCtx.fillStyle = '#f4f3ee';
+          tCtx.fillRect(tx, ty, ts, ts);
+
+          // Soft marble veins
+          for (let v = 0; v < 3; v++) {
+            tCtx.beginPath();
+            tCtx.moveTo(tx + Math.random() * ts, ty + Math.random() * ts);
+            tCtx.bezierCurveTo(
+              tx + Math.random() * ts, ty + Math.random() * ts,
+              tx + Math.random() * ts, ty + Math.random() * ts,
+              tx + Math.random() * ts, ty + Math.random() * ts
+            );
+            tCtx.strokeStyle = 'rgba(190, 185, 175, 0.28)';
+            tCtx.lineWidth = 2 + Math.random() * 2;
+            tCtx.stroke();
+          }
+
+          // Bump map: smooth flat tile, deep grout
+          tbCtx.fillStyle = '#f0f0f0';
+          tbCtx.fillRect(tx, ty, ts, ts);
+        }
+      }
+
+      // 5. Woven Loop Berber Carpet (Bedrooms & Landing)
+      const carpetC = createCanvas(256, 256);
+      const cpCtx = carpetC.getContext('2d');
+      cpCtx.fillStyle = '#d3cbc2';
+      cpCtx.fillRect(0, 0, 256, 256);
+
+      for (let cy = 0; cy < 256; cy += 4) {
+        for (let cx = 0; cx < 256; cx += 4) {
+          const v = Math.random();
+          cpCtx.fillStyle = v > 0.6 ? '#ded8cf' : (v < 0.3 ? '#b8afa4' : '#c9c1b7');
+          cpCtx.fillRect(cx, cy, 3, 3);
+        }
+      }
+
+      // 6. Block Paving Driveway
+      const pavC = createCanvas(512, 512);
+      const pCtx = pavC.getContext('2d');
+      const pavBumpC = createCanvas(512, 512);
+      const pbCtx = pavBumpC.getContext('2d');
+
+      pCtx.fillStyle = '#374151'; // Joint sand
+      pCtx.fillRect(0, 0, 512, 512);
+      pbCtx.fillStyle = '#111111';
+      pbCtx.fillRect(0, 0, 512, 512);
+
+      const pRows = 12;
+      const prh = 512 / pRows;
+      const pbw = 512 / 6;
+      const paverTones = ['#5b626e', '#666e7b', '#4f5661', '#737a88'];
+
+      for (let r = 0; r < pRows; r++) {
+        const y = r * prh;
+        const xOffset = (r % 2 === 0) ? 0 : -pbw / 2;
+        for (let x = xOffset - pbw; x < 512 + pbw; x += pbw) {
+          const tone = paverTones[Math.floor(Math.random() * paverTones.length)];
+          pCtx.fillStyle = tone;
+          pCtx.fillRect(x + 2, y + 2, pbw - 4, prh - 4);
+
+          pbCtx.fillStyle = '#e0e0e0';
+          pbCtx.fillRect(x + 2, y + 2, pbw - 4, prh - 4);
+        }
+      }
+
+      // 7. Garden Lawn Grass
+      const grassC = createCanvas(256, 256);
+      const gCtx = grassC.getContext('2d');
+      gCtx.fillStyle = '#3d7a2e';
+      gCtx.fillRect(0, 0, 256, 256);
+
+      const grassGreens = ['#4a9037', '#356d27', '#5bb044', '#2e5d22'];
+      for (let i = 0; i < 4000; i++) {
+        const gx = Math.random() * 256;
+        const gy = Math.random() * 256;
+        gCtx.fillStyle = grassGreens[Math.floor(Math.random() * grassGreens.length)];
+        gCtx.fillRect(gx, gy, 1.5, 2.5);
+      }
+
+      // Create Three.js CanvasTextures with proper repeat wrapping
+      const makeTex = (canvas, repX, repY) => {
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(repX, repY);
+        return tex;
+      };
+
+      return {
+        brickMap: makeTex(brickC, 4, 4),
+        brickBump: makeTex(brickBumpC, 4, 4),
+        roofMap: makeTex(roofC, 5, 5),
+        roofBump: makeTex(roofBumpC, 5, 5),
+        woodMap: makeTex(woodC, 3, 3),
+        woodBump: makeTex(woodBumpC, 3, 3),
+        tileMap: makeTex(tileC, 3, 3),
+        tileBump: makeTex(tileBumpC, 3, 3),
+        carpetMap: makeTex(carpetC, 4, 4),
+        pavingMap: makeTex(pavC, 4, 4),
+        pavingBump: makeTex(pavBumpC, 4, 4),
+        grassMap: makeTex(grassC, 6, 6)
+      };
+    } catch (e) {
+      console.warn('Procedural texture generation error:', e);
+      return null;
+    }
+  }
+
+  applyRealisticMaterials(model) {
+    if (!model) return;
+    const tex = this.createRealisticTextures();
+
+    model.traverse((child) => {
+      if (!child.isMesh) return;
+      const n = child.name;
+
+      // 1. Exterior Walls (Authentic Scottish brickwork with mortar depth bump map)
+      if (n.includes('Exterior_Walls') || n.includes('Separating_Party_Wall')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.brickMap,
+            bumpMap: tex.brickBump,
+            bumpScale: 0.04,
+            roughness: 0.88,
+            metalness: 0.05
+          });
+        }
+      }
+
+      // 2. Slate Roof (Interlocking Scottish dark slate with tile course relief)
+      else if (n.includes('Roof_Main')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.roofMap,
+            bumpMap: tex.roofBump,
+            bumpScale: 0.05,
+            roughness: 0.82,
+            metalness: 0.1
+          });
+        }
+      }
+      else if (n.includes('Roof_Ridge_Tiles')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x22262d,
+          roughness: 0.80,
+          metalness: 0.1
+        });
+      }
+      else if (n.includes('Roof_Solar_Panels')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x101a2c,
+          roughness: 0.12,
+          metalness: 0.88
+        });
+      }
+
+      // 3. Ground Floor Hardwood Flooring (Warm natural oak planks)
+      else if (n.includes('Ground_Floor_Wood_Floor')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.woodMap,
+            bumpMap: tex.woodBump,
+            bumpScale: 0.025,
+            roughness: 0.32,
+            metalness: 0.05
+          });
+        }
+      }
+
+      // 4. Ground Floor & First Floor Tiles (Porcelain marble tile with recessed grout)
+      else if (n.includes('Ground_Floor_Tile_Floor') || n.includes('First_Floor_Tiles')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.tileMap,
+            bumpMap: tex.tileBump,
+            bumpScale: 0.02,
+            roughness: 0.22,
+            metalness: 0.08
+          });
+        }
+      }
+
+      // 5. Carpets (Woven berber loop carpet for master bedroom, guestroom, nursery, landing)
+      else if (n.includes('Carpet_') || n.includes('Landing_Carpet')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.carpetMap,
+            roughness: 0.95,
+            metalness: 0.02
+          });
+        }
+      }
+
+      // 6. Interior Walls & Plaster
+      else if (n.includes('Interior_Walls_')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xf4f4f5,
+          roughness: 0.88,
+          metalness: 0.02
+        });
+      }
+      else if (n.includes('First_Floor_Ceiling')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xfafafa,
+          roughness: 0.92,
+          metalness: 0.01
+        });
+      }
+
+      // 7. Windows & French Doors UPVC + Glazing
+      else if (n.includes('Windows_Frames') || n.includes('Rear_French_Doors')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xf1f5f9,
+          roughness: 0.35,
+          metalness: 0.1
+        });
+      }
+      else if (n.includes('Windows_Glass')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x93c5fd,
+          roughness: 0.04,
+          metalness: 0.15,
+          transparent: true,
+          opacity: 0.28,
+          depthWrite: false
+        });
+      }
+
+      // 8. Front Entrance Door
+      else if (n.includes('Front_Entrance_Door')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x1e293b, // Premium anthracite architectural finish
+          roughness: 0.32,
+          metalness: 0.15
+        });
+      }
+
+      // 9. Driveway Block Paving & Landscaping
+      else if (n.includes('Driveway')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.pavingMap,
+            bumpMap: tex.pavingBump,
+            bumpScale: 0.035,
+            roughness: 0.78,
+            metalness: 0.05
+          });
+        }
+      }
+      else if (n.includes('Landscape_Grass')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.grassMap,
+            roughness: 0.88,
+            metalness: 0.02
+          });
+        }
+      }
+      else if (n.includes('Landscape_Paving')) {
+        if (tex) {
+          child.material = new THREE.MeshStandardMaterial({
+            map: tex.pavingMap,
+            roughness: 0.82,
+            metalness: 0.05
+          });
+        }
+      }
+      else if (n.includes('Landscape_Fencing')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x8b5a2b,
+          roughness: 0.75,
+          metalness: 0.05
+        });
+      }
+      else if (n.includes('Fascia_and_Soffits') || n.includes('Rainwater_Gutters')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x1f2937,
+          roughness: 0.35,
+          metalness: 0.2
+        });
+      }
+
+      // 10. Kitchen Finishes
+      else if (n.includes('Kitchen_Worktop')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x1e2430,
+          roughness: 0.18,
+          metalness: 0.15
+        });
+      }
+      else if (n.includes('Kitchen_Cabinets')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xd6d3d1,
+          roughness: 0.40,
+          metalness: 0.05
+        });
+      }
+      else if (n.includes('Kitchen_Sink_Hob')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x22262e,
+          roughness: 0.25,
+          metalness: 0.85
+        });
+      }
+      else if (n.includes('Kitchen_Combi_Boiler')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xfdfdfd,
+          roughness: 0.22,
+          metalness: 0.1
+        });
+      }
+
+      // 11. Sanitaryware & Staircase
+      else if (n.includes('Sanitaryware')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.12,
+          metalness: 0.05
+        });
+      }
+      else if (n.includes('Staircase')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xb58952,
+          roughness: 0.42,
+          metalness: 0.05
+        });
+      }
+      else if (n.includes('Interior_Doors')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xf8fafc,
+          roughness: 0.45,
+          metalness: 0.05
+        });
+      }
+    });
+  }
+
   loadModelWithFallbacks(initialUrl) {
     const urlsToTry = [
       initialUrl,
@@ -1511,8 +2037,13 @@ export class SceneManager {
         url,
         (gltf) => {
           this.model = gltf.scene;
+          this.applyRealisticMaterials(this.model);
           this.model.traverse((child) => {
             if (child.isMesh) {
+              if (child.name === 'Solar_PV_Cabling') {
+                child.visible = false;
+                return;
+              }
               child.castShadow = true;
               child.receiveShadow = true;
 
@@ -1671,9 +2202,9 @@ export class SceneManager {
         xray: false
       },
       solar: {
-        pos: new THREE.Vector3(2.70, 2.30, -0.65),
-        target: new THREE.Vector3(5.20, 2.00, -1.15),
-        xray: true
+        pos: new THREE.Vector3(8.80, 2.40, 0.50),
+        target: new THREE.Vector3(5.42, 1.75, -0.50),
+        xray: false
       },
       meter: {
         pos: new THREE.Vector3(7.2, 2.3, 0.5),
