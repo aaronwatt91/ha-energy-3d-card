@@ -20,18 +20,24 @@ export class EnergyFlowSystem {
 
     // Exact centerline 3D splines matching the geometry of Taylor Wimpey Blair model
     this.paths = {
-      // 1. Solar PV: Underside of panels -> exterior eaves -> runs down outside party wall into inverter -> meter
+      // 1. Solar PV: Underside of panels -> rear roof tiles -> gable verge -> vertical drop down party wall into inverter -> meter
       solar: new THREE.CatmullRomCurve3([
-        new THREE.Vector3(2.50, 6.45, -6.50), // Under panels
-        new THREE.Vector3(4.10, 6.55, -6.50), // Cable run under panel array
-        new THREE.Vector3(5.63, 6.55, -6.50), // Exterior eaves / party wall junction
-        new THREE.Vector3(5.63, 5.20, -4.50), // Down upper external party wall
-        new THREE.Vector3(5.63, 3.80, -2.50), // Down mid external party wall
-        new THREE.Vector3(5.63, 2.60, -1.00), // Leading to outdoor inverter
-        new THREE.Vector3(5.63, 2.05, -0.50), // Entering top DC glands of Solax inverter
-        new THREE.Vector3(5.63, 1.75, -0.50), // Through Solax Inverter
-        new THREE.Vector3(5.63, 1.40, -0.50), // AC output drop down wall
-        new THREE.Vector3(5.50, 1.25, -0.75)  // Smart meter box / consumer unit entry through party wall
+        new THREE.Vector3(3.20, 6.06, -6.50),  // Under solar panel frame on rear roof tiles
+        new THREE.Vector3(4.40, 6.06, -6.50),  // Running horizontally along rear roof tiles
+        new THREE.Vector3(5.61, 6.06, -6.50),  // Reaching roof verge / party wall boundary
+        new THREE.Vector3(5.632, 6.05, -6.50), // Snug against party wall outer roughcast face (X = 5.632)
+        new THREE.Vector3(5.632, 6.60, -5.30), // Following rear gable verge line upward
+        new THREE.Vector3(5.632, 7.15, -4.16), // Crossing ridge apex verge trim (Y = 7.15, Z = -4.16)
+        new THREE.Vector3(5.632, 6.20, -2.30), // Following front gable verge line downward
+        new THREE.Vector3(5.632, 5.30, -0.50), // Reaching front verge corner directly above inverter (Z = -0.50)
+        new THREE.Vector3(5.632, 3.80, -0.50), // Vertical conduit drop attached flush to party wall
+        new THREE.Vector3(5.632, 2.80, -0.50), // Vertical conduit drop attached flush to party wall
+        new THREE.Vector3(5.632, 2.10, -0.50), // Entering top DC glands of Solax inverter
+        new THREE.Vector3(5.632, 1.75, -0.50), // Through Solax Inverter core
+        new THREE.Vector3(5.632, 1.40, -0.50), // AC output gland below inverter
+        new THREE.Vector3(5.632, 1.15, -0.50), // Vertical drop to wall penetration inspection elbow
+        new THREE.Vector3(5.45, 1.15, -0.65),  // Passing through 300mm exterior wall sleeve
+        new THREE.Vector3(5.27, 1.15, -0.75)   // Entering smart meter / consumer unit (INTERNAL)
       ]),
 
       // 2. Grid Overhead Service: Pylon distribution box (t=0) -> 19-point exact catenary curve -> House bracket -> PVC drop -> Smart meter (t=1)

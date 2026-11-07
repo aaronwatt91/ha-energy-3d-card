@@ -2628,56 +2628,58 @@ export class HUDOverlay {
       }
     };
 
-    // Auto-detect matches
-    setIfFound('#cfg-solax-power', 'solax_pv_power', 'solax_power', 'pv_power', 'solar_power');
-    setIfFound('#cfg-solax-today', 'solax_today', 'solar_today', 'pv_energy_today');
+    // Auto-detect matches prioritized by user's actual integrations
+    setIfFound('#cfg-solax-power', 'solax_snm9wncrqy_ac_output_power', 'ac_output_power', 'solax_pv_power', 'solax_power', 'pv1_power', 'pv_power', 'solar_power');
+    setIfFound('#cfg-solax-today', 'solax_snm9wncrqy_today_s_generated_energy', 'today_s_generated_energy', 'solax_today', 'solar_today', 'pv_energy_today');
     setIfFound('#cfg-solax-week', 'solax_week', 'solar_week');
     setIfFound('#cfg-solax-month', 'solax_month', 'solar_month');
-    setIfFound('#cfg-solax-year', 'solax_year', 'solar_year');
+    setIfFound('#cfg-solax-year', 'solax_snm9wncrqy_total_generated_energy', 'total_generated_energy', 'solax_year', 'solar_year');
 
-    setIfFound('#cfg-octopus-power', 'home_mini_current_electricity', 'octopus_electricity_power', 'grid_power');
-    setIfFound('#cfg-octopus-export', 'feed_in_power', 'solax_export', 'grid_export');
-    setIfFound('#cfg-octopus-rate', 'electricity_current_rate', 'octopus_rate', 'current_rate');
-    setIfFound('#cfg-octopus-spend', 'electricity_current_month_cost', 'octopus_month_cost', 'electricity_cost');
-    setIfFound('#cfg-octopus-30min', 'home_mini_electricity_30min', 'electricity_30min');
-    setIfFound('#cfg-octopus-day', 'electricity_day', 'octopus_electricity_today');
-    setIfFound('#cfg-octopus-week', 'electricity_week');
-    setIfFound('#cfg-octopus-month', 'electricity_month');
+    setIfFound('#cfg-octopus-power', 'electricity_22l3956422_3200000391421_current_demand', 'electricity_current_demand', 'current_demand', 'home_mini_current_electricity', 'octopus_electricity_power', 'grid_power');
+    setIfFound('#cfg-octopus-export', 'solax_snm9wncrqy_exported_power', 'power_export', 'feed_in_power', 'solax_export', 'grid_export');
+    setIfFound('#cfg-octopus-rate', 'electricity_22l3956422_3200000391421_current_rate', 'electricity_current_rate', 'octopus_rate', 'current_rate');
+    setIfFound('#cfg-octopus-spend', 'electricity_22l3956422_3200000391421_current_accumulative_cost', 'electricity_current_accumulative_cost', 'electricity_current_month_cost', 'octopus_month_cost', 'electricity_cost');
+    setIfFound('#cfg-octopus-30min', 'electricity_22l3956422_3200000391421_current_accumulative_consumption', 'home_mini_electricity_30min', 'electricity_30min');
+    setIfFound('#cfg-octopus-day', 'electricity_22l3956422_3200000391421_current_accumulative_consumption', 'electricity_day', 'octopus_electricity_today');
+    setIfFound('#cfg-octopus-week', 'electricity_22l3956422_3200000391421_previous_accumulative_consumption', 'electricity_week');
+    setIfFound('#cfg-octopus-month', 'electricity_22l3956422_3200000391421_current_total_consumption', 'electricity_month');
 
     setIfFound('#cfg-boiler-status', 'boiler', 'climate.boiler', 'switch.boiler', 'heating');
-    setIfFound('#cfg-gas-30min', 'home_mini_gas_30min', 'gas_30min');
-    setIfFound('#cfg-gas-day', 'gas_day', 'octopus_gas_today');
-    setIfFound('#cfg-gas-week', 'gas_week');
-    setIfFound('#cfg-gas-month', 'gas_month');
+    setIfFound('#cfg-gas-30min', 'gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh', 'home_mini_gas_30min', 'gas_30min');
+    setIfFound('#cfg-gas-day', 'gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh', 'gas_day', 'octopus_gas_today');
+    setIfFound('#cfg-gas-week', 'gas_e6s18975782161_7756751506_previous_accumulative_consumption_kwh', 'gas_week');
+    setIfFound('#cfg-gas-month', 'gas_e6s18975782161_7756751506_current_total_consumption_kwh', 'gas_month');
+    setIfFound('#cfg-gas-rate', 'gas_e6s18975782161_7756751506_current_rate', 'gas_current_rate');
+    setIfFound('#cfg-gas-spend', 'gas_e6s18975782161_7756751506_current_accumulative_cost', 'gas_current_accumulative_cost');
 
-    setIfFound('#cfg-zappi-power', 'zappi_power', 'myenergi_power', 'ev_power', 'charger_power');
-    setIfFound('#cfg-zappi-status', 'plug_status', 'zappi_plug_status', 'zappi_status', 'myenergi_status', 'charger_status');
-    setIfFound('#cfg-zappi-energy', 'charge_added_session', 'zappi_energy', 'zappi_today');
-    setIfFound('#cfg-peugeot-battery', 'e2008_battery', 'peugeot_battery', 'battery_level', 'soc');
-    setIfFound('#cfg-peugeot-range', 'e2008_range', 'peugeot_range', 'range');
+    setIfFound('#cfg-zappi-power', 'myenergi_zappi_30084500_internal_load_ct1', 'power_ct_internal_load', 'zappi_power', 'myenergi_power', 'ev_power', 'charger_power');
+    setIfFound('#cfg-zappi-status', 'myenergi_zappi_30084500_plug_status', 'plug_status', 'zappi_plug_status', 'zappi_status', 'myenergi_status', 'charger_status');
+    setIfFound('#cfg-zappi-energy', 'myenergi_zappi_30084500_charge_added_session', 'charge_added_session', 'zappi_energy', 'zappi_today');
+    setIfFound('#cfg-peugeot-battery', 'sensor.vr3ukzkxzmj557948_battery', 'vr3ukzkxzmj557948_battery', 'e2008_battery', 'peugeot_battery', 'battery_level', 'soc');
+    setIfFound('#cfg-peugeot-range', 'sensor.vr3ukzkxzmj557948_autonomy', 'vr3ukzkxzmj557948_autonomy', 'autonomy', 'e2008_range', 'peugeot_range', 'range');
 
     // Thermostats auto-detection
-    setIfFound('#cfg-thermostat-downstairs', 'climate.downstairs', 'climate.ground_floor', 'climate.hallway', 'climate.living_room', 'downstairs_temperature');
-    setIfFound('#cfg-thermostat-upstairs', 'climate.upstairs', 'climate.first_floor', 'climate.landing', 'climate.master_bedroom', 'upstairs_temperature');
+    setIfFound('#cfg-thermostat-downstairs', 'climate.tado_x_downstairs', 'climate.downstairs', 'climate.ground_floor', 'climate.hallway', 'climate.living_room', 'downstairs_temperature');
+    setIfFound('#cfg-thermostat-upstairs', 'climate.smart_thermostat_x', 'climate.tado_x_upstairs', 'climate.upstairs', 'climate.first_floor', 'climate.landing', 'climate.master_bedroom', 'upstairs_temperature');
 
     // Appliances auto-detection
-    setIfFound('#cfg-sensor-fridge', 'fridge', 'refrigerator', 'freezer', 'fridge_power', 'kitchen_fridge');
-    setIfFound('#cfg-sensor-washer', 'washer_power', 'washing_machine_power', 'washing_machine', 'washer', 'laundry_power', 'laundry');
-    setIfFound('#cfg-sensor-tv', 'living_room_tv', 'lounge_tv', 'media_player.tv', 'media_player.living_room', 'switch.tv');
-    setIfFound('#cfg-light-living-lamp', 'living_room_lamp', 'corner_lamp', 'living_lamp', 'floor_lamp', 'standard_lamp', 'lamp');
+    setIfFound('#cfg-sensor-fridge', 'sensor.refrigerator_power', 'refrigerator_power', 'fridge_power', 'refrigerator', 'fridge', 'freezer', 'kitchen_fridge');
+    setIfFound('#cfg-sensor-washer', 'sensor.kitchen_washing_machine_daily_energy', 'washing_machine_power', 'washer_power', 'washing_machine', 'washer', 'laundry_power', 'laundry');
+    setIfFound('#cfg-sensor-tv', 'switch.living_room_living_room_tv_plug', 'media_player.lg_webos_tv_oled55c43la_2', 'media_player.living_room_tv', 'living_room_tv', 'lounge_tv', 'media_player.tv', 'media_player.living_room', 'switch.tv');
+    setIfFound('#cfg-light-living-lamp', 'light.living_room_lamp', 'living_room_lamp', 'corner_lamp', 'living_lamp', 'floor_lamp', 'standard_lamp', 'lamp');
 
     // Room Lights auto-detection
-    setIfFound('#cfg-light-lounge', 'light.living', 'light.lounge', 'light.sitting_room', 'switch.living');
-    setIfFound('#cfg-light-kitchen', 'light.kitchen', 'light.kitchen_lights', 'switch.kitchen');
+    setIfFound('#cfg-light-lounge', 'light.living_room_living_room_light', 'light.living', 'light.lounge', 'light.sitting_room', 'switch.living');
+    setIfFound('#cfg-light-kitchen', 'light.kitchen_light', 'light.kitchen', 'light.kitchen_lights', 'switch.kitchen');
     setIfFound('#cfg-light-dining', 'light.dining', 'light.dining_room', 'switch.dining');
-    setIfFound('#cfg-light-hallway', 'light.hallway', 'light.hall', 'light.entrance', 'switch.hallway');
+    setIfFound('#cfg-light-hallway', 'light.downstairs_hallway', 'light.hallway', 'light.hall', 'light.entrance', 'switch.hallway');
     setIfFound('#cfg-light-wc', 'light.wc', 'light.cloakroom', 'light.downstairs_toilet', 'switch.wc');
-    setIfFound('#cfg-light-master', 'light.master', 'light.bedroom_1', 'light.main_bedroom', 'switch.master');
-    setIfFound('#cfg-light-ensuite', 'light.ensuite', 'light.en_suite', 'switch.ensuite');
-    setIfFound('#cfg-light-bedroom2', 'light.bedroom_2', 'light.bed_2', 'light.guest_room', 'switch.bedroom_2');
-    setIfFound('#cfg-light-bedroom3', 'light.bedroom_3', 'light.bed_3', 'light.nursery', 'light.office', 'switch.bedroom_3');
-    setIfFound('#cfg-light-bathroom', 'light.bathroom', 'light.family_bathroom', 'switch.bathroom');
-    setIfFound('#cfg-light-landing', 'light.landing', 'light.stairs', 'light.upstairs_hallway', 'switch.landing');
+    setIfFound('#cfg-light-master', 'light.bedroom_bedroom_light', 'light.master', 'light.bedroom_1', 'light.main_bedroom', 'switch.master');
+    setIfFound('#cfg-light-ensuite', 'light.en_suite_light', 'light.ensuite', 'light.en_suite', 'switch.ensuite');
+    setIfFound('#cfg-light-bedroom2', 'light.guest_room_guest_room_light', 'light.bedroom_2', 'light.bed_2', 'light.guest_room', 'switch.bedroom_2');
+    setIfFound('#cfg-light-bedroom3', 'light.office_nursey_light', 'light.bedroom_3', 'light.bed_3', 'light.nursery', 'light.office', 'switch.bedroom_3');
+    setIfFound('#cfg-light-bathroom', 'light.bathroom_light', 'light.bathroom', 'light.family_bathroom', 'switch.bathroom');
+    setIfFound('#cfg-light-landing', 'light.upstairs_hallway', 'light.landing', 'light.stairs', 'light.upstairs_hallway', 'switch.landing');
   }
 
   adjustThermostatTemp(floor, delta) {

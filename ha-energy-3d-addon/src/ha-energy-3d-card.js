@@ -118,54 +118,54 @@ export class HaEnergy3DCard extends HTMLElement {
       model_url: 'Taylor_Wimpey_Blair.glb',
       height: '560px',
       // Solax Solar
-      solax_power: 'sensor.solax_pv_power_total',
-      solax_today: 'sensor.solax_today_s_solar_energy',
-      solax_week: 'sensor.solax_this_week_solar_energy',
-      solax_month: 'sensor.solax_this_month_solar_energy',
-      solax_year: 'sensor.solax_this_year_solar_energy',
+      solax_power: 'sensor.solax_snm9wncrqy_ac_output_power',
+      solax_today: 'sensor.solax_snm9wncrqy_today_s_generated_energy',
+      solax_week: 'sensor.solax_snm9wncrqy_today_s_generated_energy',
+      solax_month: 'sensor.solax_snm9wncrqy_today_s_generated_energy',
+      solax_year: 'sensor.solax_snm9wncrqy_total_generated_energy',
       // Octopus Electric
-      octopus_electric_power: 'sensor.octopus_home_mini_current_electricity_power',
-      octopus_export_power: 'sensor.solax_feed_in_power',
-      octopus_rate: 'sensor.octopus_energy_electricity_current_rate',
-      octopus_monthly_spend: 'sensor.octopus_energy_electricity_current_month_cost',
-      octopus_electric_30min: 'sensor.octopus_home_mini_electricity_30min',
-      octopus_electric_day: 'sensor.octopus_energy_electricity_day',
-      octopus_electric_week: 'sensor.octopus_energy_electricity_week',
-      octopus_electric_month: 'sensor.octopus_energy_electricity_month',
+      octopus_electric_power: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand',
+      octopus_export_power: 'sensor.solax_snm9wncrqy_exported_power',
+      octopus_rate: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_rate',
+      octopus_monthly_spend: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_cost',
+      octopus_electric_30min: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_consumption',
+      octopus_electric_day: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_consumption',
+      octopus_electric_week: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_previous_accumulative_consumption',
+      octopus_electric_month: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_total_consumption',
       // Octopus Gas & Boiler
       boiler_status: 'sensor.boiler_status',
-      octopus_gas_30min: 'sensor.octopus_home_mini_gas_30min',
-      octopus_gas_day: 'sensor.octopus_energy_gas_day',
-      octopus_gas_week: 'sensor.octopus_energy_gas_week',
-      octopus_gas_month: 'sensor.octopus_energy_gas_month',
-      octopus_gas_rate: 'sensor.octopus_energy_gas_current_rate',
-      octopus_gas_spend: 'sensor.octopus_energy_gas_current_month_cost',
+      octopus_gas_30min: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh',
+      octopus_gas_day: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh',
+      octopus_gas_week: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_previous_accumulative_consumption_kwh',
+      octopus_gas_month: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_total_consumption_kwh',
+      octopus_gas_rate: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_rate',
+      octopus_gas_spend: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_cost',
       // myenergi & Peugeot EV
-      myenergi_power: 'sensor.myenergi_zappi_power',
-      myenergi_status: 'sensor.myenergi_zappi_status',
-      myenergi_energy: 'sensor.myenergi_zappi_charge_added_session',
-      peugeot_battery: 'sensor.e2008_battery_level',
-      peugeot_range: 'sensor.e2008_battery_range',
+      myenergi_power: 'sensor.myenergi_zappi_30084500_internal_load_ct1',
+      myenergi_status: 'sensor.myenergi_zappi_30084500_plug_status',
+      myenergi_energy: 'sensor.myenergi_zappi_30084500_charge_added_session',
+      peugeot_battery: 'sensor.vr3ukzkxzmj557948_battery',
+      peugeot_range: 'sensor.vr3ukzkxzmj557948_autonomy',
       // Thermostats (Upstairs & Downstairs)
-      thermostat_downstairs: 'climate.downstairs',
-      thermostat_upstairs: 'climate.upstairs',
+      thermostat_downstairs: 'climate.tado_x_downstairs',
+      thermostat_upstairs: 'climate.smart_thermostat_x',
       // Appliances & Living Room Devices
-      sensor_fridge: 'sensor.fridge_power',
-      sensor_washer: 'sensor.washing_machine_power',
-      sensor_tv: 'media_player.living_room_tv',
+      sensor_fridge: 'sensor.refrigerator_power',
+      sensor_washer: 'sensor.kitchen_washing_machine_daily_energy',
+      sensor_tv: 'switch.living_room_living_room_tv_plug',
       light_living_lamp: 'light.living_room_lamp',
-      // Room Lights (Unset by default: strictly OFF until user maps a sensor)
-      light_lounge: '',
-      light_kitchen: '',
+      // Room Lights
+      light_lounge: 'light.living_room_living_room_light',
+      light_kitchen: 'light.kitchen_light',
       light_dining: '',
-      light_hallway: '',
+      light_hallway: 'light.downstairs_hallway',
       light_wc: '',
-      light_master_bedroom: '',
-      light_ensuite: '',
-      light_bedroom2: '',
-      light_bedroom3: '',
-      light_bathroom: '',
-      light_landing: ''
+      light_master_bedroom: 'light.bedroom_bedroom_light',
+      light_ensuite: 'light.en_suite_light',
+      light_bedroom2: 'light.guest_room_guest_room_light',
+      light_bedroom3: 'light.office_nursey_light',
+      light_bathroom: 'light.bathroom_light',
+      light_landing: 'light.upstairs_hallway'
     };
   }
 
@@ -415,35 +415,88 @@ export class HaEnergy3DCard extends HTMLElement {
     return stateObj.state;
   }
 
+  resolveEntity(configuredId, ...fallbackPatterns) {
+    if (configuredId && this._hass?.states?.[configuredId]) {
+      return configuredId;
+    }
+    if (!this._hass?.states) return configuredId || '';
+    const keys = Object.keys(this._hass.states);
+    for (const pat of fallbackPatterns) {
+      const match = keys.find(k => k.toLowerCase().includes(pat.toLowerCase()));
+      if (match) return match;
+    }
+    return configuredId || '';
+  }
+
+  getTariffRate(entityId, defaultRate = 0) {
+    if (!this._hass || !entityId) return defaultRate;
+    const stateObj = this._hass.states[entityId];
+    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') return defaultRate;
+    const val = parseFloat(stateObj.state);
+    if (isNaN(val)) return defaultRate;
+    const unit = (stateObj.attributes?.unit_of_measurement || '').toLowerCase();
+    // If rate is in GBP/kWh or £/kWh (e.g. 0.3157), convert to pence (31.57 p/kWh)
+    if (unit.includes('gbp') || unit.includes('£') || val < 1.5) {
+      return parseFloat((val * 100).toFixed(2));
+    }
+    return parseFloat(val.toFixed(2));
+  }
+
+  getVehicleRange(entityId, defaultMiles = 0) {
+    if (!this._hass || !entityId) return defaultMiles;
+    const stateObj = this._hass.states[entityId];
+    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') return defaultMiles;
+    const val = parseFloat(stateObj.state);
+    if (isNaN(val)) return defaultMiles;
+    const unit = (stateObj.attributes?.unit_of_measurement || '').toLowerCase();
+    // If vehicle range is in km (e.g. 262 km), convert to miles (163 miles)
+    if (unit === 'km' || val > 200) {
+      return Math.round(val * 0.621371);
+    }
+    return Math.round(val);
+  }
+
   updateStatesFromHass() {
     if (!this._hass) return;
     const cfg = { ...this._config, ...this.customSensors };
 
-    // 1. Solax Solar (Auto-figures Watts vs kW)
-    const solaxPower = this.getPowerInKw(cfg.solax_power, this.energyData.solar.power_kw);
+    // 1. Solax Solar Integration
+    const entSolaxPower = this.resolveEntity(cfg.solax_power, 'solax_snm9wncrqy_ac_output_power', 'ac_output_power', 'pv1_power', 'solax_pv_power');
+    const entSolaxToday = this.resolveEntity(cfg.solax_today, 'solax_snm9wncrqy_today_s_generated_energy', 'today_s_generated_energy', 'solax_today');
+    const entSolaxWeek  = this.resolveEntity(cfg.solax_week, 'solax_snm9wncrqy_today_s_generated_energy', 'solax_week');
+    const entSolaxMonth = this.resolveEntity(cfg.solax_month, 'solax_snm9wncrqy_today_s_generated_energy', 'solax_month');
+    const entSolaxYear  = this.resolveEntity(cfg.solax_year, 'solax_snm9wncrqy_total_generated_energy', 'total_generated_energy', 'solax_year');
+
+    const solaxPower = this.getPowerInKw(entSolaxPower, this.energyData.solar.power_kw);
     this.energyData.solar = {
       power_kw: solaxPower,
-      today_kwh: this.getEnergyInKwh(cfg.solax_today, this.energyData.solar.today_kwh),
-      week_kwh: this.getEnergyInKwh(cfg.solax_week, this.energyData.solar.week_kwh),
-      month_kwh: this.getEnergyInKwh(cfg.solax_month, this.energyData.solar.month_kwh),
-      year_kwh: this.getEnergyInKwh(cfg.solax_year, this.energyData.solar.year_kwh),
+      today_kwh: this.getEnergyInKwh(entSolaxToday, this.energyData.solar.today_kwh),
+      week_kwh: this.getEnergyInKwh(entSolaxWeek, this.energyData.solar.week_kwh),
+      month_kwh: this.getEnergyInKwh(entSolaxMonth, this.energyData.solar.month_kwh),
+      year_kwh: this.getEnergyInKwh(entSolaxYear, this.energyData.solar.year_kwh),
       status: solaxPower > 0.04 ? 'Generating' : 'Idle'
     };
 
-    // 2. Octopus Electricity & Grid (Auto-figures Watts vs kW, Import vs Export)
-    let electricKw = this.getPowerInKw(cfg.octopus_electric_power, this.energyData.octopus_electric.power_kw);
-    const exportKw = this.getPowerInKw(cfg.octopus_export_power, 0);
-    let isExporting = false;
+    // 2. Octopus Electricity & Grid
+    const entOctopusPower = this.resolveEntity(cfg.octopus_electric_power, 'electricity_22l3956422_3200000391421_current_demand', 'electricity_current_demand', 'current_demand');
+    const entOctopusExport = this.resolveEntity(cfg.octopus_export_power, 'solax_snm9wncrqy_exported_power', 'power_export', 'exported_power');
+    const entOctopusRate = this.resolveEntity(cfg.octopus_rate, 'electricity_22l3956422_3200000391421_current_rate', 'electricity_current_rate');
+    const entOctopusSpend = this.resolveEntity(cfg.octopus_monthly_spend, 'electricity_22l3956422_3200000391421_current_accumulative_cost', 'electricity_current_accumulative_cost');
+    const entOctopus30min = this.resolveEntity(cfg.octopus_electric_30min, 'electricity_22l3956422_3200000391421_current_accumulative_consumption', 'electricity_30min');
+    const entOctopusDay = this.resolveEntity(cfg.octopus_electric_day, 'electricity_22l3956422_3200000391421_current_accumulative_consumption', 'electricity_today');
+    const entOctopusWeek = this.resolveEntity(cfg.octopus_electric_week, 'electricity_22l3956422_3200000391421_previous_accumulative_consumption', 'electricity_week');
+    const entOctopusMonth = this.resolveEntity(cfg.octopus_electric_month, 'electricity_22l3956422_3200000391421_current_total_consumption', 'electricity_month');
 
-    // Strict rule:
-    // If electricKw > 0.02: House is IMPORTING from Octopus grid -> positive kW, flow moves towards house.
-    // If electricKw < -0.02: House is EXPORTING (negative) -> flow moves away from house towards pylon.
+    let electricKw = this.getPowerInKw(entOctopusPower, this.energyData.octopus_electric.power_kw);
+    let exportKw = this.getPowerInKw(entOctopusExport, 0);
+    if (exportKw > 25.0) exportKw = 0; // Guard against integer overflow sensors (e.g. 4294901755 W)
+
+    let isExporting = false;
     if (electricKw < -0.02) {
       isExporting = true;
     } else if (electricKw > 0.02) {
       isExporting = false;
     } else if (exportKw > 0.04) {
-      // Only when main electricity power is ~0 and dedicated export sensor reports export
       electricKw = -exportKw;
       isExporting = true;
     }
@@ -451,31 +504,35 @@ export class HaEnergy3DCard extends HTMLElement {
     this.energyData.octopus_electric = {
       power_kw: electricKw,
       is_exporting: isExporting,
-      current_rate_p: this.getEntityNumericValue(cfg.octopus_rate, this.energyData.octopus_electric.current_rate_p),
-      monthly_spend_gbp: this.getEntityNumericValue(cfg.octopus_monthly_spend, this.energyData.octopus_electric.monthly_spend_gbp),
-      reading_30min_kwh: this.getEnergyInKwh(cfg.octopus_electric_30min, this.energyData.octopus_electric.reading_30min_kwh),
-      day_kwh: this.getEnergyInKwh(cfg.octopus_electric_day, this.energyData.octopus_electric.day_kwh),
-      week_kwh: this.getEnergyInKwh(cfg.octopus_electric_week, this.energyData.octopus_electric.week_kwh),
-      month_kwh: this.getEnergyInKwh(cfg.octopus_electric_month, this.energyData.octopus_electric.month_kwh)
+      current_rate_p: this.getTariffRate(entOctopusRate, this.energyData.octopus_electric.current_rate_p),
+      monthly_spend_gbp: this.getEntityNumericValue(entOctopusSpend, this.energyData.octopus_electric.monthly_spend_gbp),
+      reading_30min_kwh: this.getEnergyInKwh(entOctopus30min, this.energyData.octopus_electric.reading_30min_kwh),
+      day_kwh: this.getEnergyInKwh(entOctopusDay, this.energyData.octopus_electric.day_kwh),
+      week_kwh: this.getEnergyInKwh(entOctopusWeek, this.energyData.octopus_electric.week_kwh),
+      month_kwh: this.getEnergyInKwh(entOctopusMonth, this.energyData.octopus_electric.month_kwh)
     };
 
     // 3. Thermostats (Upstairs & Downstairs Heating Monitoring)
-    const downThermo = this.getThermostatState(cfg.thermostat_downstairs, this.energyData.thermostats?.downstairs);
-    const upThermo = this.getThermostatState(cfg.thermostat_upstairs, this.energyData.thermostats?.upstairs);
+    const entThermoDown = this.resolveEntity(cfg.thermostat_downstairs, 'climate.tado_x_downstairs', 'climate.downstairs');
+    const entThermoUp = this.resolveEntity(cfg.thermostat_upstairs, 'climate.smart_thermostat_x', 'climate.tado_x_upstairs', 'climate.upstairs');
+    const downThermo = this.getThermostatState(entThermoDown, this.energyData.thermostats?.downstairs);
+    const upThermo = this.getThermostatState(entThermoUp, this.energyData.thermostats?.upstairs);
     this.energyData.thermostats = {
       downstairs: downThermo,
       upstairs: upThermo
     };
 
     // 4. Octopus Gas & Combi Boiler
-    // Rule:
-    // If a thermostat is set to heat but has reached or exceeded set temperature -> Standby.
-    // If both are set to heat, one has reached and other hasn't -> Heating.
-    // If both have reached it -> Standby. Only show heating if actual heating is occurring.
-    let isBoilerHeating = false;
+    const entGasRate = this.resolveEntity(cfg.octopus_gas_rate, 'gas_e6s18975782161_7756751506_current_rate', 'gas_current_rate');
+    const entGasSpend = this.resolveEntity(cfg.octopus_gas_spend, 'gas_e6s18975782161_7756751506_current_accumulative_cost', 'gas_current_accumulative_cost');
+    const entGas30min = this.resolveEntity(cfg.octopus_gas_30min, 'gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh', 'gas_30min');
+    const entGasDay = this.resolveEntity(cfg.octopus_gas_day, 'gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh', 'gas_day');
+    const entGasWeek = this.resolveEntity(cfg.octopus_gas_week, 'gas_e6s18975782161_7756751506_previous_accumulative_consumption_kwh', 'gas_week');
+    const entGasMonth = this.resolveEntity(cfg.octopus_gas_month, 'gas_e6s18975782161_7756751506_current_total_consumption_kwh', 'gas_month');
 
-    const hasDownThermo = Boolean(cfg.thermostat_downstairs && this._hass?.states?.[cfg.thermostat_downstairs]);
-    const hasUpThermo = Boolean(cfg.thermostat_upstairs && this._hass?.states?.[cfg.thermostat_upstairs]);
+    let isBoilerHeating = false;
+    const hasDownThermo = Boolean(entThermoDown && this._hass?.states?.[entThermoDown]);
+    const hasUpThermo = Boolean(entThermoUp && this._hass?.states?.[entThermoUp]);
     const thermostatsConfigured = hasDownThermo || hasUpThermo;
 
     // Active heating demand from thermostats
@@ -486,7 +543,6 @@ export class HaEnergy3DCard extends HTMLElement {
     );
 
     if (thermostatsConfigured) {
-      // Thermostats govern central heating demand
       if (cfg.boiler_status && this._hass?.states?.[cfg.boiler_status]) {
         const bObj = this._hass.states[cfg.boiler_status];
         const bState = (bObj.state || '').toLowerCase().trim();
@@ -502,7 +558,6 @@ export class HaEnergy3DCard extends HTMLElement {
         isBoilerHeating = thermostatDemand;
       }
     } else {
-      // Fallback when no thermostats are configured
       if (cfg.boiler_status && this._hass?.states?.[cfg.boiler_status]) {
         const bObj = this._hass.states[cfg.boiler_status];
         const bState = (bObj.state || '').toLowerCase().trim();
@@ -529,34 +584,29 @@ export class HaEnergy3DCard extends HTMLElement {
       is_active: isBoilerHeating,
       power_kw: isBoilerHeating ? 1.45 : 0.0,
       boiler_status: boilerStatus,
-      reading_30min_kwh: this.getEnergyInKwh(cfg.octopus_gas_30min, this.energyData.octopus_gas.reading_30min_kwh),
-      day_kwh: this.getEnergyInKwh(cfg.octopus_gas_day, this.energyData.octopus_gas.day_kwh),
-      week_kwh: this.getEnergyInKwh(cfg.octopus_gas_week, this.energyData.octopus_gas.week_kwh),
-      month_kwh: this.getEnergyInKwh(cfg.octopus_gas_month, this.energyData.octopus_gas.month_kwh),
-      current_rate_p: this.getEntityNumericValue(cfg.octopus_gas_rate, this.energyData.octopus_gas.current_rate_p),
-      monthly_spend_gbp: this.getEntityNumericValue(cfg.octopus_gas_spend, this.energyData.octopus_gas.monthly_spend_gbp)
+      reading_30min_kwh: this.getEnergyInKwh(entGas30min, this.energyData.octopus_gas.reading_30min_kwh),
+      day_kwh: this.getEnergyInKwh(entGasDay, this.energyData.octopus_gas.day_kwh),
+      week_kwh: this.getEnergyInKwh(entGasWeek, this.energyData.octopus_gas.week_kwh),
+      month_kwh: this.getEnergyInKwh(entGasMonth, this.energyData.octopus_gas.month_kwh),
+      current_rate_p: this.getTariffRate(entGasRate, this.energyData.octopus_gas.current_rate_p),
+      monthly_spend_gbp: this.getEntityNumericValue(entGasSpend, this.energyData.octopus_gas.monthly_spend_gbp)
     };
 
-    // 5. myenergi Zappi & Peugeot e-2008 (Auto-figures Watts vs kW, e.g. 7200W -> 7.2 kW)
-    const evChargerKw = this.getPowerInKw(cfg.myenergi_power, this.energyData.ev.charger_power_kw);
+    // 5. myenergi Zappi & Peugeot e-2008
+    const entZappiPower = this.resolveEntity(cfg.myenergi_power, 'myenergi_zappi_30084500_internal_load_ct1', 'power_ct_internal_load', 'zappi_power');
+    const entZappiStatus = this.resolveEntity(cfg.myenergi_status, 'myenergi_zappi_30084500_plug_status', 'zappi_plug_status', 'plug_status');
+    const entZappiEnergy = this.resolveEntity(cfg.myenergi_energy, 'myenergi_zappi_30084500_charge_added_session', 'charge_added_session');
 
-    // Look for status entity with auto-fallback to plug_status if not explicitly configured
-    let zappiStatusEntity = cfg.myenergi_status;
-    if ((!zappiStatusEntity || !this._hass?.states?.[zappiStatusEntity]) && this._hass?.states) {
-      const found = Object.keys(this._hass.states).find(id =>
-        (id.includes('zappi') || id.includes('myenergi')) && (id.includes('plug_status') || id.includes('status'))
-      );
-      if (found) zappiStatusEntity = found;
-    }
+    const entPeugeotBattery = this.resolveEntity(cfg.peugeot_battery, 'sensor.vr3ukzkxzmj557948_battery', 'vr3ukzkxzmj557948_battery', 'battery_level', 'e2008_battery');
+    const entPeugeotRange = this.resolveEntity(cfg.peugeot_range, 'sensor.vr3ukzkxzmj557948_autonomy', 'vr3ukzkxzmj557948_autonomy', 'autonomy', 'e2008_range');
 
-    const evStatusRaw = this.getEntityState(zappiStatusEntity, '').toLowerCase().trim();
+    const evChargerKw = this.getPowerInKw(entZappiPower, this.energyData.ev.charger_power_kw);
+    const evStatusRaw = this.getEntityState(entZappiStatus, '').toLowerCase().trim();
 
     let isConnected = false;
     let statusText = 'Disconnected';
 
     if (evStatusRaw) {
-      // IMPORTANT: Check for disconnected/unplugged FIRST!
-      // Substrings: "ev disconnected" contains "connect", so checking "connect" first produces false "Connected"!
       if (
         evStatusRaw.includes('disconn') ||
         evStatusRaw.includes('unplug') ||
@@ -603,13 +653,13 @@ export class HaEnergy3DCard extends HTMLElement {
       is_connected: isConnected,
       status_text: statusText,
       charger_power_kw: isConnected ? evChargerKw : 0.0,
-      energy_added_kwh: this.getEnergyInKwh(cfg.myenergi_energy, this.energyData.ev.energy_added_kwh),
+      energy_added_kwh: this.getEnergyInKwh(entZappiEnergy, this.energyData.ev.energy_added_kwh),
       charger_mode: evChargerKw > 3.0 ? 'Fast' : 'Eco+',
-      battery_soc_pct: this.getEntityNumericValue(cfg.peugeot_battery, this.energyData.ev.battery_soc_pct),
-      range_miles: this.getEntityNumericValue(cfg.peugeot_range, this.energyData.ev.range_miles)
+      battery_soc_pct: this.getEntityNumericValue(entPeugeotBattery, this.energyData.ev.battery_soc_pct),
+      range_miles: this.getVehicleRange(entPeugeotRange, this.energyData.ev.range_miles)
     };
 
-    // 6. Customizable 3D Lights (Mapped to Home Assistant entities or manual toggle)
+    // 6. Customizable 3D Lights
     const lightsData = {};
     for (const light of this.customLights) {
       let entityId = cfg[`light_${light.id}`];
@@ -644,25 +694,29 @@ export class HaEnergy3DCard extends HTMLElement {
     this.energyData.room_lights = lightsData;
 
     // 7. Kitchen Fridge Freezer, Living Room TV, and Corner Lamp
-    const fridgeStateObj = cfg.sensor_fridge && this._hass ? this._hass.states[cfg.sensor_fridge] : null;
-    const fridgeRawState = (fridgeStateObj ? fridgeStateObj.state : this.getEntityState(cfg.sensor_fridge, '')).toLowerCase();
+    const entFridge = this.resolveEntity(cfg.sensor_fridge, 'sensor.refrigerator_power', 'refrigerator_power', 'fridge_power');
+    const entWasher = this.resolveEntity(cfg.sensor_washer, 'sensor.kitchen_washing_machine_daily_energy', 'washing_machine_power', 'washer_power');
+    const entTv = this.resolveEntity(cfg.sensor_tv, 'switch.living_room_living_room_tv_plug', 'media_player.lg_webos_tv_oled55c43la_2', 'media_player.living_room_tv');
+
+    const fridgeStateObj = entFridge && this._hass ? this._hass.states[entFridge] : null;
+    const fridgeRawState = (fridgeStateObj ? fridgeStateObj.state : '').toLowerCase();
     const isFridgeUnavailable = fridgeStateObj && (fridgeRawState === 'unavailable' || fridgeRawState === 'unknown');
     let fridgePower = 0.0;
     if (isFridgeUnavailable) {
       fridgePower = 0.0;
     } else {
-      fridgePower = this.getPowerInKw(cfg.sensor_fridge, this.energyData.appliances?.fridge?.power_kw ?? 0.085);
+      fridgePower = this.getPowerInKw(entFridge, this.energyData.appliances?.fridge?.power_kw ?? 0.048);
     }
     const isFridgeActive = !isFridgeUnavailable && (fridgePower > 0.005 || fridgeRawState === 'on');
 
-    const tvStateObj = cfg.sensor_tv && this._hass ? this._hass.states[cfg.sensor_tv] : null;
+    const tvStateObj = entTv && this._hass ? this._hass.states[entTv] : null;
     let isTvOn = false;
     let tvPower = 0;
     if (tvStateObj) {
-      const s = tvStateObj.state;
+      const s = tvStateObj.state.toLowerCase();
       isTvOn = s === 'on' || s === 'playing' || s === 'paused' || s === 'idle';
       if (tvStateObj.attributes?.unit_of_measurement) {
-        tvPower = autoFigureKw(s, tvStateObj.attributes.unit_of_measurement);
+        tvPower = autoFigureKw(tvStateObj.state, tvStateObj.attributes.unit_of_measurement);
         isTvOn = tvPower > 0.015;
       } else {
         tvPower = isTvOn ? 0.095 : 0.001;
@@ -672,14 +726,14 @@ export class HaEnergy3DCard extends HTMLElement {
       tvPower = this.energyData.appliances.tv.power_kw;
     }
 
-    const washerStateObj = cfg.sensor_washer && this._hass ? this._hass.states[cfg.sensor_washer] : null;
-    const washerRawState = (washerStateObj ? washerStateObj.state : this.getEntityState(cfg.sensor_washer, '')).toLowerCase();
+    const washerStateObj = entWasher && this._hass ? this._hass.states[entWasher] : null;
+    const washerRawState = (washerStateObj ? washerStateObj.state : '').toLowerCase();
     const isWasherUnavailable = washerStateObj && (washerRawState === 'unavailable' || washerRawState === 'unknown');
     let washerPower = 0.0;
     if (isWasherUnavailable) {
       washerPower = 0.0;
     } else {
-      washerPower = this.getPowerInKw(cfg.sensor_washer, this.energyData.appliances?.washer?.power_kw ?? 0.0);
+      washerPower = this.getPowerInKw(entWasher, this.energyData.appliances?.washer?.power_kw ?? 0.0);
     }
     const isWasherActive = !isWasherUnavailable && (washerPower > 0.010 || washerRawState === 'on' || washerRawState === 'running');
 
@@ -688,21 +742,21 @@ export class HaEnergy3DCard extends HTMLElement {
 
     this.energyData.appliances = {
       fridge: {
-        entity_id: cfg.sensor_fridge || '',
+        entity_id: entFridge || '',
         power_kw: fridgePower,
         power_w: isFridgeUnavailable ? 0 : Math.round(fridgePower * 1000),
         is_active: isFridgeActive,
         state: isFridgeUnavailable ? 'Unavailable' : (isFridgeActive ? 'Running' : 'Standby')
       },
       washer: {
-        entity_id: cfg.sensor_washer || '',
+        entity_id: entWasher || '',
         power_kw: washerPower,
         power_w: isWasherUnavailable ? 0 : Math.round(washerPower * 1000),
         is_active: isWasherActive,
         state: isWasherUnavailable ? 'Unavailable' : (isWasherActive ? 'Running' : 'Standby')
       },
       tv: {
-        entity_id: cfg.sensor_tv || '',
+        entity_id: entTv || '',
         is_on: isTvOn,
         power_kw: tvPower,
         power_w: Math.round(tvPower * 1000),

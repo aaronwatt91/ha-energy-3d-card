@@ -5,18 +5,18 @@ import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRe
 import { EnergyFlowSystem } from './energy-flow-system.js';
 
 export const DEFAULT_LIGHTS = [
-  { id: 'lounge', name: 'Living Room Ceiling', floor: 'ground', pos: { x: 1.88, y: 2.15, z: -2.35 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: '' },
-  { id: 'kitchen', name: 'Kitchen Ceiling', floor: 'ground', pos: { x: 1.80, y: 2.15, z: -7.40 }, range: 7.0, maxIntensity: 4.5, defaultColor: 0xfff0d6, entity_id: '' },
+  { id: 'lounge', name: 'Living Room Ceiling', floor: 'ground', pos: { x: 1.88, y: 2.15, z: -2.35 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.living_room_living_room_light' },
+  { id: 'kitchen', name: 'Kitchen Ceiling', floor: 'ground', pos: { x: 1.80, y: 2.15, z: -7.40 }, range: 7.0, maxIntensity: 4.5, defaultColor: 0xfff0d6, entity_id: 'light.kitchen_light' },
   { id: 'dining', name: 'Dining Room', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -7.40 }, range: 6.5, maxIntensity: 4.0, defaultColor: 0xffe6b8, entity_id: '' },
-  { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -3.25 }, range: 7.5, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: '' },
+  { id: 'hallway', name: 'Hall & Stairs', floor: 'ground', pos: { x: 4.30, y: 2.15, z: -3.25 }, range: 7.5, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.downstairs_hallway' },
   { id: 'wc', name: 'Downstairs WC', floor: 'ground', pos: { x: 1.85, y: 2.15, z: -5.32 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff1dc, entity_id: '' },
   { id: 'living_lamp', name: 'Living Room Lamp', floor: 'ground', pos: { x: 0.60, y: 1.58, z: -0.65 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xffd580, entity_id: 'light.living_room_lamp', isFloorLamp: true },
-  { id: 'master_bedroom', name: 'Master Bedroom', floor: 'first', pos: { x: 1.90, y: 4.55, z: -2.10 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: '' },
-  { id: 'ensuite', name: 'Master En-Suite', floor: 'first', pos: { x: 4.40, y: 4.55, z: -1.22 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xfff6ea, entity_id: '' },
-  { id: 'bedroom2', name: 'Bedroom 2 (Guestroom)', floor: 'first', pos: { x: 1.75, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: '' },
-  { id: 'bedroom3', name: 'Bedroom 3 (Nursery / Office)', floor: 'first', pos: { x: 4.30, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: '' },
-  { id: 'bathroom', name: 'Family Bathroom', floor: 'first', pos: { x: 1.22, y: 4.55, z: -4.95 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff8ee, entity_id: '' },
-  { id: 'landing', name: 'Upstairs Landing', floor: 'first', pos: { x: 3.30, y: 4.55, z: -4.95 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: '' }
+  { id: 'master_bedroom', name: 'Master Bedroom', floor: 'first', pos: { x: 1.90, y: 4.55, z: -2.10 }, range: 7.5, maxIntensity: 4.2, defaultColor: 0xffe299, entity_id: 'light.bedroom_bedroom_light' },
+  { id: 'ensuite', name: 'Master En-Suite', floor: 'first', pos: { x: 4.40, y: 4.55, z: -1.22 }, range: 5.0, maxIntensity: 3.6, defaultColor: 0xfff6ea, entity_id: 'light.en_suite_light' },
+  { id: 'bedroom2', name: 'Bedroom 2 (Guestroom)', floor: 'first', pos: { x: 1.75, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: 'light.guest_room_guest_room_light' },
+  { id: 'bedroom3', name: 'Bedroom 3 (Nursery / Office)', floor: 'first', pos: { x: 4.30, y: 4.55, z: -7.30 }, range: 6.8, maxIntensity: 4.0, defaultColor: 0xffe299, entity_id: 'light.office_nursey_light' },
+  { id: 'bathroom', name: 'Family Bathroom', floor: 'first', pos: { x: 1.22, y: 4.55, z: -4.95 }, range: 5.5, maxIntensity: 3.8, defaultColor: 0xfff8ee, entity_id: 'light.bathroom_light' },
+  { id: 'landing', name: 'Upstairs Landing', floor: 'first', pos: { x: 3.30, y: 4.55, z: -4.95 }, range: 6.0, maxIntensity: 3.8, defaultColor: 0xffedd5, entity_id: 'light.upstairs_hallway' }
 ];
 
 export const ROOM_LIGHT_CONFIGS = {
@@ -1385,21 +1385,27 @@ export class SceneManager {
     this.applianceInverter = inverterGroup;
 
     // Physical Solar DC Cable Conduit:
-    // Runs from under roof panels, along exterior eaves to party wall, and straight down outside into the inverter
+    // Runs from under roof panels, along rear roof tiles, over gable verge trim, and straight down party wall into inverter
     const solarCurve = this.energyFlow?.paths?.solar || new THREE.CatmullRomCurve3([
-      new THREE.Vector3(2.50, 6.45, -6.50),
-      new THREE.Vector3(4.10, 6.55, -6.50),
-      new THREE.Vector3(5.63, 6.55, -6.50),
-      new THREE.Vector3(5.63, 5.20, -4.50),
-      new THREE.Vector3(5.63, 3.80, -2.50),
-      new THREE.Vector3(5.63, 2.60, -1.00),
-      new THREE.Vector3(5.63, 2.05, -0.50),
-      new THREE.Vector3(5.63, 1.75, -0.50),
-      new THREE.Vector3(5.63, 1.40, -0.50),
-      new THREE.Vector3(5.50, 1.25, -0.75)
+      new THREE.Vector3(3.20, 6.06, -6.50),  // Under solar panel frame on rear roof tiles
+      new THREE.Vector3(4.40, 6.06, -6.50),  // Running horizontally along rear roof tiles
+      new THREE.Vector3(5.61, 6.06, -6.50),  // Reaching roof verge / party wall boundary
+      new THREE.Vector3(5.632, 6.05, -6.50), // Snug against party wall outer roughcast face (X = 5.632)
+      new THREE.Vector3(5.632, 6.60, -5.30), // Following rear gable verge line upward
+      new THREE.Vector3(5.632, 7.15, -4.16), // Crossing ridge apex verge trim (Y = 7.15, Z = -4.16)
+      new THREE.Vector3(5.632, 6.20, -2.30), // Following front gable verge line downward
+      new THREE.Vector3(5.632, 5.30, -0.50), // Reaching front verge corner directly above inverter (Z = -0.50)
+      new THREE.Vector3(5.632, 3.80, -0.50), // Vertical conduit drop attached flush to party wall
+      new THREE.Vector3(5.632, 2.80, -0.50), // Vertical conduit drop attached flush to party wall
+      new THREE.Vector3(5.632, 2.10, -0.50), // Entering top DC glands of Solax inverter
+      new THREE.Vector3(5.632, 1.75, -0.50), // Through Solax Inverter core
+      new THREE.Vector3(5.632, 1.40, -0.50), // AC output gland below inverter
+      new THREE.Vector3(5.632, 1.15, -0.50), // Vertical drop to wall penetration inspection elbow
+      new THREE.Vector3(5.45, 1.15, -0.65),  // Passing through 300mm exterior wall sleeve
+      new THREE.Vector3(5.27, 1.15, -0.75)   // Entering smart meter / consumer unit (INTERNAL)
     ]);
 
-    const cableGeom = new THREE.TubeGeometry(solarCurve, 84, 0.016, 8, false);
+    const cableGeom = new THREE.TubeGeometry(solarCurve, 96, 0.016, 8, false);
     const cableMat = new THREE.MeshStandardMaterial({
       color: 0x1e293b,
       roughness: 0.45,
@@ -1411,13 +1417,32 @@ export class SceneManager {
     this.appliancesGroup.add(solarCableConduit);
     this.solarCableConduit = solarCableConduit;
 
-    // Cable wall saddles / mounting cleats along the external party wall
-    const saddleMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3, metalness: 0.8 });
-    for (let t = 0.30; t <= 0.88; t += 0.08) {
-      const pt = solarCurve.getPointAt(t);
+    // Cable wall saddles / mounting cleats physically holding conduit to the party wall & verge
+    const saddleMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.35, metalness: 0.8 });
+    // Vertical drop wall saddles (straight vertical down party wall at X = 5.632, Z = -0.50):
+    for (const sy of [1.25, 2.35, 3.10, 3.85, 4.60]) {
       const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.04, 0.045), saddleMat);
-      saddle.position.set(5.64, pt.y, pt.z);
+      saddle.position.set(5.632, sy, -0.50);
       this.appliancesGroup.add(saddle);
+    }
+    // Verge line saddles:
+    const vergePoints = [
+      new THREE.Vector3(5.632, 5.80, -1.45),
+      new THREE.Vector3(5.632, 6.55, -2.90),
+      new THREE.Vector3(5.632, 7.10, -4.16),
+      new THREE.Vector3(5.632, 6.60, -5.30),
+      new THREE.Vector3(5.632, 6.10, -6.40)
+    ];
+    for (const vp of vergePoints) {
+      const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.04, 0.04), saddleMat);
+      saddle.position.copy(vp);
+      this.appliancesGroup.add(saddle);
+    }
+    // Roof tile cable clips (holding horizontal cable flat across rear roof tiles):
+    for (const rx of [3.60, 4.30, 5.00]) {
+      const clip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 0.04), saddleMat);
+      clip.position.set(rx, 6.06, -6.50);
+      this.appliancesGroup.add(clip);
     }
   }
 

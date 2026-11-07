@@ -85,11 +85,11 @@ export class HaEnergy3DCardEditor extends HTMLElement {
         <div class="grid-2">
           <div class="input-row">
             <label>Live Solar Power (kW)</label>
-            <input type="text" data-key="solax_power" value="${c.solax_power || 'sensor.solax_pv_power_total'}">
+            <input type="text" data-key="solax_power" value="${c.solax_power || 'sensor.solax_snm9wncrqy_ac_output_power'}">
           </div>
           <div class="input-row">
             <label>Today Solar Energy (kWh)</label>
-            <input type="text" data-key="solax_today" value="${c.solax_today || 'sensor.solax_today_s_solar_energy'}">
+            <input type="text" data-key="solax_today" value="${c.solax_today || 'sensor.solax_snm9wncrqy_today_s_generated_energy'}">
           </div>
           <div class="input-row">
             <label>This Week Solar (kWh)</label>
@@ -100,36 +100,36 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <input type="text" data-key="solax_month" value="${c.solax_month || 'sensor.solax_this_month_solar_energy'}">
           </div>
           <div class="input-row">
-            <label>This Year Solar (kWh)</label>
-            <input type="text" data-key="solax_year" value="${c.solax_year || 'sensor.solax_this_year_solar_energy'}">
+            <label>Total / Year Solar (kWh)</label>
+            <input type="text" data-key="solax_year" value="${c.solax_year || 'sensor.solax_snm9wncrqy_total_generated_energy'}">
           </div>
         </div>
 
         <div class="section-title">⚡ Octopus Electricity & Grid</div>
         <div class="grid-2">
           <div class="input-row">
-            <label>Live Electric Power / Mini (kW)</label>
-            <input type="text" data-key="octopus_electric_power" value="${c.octopus_electric_power || 'sensor.octopus_home_mini_current_electricity_power'}">
+            <label>Live Electric Power / Demand (kW/W)</label>
+            <input type="text" data-key="octopus_electric_power" value="${c.octopus_electric_power || 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand'}">
           </div>
           <div class="input-row">
             <label>Feed-In Export Power (kW)</label>
-            <input type="text" data-key="octopus_export_power" value="${c.octopus_export_power || 'sensor.solax_feed_in_power'}">
+            <input type="text" data-key="octopus_export_power" value="${c.octopus_export_power || 'sensor.solax_snm9wncrqy_exported_power'}">
           </div>
           <div class="input-row">
-            <label>Electricity Unit Rate (p/kWh)</label>
-            <input type="text" data-key="octopus_rate" value="${c.octopus_rate || 'sensor.octopus_energy_electricity_current_rate'}">
+            <label>Electricity Unit Rate (p/kWh or GBP)</label>
+            <input type="text" data-key="octopus_rate" value="${c.octopus_rate || 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_rate'}">
           </div>
           <div class="input-row">
             <label>Month Spend (£)</label>
-            <input type="text" data-key="octopus_monthly_spend" value="${c.octopus_monthly_spend || 'sensor.octopus_energy_electricity_current_month_cost'}">
+            <input type="text" data-key="octopus_monthly_spend" value="${c.octopus_monthly_spend || 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_cost'}">
           </div>
           <div class="input-row">
-            <label>Octopus Mini 30-Min (kWh)</label>
-            <input type="text" data-key="octopus_electric_30min" value="${c.octopus_electric_30min || 'sensor.octopus_home_mini_electricity_30min'}">
+            <label>Electricity Accumulative / 30-Min (kWh)</label>
+            <input type="text" data-key="octopus_electric_30min" value="${c.octopus_electric_30min || 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_consumption'}">
           </div>
           <div class="input-row">
             <label>Electricity Day (kWh)</label>
-            <input type="text" data-key="octopus_electric_day" value="${c.octopus_electric_day || 'sensor.octopus_energy_electricity_day'}">
+            <input type="text" data-key="octopus_electric_day" value="${c.octopus_electric_day || 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_consumption'}">
           </div>
           <div class="input-row">
             <label>Electricity Week (kWh)</label>
@@ -137,7 +137,7 @@ export class HaEnergy3DCardEditor extends HTMLElement {
           </div>
           <div class="input-row">
             <label>Electricity Month (kWh)</label>
-            <input type="text" data-key="octopus_electric_month" value="${c.octopus_electric_month || 'sensor.octopus_energy_electricity_month'}">
+            <input type="text" data-key="octopus_electric_month" value="${c.octopus_energy_electricity_month || ''}">
           </div>
         </div>
 
@@ -148,12 +148,12 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <input type="text" data-key="boiler_status" value="${c.boiler_status || 'sensor.boiler_status'}">
           </div>
           <div class="input-row">
-            <label>Octopus Mini Gas 30-Min (kWh)</label>
-            <input type="text" data-key="octopus_gas_30min" value="${c.octopus_gas_30min || 'sensor.octopus_home_mini_gas_30min'}">
+            <label>Gas Accumulative (kWh)</label>
+            <input type="text" data-key="octopus_gas_30min" value="${c.octopus_gas_30min || 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh'}">
           </div>
           <div class="input-row">
             <label>Gas Day (kWh)</label>
-            <input type="text" data-key="octopus_gas_day" value="${c.octopus_gas_day || 'sensor.octopus_energy_gas_day'}">
+            <input type="text" data-key="octopus_gas_day" value="${c.octopus_gas_day || 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh'}">
           </div>
           <div class="input-row">
             <label>Gas Week (kWh)</label>
@@ -164,12 +164,12 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <input type="text" data-key="octopus_gas_month" value="${c.octopus_gas_month || 'sensor.octopus_energy_gas_month'}">
           </div>
           <div class="input-row">
-            <label>Gas Unit Rate (p/kWh)</label>
-            <input type="text" data-key="octopus_gas_rate" value="${c.octopus_gas_rate || 'sensor.octopus_energy_gas_current_rate'}">
+            <label>Gas Unit Rate (p/kWh or GBP)</label>
+            <input type="text" data-key="octopus_gas_rate" value="${c.octopus_gas_rate || 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_rate'}">
           </div>
           <div class="input-row">
             <label>Gas Month Spend (£)</label>
-            <input type="text" data-key="octopus_gas_spend" value="${c.octopus_gas_spend || 'sensor.octopus_energy_gas_current_month_cost'}">
+            <input type="text" data-key="octopus_gas_spend" value="${c.octopus_gas_spend || 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_cost'}">
           </div>
         </div>
 
@@ -177,23 +177,23 @@ export class HaEnergy3DCardEditor extends HTMLElement {
         <div class="grid-2">
           <div class="input-row">
             <label>Zappi Charging Power (kW)</label>
-            <input type="text" data-key="myenergi_power" value="${c.myenergi_power || 'sensor.myenergi_zappi_power'}">
+            <input type="text" data-key="myenergi_power" value="${c.myenergi_power || 'sensor.myenergi_zappi_30084500_internal_load_ct1'}">
           </div>
           <div class="input-row">
             <label>Zappi Connection Status</label>
-            <input type="text" data-key="myenergi_status" value="${c.myenergi_status || 'sensor.myenergi_zappi_status'}">
+            <input type="text" data-key="myenergi_status" value="${c.myenergi_status || 'sensor.myenergi_zappi_30084500_plug_status'}">
           </div>
           <div class="input-row">
             <label>Zappi Session Energy (kWh)</label>
-            <input type="text" data-key="myenergi_energy" value="${c.myenergi_energy || 'sensor.myenergi_zappi_charge_added_session'}">
+            <input type="text" data-key="myenergi_energy" value="${c.myenergi_energy || 'sensor.myenergi_zappi_30084500_charge_added_session'}">
           </div>
           <div class="input-row">
             <label>Peugeot Battery SoC (%)</label>
-            <input type="text" data-key="peugeot_battery" value="${c.peugeot_battery || 'sensor.e2008_battery_level'}">
+            <input type="text" data-key="peugeot_battery" value="${c.peugeot_battery || 'sensor.vr3ukzkxzmj557948_battery'}">
           </div>
           <div class="input-row">
-            <label>Peugeot Remaining Range (miles)</label>
-            <input type="text" data-key="peugeot_range" value="${c.peugeot_range || 'sensor.e2008_battery_range'}">
+            <label>Peugeot Remaining Range (miles/km)</label>
+            <input type="text" data-key="peugeot_range" value="${c.peugeot_range || 'sensor.vr3ukzkxzmj557948_autonomy'}">
           </div>
         </div>
 
@@ -201,11 +201,11 @@ export class HaEnergy3DCardEditor extends HTMLElement {
         <div class="grid-2">
           <div class="input-row">
             <label>Downstairs Thermostat (climate/sensor)</label>
-            <input type="text" data-key="thermostat_downstairs" value="${c.thermostat_downstairs || 'climate.downstairs'}">
+            <input type="text" data-key="thermostat_downstairs" value="${c.thermostat_downstairs || 'climate.tado_x_downstairs'}">
           </div>
           <div class="input-row">
             <label>Upstairs Thermostat (climate/sensor)</label>
-            <input type="text" data-key="thermostat_upstairs" value="${c.thermostat_upstairs || 'climate.upstairs'}">
+            <input type="text" data-key="thermostat_upstairs" value="${c.thermostat_upstairs || 'climate.smart_thermostat_x'}">
           </div>
         </div>
 
@@ -213,15 +213,15 @@ export class HaEnergy3DCardEditor extends HTMLElement {
         <div class="grid-2">
           <div class="input-row">
             <label>Kitchen Fridge Freezer Power</label>
-            <input type="text" data-key="sensor_fridge" value="${c.sensor_fridge || 'sensor.fridge_power'}">
+            <input type="text" data-key="sensor_fridge" value="${c.sensor_fridge || 'sensor.refrigerator_power'}">
           </div>
           <div class="input-row">
-            <label>Kitchen Washing Machine Power</label>
-            <input type="text" data-key="sensor_washer" value="${c.sensor_washer || 'sensor.washing_machine_power'}">
+            <label>Kitchen Washing Machine Energy/Power</label>
+            <input type="text" data-key="sensor_washer" value="${c.sensor_washer || 'sensor.kitchen_washing_machine_daily_energy'}">
           </div>
           <div class="input-row">
             <label>Living Room TV (media_player/switch)</label>
-            <input type="text" data-key="sensor_tv" value="${c.sensor_tv || 'media_player.living_room_tv'}">
+            <input type="text" data-key="sensor_tv" value="${c.sensor_tv || 'switch.living_room_living_room_tv_plug'}">
           </div>
         </div>
 
@@ -229,7 +229,7 @@ export class HaEnergy3DCardEditor extends HTMLElement {
         <div class="grid-2">
           <div class="input-row">
             <label>Living Room / Lounge Ceiling</label>
-            <input type="text" data-key="light_lounge" value="${c.light_lounge || ''}" placeholder="e.g. light.living_room">
+            <input type="text" data-key="light_lounge" value="${c.light_lounge || 'light.living_room_living_room_light'}" placeholder="e.g. light.living_room_living_room_light">
           </div>
           <div class="input-row">
             <label>Living Room Lamp</label>
@@ -237,7 +237,7 @@ export class HaEnergy3DCardEditor extends HTMLElement {
           </div>
           <div class="input-row">
             <label>Kitchen</label>
-            <input type="text" data-key="light_kitchen" value="${c.light_kitchen || ''}" placeholder="e.g. light.kitchen">
+            <input type="text" data-key="light_kitchen" value="${c.light_kitchen || 'light.kitchen_light'}" placeholder="e.g. light.kitchen_light">
           </div>
           <div class="input-row">
             <label>Dining Room</label>
@@ -245,7 +245,7 @@ export class HaEnergy3DCardEditor extends HTMLElement {
           </div>
           <div class="input-row">
             <label>Entrance Hall & Stairs</label>
-            <input type="text" data-key="light_hallway" value="${c.light_hallway || ''}" placeholder="e.g. light.hallway">
+            <input type="text" data-key="light_hallway" value="${c.light_hallway || 'light.downstairs_hallway'}" placeholder="e.g. light.downstairs_hallway">
           </div>
           <div class="input-row">
             <label>Downstairs WC</label>
@@ -253,27 +253,27 @@ export class HaEnergy3DCardEditor extends HTMLElement {
           </div>
           <div class="input-row">
             <label>Master Bedroom</label>
-            <input type="text" data-key="light_master_bedroom" value="${c.light_master_bedroom || ''}" placeholder="e.g. light.master_bedroom">
+            <input type="text" data-key="light_master_bedroom" value="${c.light_master_bedroom || 'light.bedroom_bedroom_light'}" placeholder="e.g. light.bedroom_bedroom_light">
           </div>
           <div class="input-row">
             <label>Master En-Suite</label>
-            <input type="text" data-key="light_ensuite" value="${c.light_ensuite || ''}" placeholder="e.g. light.ensuite">
+            <input type="text" data-key="light_ensuite" value="${c.light_ensuite || 'light.en_suite_light'}" placeholder="e.g. light.en_suite_light">
           </div>
           <div class="input-row">
             <label>Bedroom 2 (Guestroom)</label>
-            <input type="text" data-key="light_bedroom2" value="${c.light_bedroom2 || ''}" placeholder="e.g. light.bedroom_2">
+            <input type="text" data-key="light_bedroom2" value="${c.light_bedroom2 || 'light.guest_room_guest_room_light'}" placeholder="e.g. light.guest_room_guest_room_light">
           </div>
           <div class="input-row">
             <label>Bedroom 3 (Nursery / Office)</label>
-            <input type="text" data-key="light_bedroom3" value="${c.light_bedroom3 || ''}" placeholder="e.g. light.bedroom_3">
+            <input type="text" data-key="light_bedroom3" value="${c.light_bedroom3 || 'light.office_nursey_light'}" placeholder="e.g. light.office_nursey_light">
           </div>
           <div class="input-row">
             <label>Family Bathroom</label>
-            <input type="text" data-key="light_bathroom" value="${c.light_bathroom || ''}" placeholder="e.g. light.family_bathroom">
+            <input type="text" data-key="light_bathroom" value="${c.light_bathroom || 'light.bathroom_light'}" placeholder="e.g. light.bathroom_light">
           </div>
           <div class="input-row">
             <label>Upstairs Landing</label>
-            <input type="text" data-key="light_landing" value="${c.light_landing || ''}" placeholder="e.g. light.landing">
+            <input type="text" data-key="light_landing" value="${c.light_landing || 'light.upstairs_hallway'}" placeholder="e.g. light.upstairs_hallway">
           </div>
         </div>
       </div>
