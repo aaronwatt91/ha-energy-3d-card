@@ -186,7 +186,7 @@ export class SceneManager {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.toneMappingExposure = 0.88;
     this.renderer.localClippingEnabled = true;
     this.downstairsClipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 2.52);
     this.container.appendChild(this.renderer.domElement);
@@ -251,11 +251,11 @@ export class SceneManager {
   }
 
   initLighting() {
-    this.ambientLight = new THREE.AmbientLight(0xffffff, this.nightMode ? 0.35 : 0.85);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, this.nightMode ? 0.05 : 0.12);
     this.scene.add(this.ambientLight);
 
     // Warm golden directional sunlight with 4K soft contact shadows
-    this.sunLight = new THREE.DirectionalLight(0xfff6ea, this.nightMode ? 0.2 : 2.2);
+    this.sunLight = new THREE.DirectionalLight(0xfff5e6, this.nightMode ? 0.08 : 1.45);
     this.sunLight.position.set(20, 26, 14);
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.width = 4096;
@@ -272,7 +272,7 @@ export class SceneManager {
     this.scene.add(this.sunLight);
 
     // Natural atmospheric sky-to-ground bounce hemisphere light
-    this.hemiLight = new THREE.HemisphereLight(0xb8d5f8, 0x3a4838, this.nightMode ? 0.2 : 0.65);
+    this.hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x2d3a2b, this.nightMode ? 0.06 : 0.18);
     this.scene.add(this.hemiLight);
 
     this.meterPointLight = new THREE.PointLight(0x00e5ff, 0.0, 4);
@@ -347,6 +347,7 @@ export class SceneManager {
       pmrem.compileEquirectangularShader();
       const envMap = pmrem.fromEquirectangular(skyTex).texture;
       this.scene.environment = envMap;
+      this.scene.environmentIntensity = this.nightMode ? 0.10 : 0.55;
       pmrem.dispose();
       skyTex.dispose();
     } catch (e) {
@@ -1529,18 +1530,20 @@ export class SceneManager {
   applyLightingMode() {
     if (this.nightMode) {
       this.scene.background = new THREE.Color(0x050811);
-      this.ambientLight.intensity = 0.12;
-      this.sunLight.intensity = 0.12;
-      this.sunLight.color.setHex(0x385585);
-      this.hemiLight.intensity = 0.10;
+      if ('environmentIntensity' in this.scene) this.scene.environmentIntensity = 0.10;
+      this.ambientLight.intensity = 0.05;
+      this.sunLight.intensity = 0.08;
+      this.sunLight.color.setHex(0x283b5e);
+      this.hemiLight.intensity = 0.06;
       this.meterPointLight.intensity = 1.2;
       this.carPointLight.intensity = 1.2;
     } else {
       this.scene.background = new THREE.Color(0x0e1424);
-      this.ambientLight.intensity = 0.55;
-      this.sunLight.intensity = 2.2;
-      this.sunLight.color.setHex(0xfff6ea);
-      this.hemiLight.intensity = 0.50;
+      if ('environmentIntensity' in this.scene) this.scene.environmentIntensity = 0.55;
+      this.ambientLight.intensity = 0.12;
+      this.sunLight.intensity = 1.45;
+      this.sunLight.color.setHex(0xfff5e6);
+      this.hemiLight.intensity = 0.18;
       this.meterPointLight.intensity = 0.4;
       this.carPointLight.intensity = 0.4;
     }
@@ -1624,10 +1627,10 @@ export class SceneManager {
       const roughcastBumpC = createCanvas(512, 512);
       const rcbCtx = roughcastBumpC.getContext('2d');
 
-      // Crisp architectural white base coat
-      rcCtx.fillStyle = '#f4f5f8';
+      // Crisp architectural white base coat with physically balanced PBR albedo
+      rcCtx.fillStyle = '#dde0e5';
       rcCtx.fillRect(0, 0, 512, 512);
-      rcbCtx.fillStyle = '#828282'; // Mid neutral grey base
+      rcbCtx.fillStyle = '#808080'; // Mid neutral grey base
       rcbCtx.fillRect(0, 0, 512, 512);
 
       // Subtle plaster wash variation across broad areas
@@ -1636,8 +1639,8 @@ export class SceneManager {
         const y = Math.random() * 512;
         const rad = 80 + Math.random() * 120;
         const grad = rcCtx.createRadialGradient(x, y, 10, x, y, rad);
-        grad.addColorStop(0, Math.random() > 0.5 ? 'rgba(235, 238, 242, 0.5)' : 'rgba(255, 255, 255, 0.6)');
-        grad.addColorStop(1, 'rgba(244, 245, 248, 0)');
+        grad.addColorStop(0, Math.random() > 0.5 ? 'rgba(215, 220, 228, 0.45)' : 'rgba(240, 244, 250, 0.55)');
+        grad.addColorStop(1, 'rgba(221, 224, 229, 0)');
         rcCtx.fillStyle = grad;
         rcCtx.beginPath();
         rcCtx.arc(x, y, rad, 0, Math.PI * 2);
