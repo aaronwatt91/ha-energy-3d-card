@@ -34,17 +34,32 @@ export class EnergyFlowSystem {
         new THREE.Vector3(5.50, 1.25, -0.75)  // Smart meter box / consumer unit entry through party wall
       ]),
 
-      // 2. Grid Overhead Service: Pylon distribution box (t=0) -> Catenary sag -> House bracket -> PVC drop -> Smart meter (t=1)
+      // 2. Grid Overhead Service: Pylon distribution box (t=0) -> 19-point exact catenary curve -> House bracket -> PVC drop -> Smart meter (t=1)
       grid: new THREE.CatmullRomCurve3([
-        new THREE.Vector3(6.40, 6.950, 6.950), // Overhead pylon distribution cutout box (t = 0)
-        new THREE.Vector3(6.12, 6.250, 5.200), // ABC cable sagging curve
-        new THREE.Vector3(5.86, 5.525, 3.465), // Lowest sag point over driveway
-        new THREE.Vector3(5.55, 5.150, 1.700), // Rising catenary towards house
-        new THREE.Vector3(5.32, 5.000, -0.02), // House wall anchor bracket
-        new THREE.Vector3(5.32, 3.000, 0.040), // Vertical external PVC conduit
-        new THREE.Vector3(5.32, 1.100, 0.040), // 90-degree through-wall inspection elbow
-        new THREE.Vector3(5.26, 1.100, -0.55), // Entering entrance cupboard (INTERNAL)
-        new THREE.Vector3(5.27, 0.950, -0.60)  // 100A main service cutout fuse & smart meter (INTERNAL, t = 1)
+        new THREE.Vector3(6.400, 6.950, 6.950), // Overhead pylon distribution cutout box (t = 0)
+        new THREE.Vector3(6.340, 6.747, 6.563),
+        new THREE.Vector3(6.280, 6.556, 6.176),
+        new THREE.Vector3(6.220, 6.375, 5.788),
+        new THREE.Vector3(6.160, 6.206, 5.401),
+        new THREE.Vector3(6.100, 6.047, 5.014),
+        new THREE.Vector3(6.040, 5.900, 4.627),
+        new THREE.Vector3(5.980, 5.764, 4.239),
+        new THREE.Vector3(5.920, 5.639, 3.852),
+        new THREE.Vector3(5.860, 5.525, 3.465), // Lowest catenary sag point over driveway
+        new THREE.Vector3(5.800, 5.422, 3.078),
+        new THREE.Vector3(5.740, 5.331, 2.691),
+        new THREE.Vector3(5.680, 5.250, 2.303),
+        new THREE.Vector3(5.620, 5.181, 1.916),
+        new THREE.Vector3(5.560, 5.122, 1.529),
+        new THREE.Vector3(5.500, 5.075, 1.142),
+        new THREE.Vector3(5.440, 5.039, 0.754),
+        new THREE.Vector3(5.380, 5.014, 0.367),
+        new THREE.Vector3(5.320, 5.000, -0.020), // Galvanized house wall anchor bracket
+        new THREE.Vector3(5.320, 5.000, 0.040),  // Entry into external heavy-duty PVC service conduit
+        new THREE.Vector3(5.320, 3.000, 0.040),  // Running down corner of house through saddles
+        new THREE.Vector3(5.320, 1.100, 0.040),  // 90-degree through-wall inspection elbow
+        new THREE.Vector3(5.260, 1.100, -0.550), // Entering entrance meter cupboard (INTERNAL)
+        new THREE.Vector3(5.270, 0.950, -0.600)  // 100A main service cutout fuse & smart meter (INTERNAL, t = 1)
       ]),
 
       // 3. EV Charging Cable: Exact 17-point catenary curve from Zappi wallbox directly into Peugeot e-2008 socket
@@ -97,7 +112,7 @@ export class EnergyFlowSystem {
         curve: this.paths.grid,
         color: new THREE.Color(0x00d2ff), // Electric cyan (import)
         baseSpeed: 0.19, // Halved speed (was 0.38) for clear, gentle flow
-        size: 0.065,
+        size: 0.048,
         particleCount: 24 // Halved amount of balls (was 48) for clean, unambiguous spacing
       },
       ev: {

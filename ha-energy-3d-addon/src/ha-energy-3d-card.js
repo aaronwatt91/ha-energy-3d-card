@@ -254,6 +254,17 @@ export class HaEnergy3DCard extends HTMLElement {
         this.sceneManager.controls.autoRotate = enable;
       },
       onToggleLight: (entityId) => this.toggleLightEntity(entityId),
+      onSetTemperature: (floor, temp, entityId) => this.setThermostatTemperature(entityId, temp),
+      onSetHvacMode: (floor, mode, entityId) => this.setThermostatHvacMode(entityId, mode),
+      onThermostatChange: (thermostats, gas) => {
+        if (this.energyData) {
+          this.energyData.thermostats = thermostats;
+          this.energyData.octopus_gas = gas;
+        }
+        if (this.sceneManager) {
+          this.sceneManager.updateEnergyData(this.energyData);
+        }
+      },
       onToggleRoomLight: (lightId, isOn) => {
         if (!this.energyData.room_lights) this.energyData.room_lights = {};
         if (!this.energyData.room_lights[lightId]) {
@@ -705,6 +716,9 @@ export class HaEnergy3DCard extends HTMLElement {
       this.sceneManager.updateRoomLights(lightsData);
       this.sceneManager.updateAppliances(this.energyData.appliances);
     }
+    if (this.hud && this.hud.isDrawerOpen()) {
+      this.hud.renderDrawerContent();
+    }
   }
 
   getThermostatState(entityId, defaultState = {}) {
@@ -818,6 +832,30 @@ export class HaEnergy3DCard extends HTMLElement {
       this._hass.callService(domain, 'toggle', { entity_id: entityId });
     } catch (e) {
       console.warn('Call service error:', e);
+    }
+  }
+
+  setThermostatTemperature(entityId, temp) {
+    if (!this._hass || !entityId) return;
+    try {
+      this._hass.callService('climate', 'set_temperature', {
+        entity_id: entityId,
+        temperature: Number(temp)
+      });
+    } catch (e) {
+      console.warn('Call climate set_temperature error:', e);
+    }
+  }
+
+  setThermostatHvacMode(entityId, mode) {
+    if (!this._hass || !entityId) return;
+    try {
+      this._hass.callService('climate', 'set_hvac_mode', {
+        entity_id: entityId,
+        hvac_mode: mode
+      });
+    } catch (e) {
+      console.warn('Call climate set_hvac_mode error:', e);
     }
   }
 

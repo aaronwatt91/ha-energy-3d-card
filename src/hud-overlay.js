@@ -79,6 +79,9 @@ export class HUDOverlay {
     this.onToggleLight = options.onToggleLight || (() => {});
     this.onToggleTvAudio = options.onToggleTvAudio || (() => {});
     this.onSaveSensors = options.onSaveSensors || (() => {});
+    this.onSetTemperature = options.onSetTemperature || (() => {});
+    this.onSetHvacMode = options.onSetHvacMode || (() => {});
+    this.onThermostatChange = options.onThermostatChange || (() => {});
     this.customLights = options.customLights || [];
     this.onSaveCustomLights = options.onSaveCustomLights || (() => {});
     this.onUpdateLightPosition = options.onUpdateLightPosition || (() => {});
@@ -372,6 +375,7 @@ export class HUDOverlay {
           right: 14px;
           width: 360px;
           max-width: calc(100vw - 28px);
+          max-height: calc(100% - 90px);
           background: rgba(15, 23, 42, 0.94);
           backdrop-filter: blur(18px);
           border: 1px solid rgba(255, 255, 255, 0.14);
@@ -381,11 +385,208 @@ export class HUDOverlay {
           pointer-events: auto;
           z-index: 20;
           display: none;
+          flex-direction: column;
+          box-sizing: border-box;
           animation: slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .hud-drawer.open {
-          display: block;
+          display: flex;
+        }
+
+        #drawer-content {
+          overflow-y: auto;
+          overflow-x: hidden;
+          flex: 1 1 auto;
+          min-height: 0;
+          padding-right: 4px;
+          touch-action: pan-y;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        #drawer-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        #drawer-content::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+        }
+        #drawer-content::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.22);
+          border-radius: 4px;
+        }
+        #drawer-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.38);
+        }
+
+        /* Thermostat interactive controls */
+        .thermo-control-card {
+          margin-top: 10px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 10px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .thermo-control-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .thermo-control-title {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          color: #94a3b8;
+        }
+
+        .thermo-mode-badge {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 6px;
+          text-transform: uppercase;
+        }
+        .thermo-mode-badge.heating {
+          background: rgba(249, 115, 22, 0.2);
+          color: #f97316;
+          border: 1px solid rgba(249, 115, 22, 0.4);
+        }
+        .thermo-mode-badge.idle {
+          background: rgba(148, 163, 184, 0.15);
+          color: #94a3b8;
+          border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        .thermo-mode-badge.off {
+          background: rgba(56, 189, 248, 0.15);
+          color: #38bdf8;
+          border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+
+        .thermo-stepper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          margin: 4px 0;
+        }
+
+        .thermo-step-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: rgba(255, 255, 255, 0.08);
+          color: #f8fafc;
+          font-size: 20px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          user-select: none;
+        }
+        .thermo-step-btn:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.4);
+          transform: scale(1.06);
+        }
+        .thermo-step-btn:active {
+          transform: scale(0.94);
+        }
+
+        .thermo-setpoint-readout {
+          display: flex;
+          align-items: baseline;
+          gap: 2px;
+          min-width: 80px;
+          justify-content: center;
+        }
+
+        .thermo-setpoint-num {
+          font-size: 30px;
+          font-weight: 800;
+          color: #f8fafc;
+          letter-spacing: -0.5px;
+        }
+
+        .thermo-setpoint-deg {
+          font-size: 15px;
+          font-weight: 600;
+          color: #94a3b8;
+        }
+
+        .thermo-presets {
+          display: flex;
+          gap: 6px;
+          justify-content: center;
+        }
+
+        .thermo-preset-pill {
+          flex: 1;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #cbd5e1;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 5px 6px;
+          border-radius: 8px;
+          cursor: pointer;
+          text-align: center;
+          transition: all 0.15s ease;
+        }
+        .thermo-preset-pill:hover {
+          background: rgba(255, 255, 255, 0.14);
+          color: #fff;
+        }
+        .thermo-preset-pill.active {
+          background: rgba(249, 115, 22, 0.25);
+          border-color: #f97316;
+          color: #ffedd5;
+          font-weight: 700;
+        }
+
+        .thermo-mode-row {
+          display: flex;
+          gap: 8px;
+          margin-top: 2px;
+        }
+
+        .thermo-mode-btn {
+          flex: 1;
+          padding: 6px 10px;
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 700;
+          cursor: pointer;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.05);
+          color: #94a3b8;
+          transition: all 0.15s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+        }
+        .thermo-mode-btn:hover {
+          background: rgba(255, 255, 255, 0.12);
+          color: #fff;
+        }
+        .thermo-mode-btn.active-heat {
+          background: rgba(249, 115, 22, 0.25);
+          border-color: #f97316;
+          color: #ffedd5;
+        }
+        .thermo-mode-btn.active-off {
+          background: rgba(56, 189, 248, 0.2);
+          border-color: #38bdf8;
+          color: #e0f2fe;
         }
 
         @keyframes slide-in {
@@ -1090,6 +1291,7 @@ export class HUDOverlay {
             right: 8px;
             left: 8px;
             width: auto;
+            max-height: calc(100% - 75px);
           }
           .sensor-modal {
             inset: 10px;
@@ -2478,6 +2680,104 @@ export class HUDOverlay {
     setIfFound('#cfg-light-landing', 'light.landing', 'light.stairs', 'light.upstairs_hallway', 'switch.landing');
   }
 
+  adjustThermostatTemp(floor, delta) {
+    if (!this.lastData) return;
+    if (!this.lastData.thermostats) this.lastData.thermostats = {};
+    if (!this.lastData.thermostats[floor]) {
+      this.lastData.thermostats[floor] = {
+        current_temp: floor === 'downstairs' ? 20.0 : 19.5,
+        target_temp: floor === 'downstairs' ? 21.0 : 19.5,
+        state: 'heat',
+        is_heating: false
+      };
+    }
+    const t = this.lastData.thermostats[floor];
+    const currentTarget = Number(t.target_temp || (floor === 'downstairs' ? 21.0 : 19.5));
+    let nextTarget = Math.round((currentTarget + delta) * 2) / 2;
+    nextTarget = Math.max(5.0, Math.min(30.0, nextTarget));
+    this.setThermostatTemp(floor, nextTarget);
+  }
+
+  setThermostatTemp(floor, newTarget) {
+    if (!this.lastData) return;
+    if (!this.lastData.thermostats) this.lastData.thermostats = {};
+    if (!this.lastData.thermostats[floor]) {
+      this.lastData.thermostats[floor] = {
+        current_temp: floor === 'downstairs' ? 20.0 : 19.5,
+        target_temp: 20.0,
+        state: 'heat',
+        is_heating: false
+      };
+    }
+    const t = this.lastData.thermostats[floor];
+    t.target_temp = newTarget;
+    const currentTemp = Number(t.current_temp || 20.0);
+    const isOff = (t.state || '').toLowerCase() === 'off';
+    t.is_heating = !isOff && (currentTemp < newTarget);
+
+    const entId = floor === 'downstairs'
+      ? (t.entity_id || this.currentSensorConfig?.thermostat_downstairs || 'climate.downstairs')
+      : (t.entity_id || this.currentSensorConfig?.thermostat_upstairs || 'climate.upstairs');
+
+    if (this.onSetTemperature) {
+      this.onSetTemperature(floor, newTarget, entId);
+    }
+
+    this._syncThermostatDemand();
+    this.renderDrawerContent();
+  }
+
+  setThermostatMode(floor, mode) {
+    if (!this.lastData) return;
+    if (!this.lastData.thermostats) this.lastData.thermostats = {};
+    if (!this.lastData.thermostats[floor]) {
+      this.lastData.thermostats[floor] = {
+        current_temp: floor === 'downstairs' ? 20.0 : 19.5,
+        target_temp: 20.0,
+        state: 'heat',
+        is_heating: false
+      };
+    }
+    const t = this.lastData.thermostats[floor];
+    t.state = mode;
+    const isOff = mode === 'off';
+    const currentTemp = Number(t.current_temp || 20.0);
+    const targetTemp = Number(t.target_temp || 20.0);
+    t.is_heating = !isOff && (currentTemp < targetTemp);
+
+    const entId = floor === 'downstairs'
+      ? (t.entity_id || this.currentSensorConfig?.thermostat_downstairs || 'climate.downstairs')
+      : (t.entity_id || this.currentSensorConfig?.thermostat_upstairs || 'climate.upstairs');
+
+    if (this.onSetHvacMode) {
+      this.onSetHvacMode(floor, mode, entId);
+    }
+
+    this._syncThermostatDemand();
+    this.renderDrawerContent();
+  }
+
+  _syncThermostatDemand() {
+    if (!this.lastData?.thermostats) return;
+    const dt = this.lastData.thermostats.downstairs;
+    const ut = this.lastData.thermostats.upstairs;
+    const boilerHeating = Boolean((dt && dt.is_heating) || (ut && ut.is_heating));
+
+    if (!this.lastData.octopus_gas) this.lastData.octopus_gas = {};
+    this.lastData.octopus_gas.is_active = boilerHeating;
+    this.lastData.octopus_gas.boiler_status = boilerHeating ? 'Heating' : 'Standby';
+    this.lastData.octopus_gas.power_kw = boilerHeating ? 1.45 : 0.0;
+
+    if (this.onThermostatChange) {
+      this.onThermostatChange(this.lastData.thermostats, this.lastData.octopus_gas);
+    }
+  }
+
+  isDrawerOpen() {
+    const drawer = this.el?.querySelector('#hud-drawer');
+    return Boolean(drawer && drawer.classList.contains('open'));
+  }
+
   openDrawerTab(tab) {
     const drawer = this.el.querySelector('#hud-drawer');
     const btnDrawer = this.el.querySelector('#btn-drawer');
@@ -2678,11 +2978,15 @@ export class HUDOverlay {
 
       const downTemp = Number(down.current_temp || 20.0);
       const downTarget = Number(down.target_temp || 21.0);
+      const downState = (down.state || 'heat').toLowerCase();
+      const downIsOff = downState === 'off';
       const downHeating = Boolean(down.is_heating);
       const downComfort = getComfortStatus(downTemp);
 
       const upTemp = Number(up.current_temp || 19.5);
       const upTarget = Number(up.target_temp || 19.5);
+      const upState = (up.state || 'heat').toLowerCase();
+      const upIsOff = upState === 'off';
       const upHeating = Boolean(up.is_heating);
       const upComfort = getComfortStatus(upTemp);
 
@@ -2690,6 +2994,7 @@ export class HUDOverlay {
 
       content.innerHTML = `
         <div class="stat-grid">
+          <!-- Downstairs Thermostat -->
           <div class="stat-card stat-card-full">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <div>
@@ -2701,16 +3006,44 @@ export class HUDOverlay {
                   </span>
                 </div>
                 <div class="stat-subtext" style="margin-top: 4px;">
-                  Target Setpoint: ${downTarget.toFixed(1)}°C &bull; 
-                  <span style="color: ${downHeating ? '#f97316' : '#94a3b8'}; font-weight: ${downHeating ? '700' : 'normal'};">
-                    ${downHeating ? '🔥 Calling for Heat' : (downTemp >= downTarget ? '✅ Set Temp Reached (Standby)' : '❄️ Thermostat Idle / Off')}
+                  Current: <strong>${downTemp.toFixed(1)}°C</strong> &bull; Target: <strong>${downTarget.toFixed(1)}°C</strong> &bull;
+                  <span style="color: ${downHeating ? '#f97316' : (downIsOff ? '#38bdf8' : '#94a3b8')}; font-weight: ${downHeating ? '700' : 'normal'};">
+                    ${downHeating ? '🔥 Calling for Heat' : (downIsOff ? '❄️ Thermostat Off' : (downTemp >= downTarget ? '✅ Set Temp Reached (Standby)' : 'Standby'))}
                   </span>
                 </div>
               </div>
               <button class="light-toggle-btn" style="padding:6px 12px;" id="btn-focus-down">🛋️ View Ground Floor</button>
             </div>
+
+            <!-- Interactive Setpoint Adjuster -->
+            <div class="thermo-control-card">
+              <div class="thermo-control-header">
+                <span class="thermo-control-title">Target Temperature Setpoint</span>
+                <span class="thermo-mode-badge ${downHeating ? 'heating' : (downIsOff ? 'off' : 'idle')}">
+                  ${downHeating ? '🔥 Heating' : (downIsOff ? '❄️ Off' : 'Standby')}
+                </span>
+              </div>
+              <div class="thermo-stepper">
+                <button class="thermo-step-btn" data-floor="downstairs" data-action="down" title="Decrease 0.5°C">−</button>
+                <div class="thermo-setpoint-readout">
+                  <span class="thermo-setpoint-num">${downTarget.toFixed(1)}</span>
+                  <span class="thermo-setpoint-deg">°C</span>
+                </div>
+                <button class="thermo-step-btn" data-floor="downstairs" data-action="up" title="Increase 0.5°C">+</button>
+              </div>
+              <div class="thermo-presets">
+                <button class="thermo-preset-pill ${Math.abs(downTarget - 18.0) < 0.25 ? 'active' : ''}" data-floor="downstairs" data-temp="18.0">18°C Eco</button>
+                <button class="thermo-preset-pill ${Math.abs(downTarget - 20.0) < 0.25 ? 'active' : ''}" data-floor="downstairs" data-temp="20.0">20°C Comfort</button>
+                <button class="thermo-preset-pill ${Math.abs(downTarget - 21.5) < 0.25 ? 'active' : ''}" data-floor="downstairs" data-temp="21.5">21.5°C Warm</button>
+              </div>
+              <div class="thermo-mode-row">
+                <button class="thermo-mode-btn ${!downIsOff ? 'active-heat' : ''}" data-floor="downstairs" data-mode="heat">🔥 Heat Mode</button>
+                <button class="thermo-mode-btn ${downIsOff ? 'active-off' : ''}" data-floor="downstairs" data-mode="off">❄️ Turn Off</button>
+              </div>
+            </div>
           </div>
 
+          <!-- Upstairs Thermostat -->
           <div class="stat-card stat-card-full">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <div>
@@ -2722,13 +3055,40 @@ export class HUDOverlay {
                   </span>
                 </div>
                 <div class="stat-subtext" style="margin-top: 4px;">
-                  Target Setpoint: ${upTarget.toFixed(1)}°C &bull; 
-                  <span style="color: ${upHeating ? '#f97316' : '#94a3b8'}; font-weight: ${upHeating ? '700' : 'normal'};">
-                    ${upHeating ? '🔥 Calling for Heat' : (upTemp >= upTarget ? '✅ Set Temp Reached (Standby)' : '❄️ Thermostat Idle / Off')}
+                  Current: <strong>${upTemp.toFixed(1)}°C</strong> &bull; Target: <strong>${upTarget.toFixed(1)}°C</strong> &bull;
+                  <span style="color: ${upHeating ? '#f97316' : (upIsOff ? '#38bdf8' : '#94a3b8')}; font-weight: ${upHeating ? '700' : 'normal'};">
+                    ${upHeating ? '🔥 Calling for Heat' : (upIsOff ? '❄️ Thermostat Off' : (upTemp >= upTarget ? '✅ Set Temp Reached (Standby)' : 'Standby'))}
                   </span>
                 </div>
               </div>
               <button class="light-toggle-btn" style="padding:6px 12px;" id="btn-focus-up">🛏️ View First Floor</button>
+            </div>
+
+            <!-- Interactive Setpoint Adjuster -->
+            <div class="thermo-control-card">
+              <div class="thermo-control-header">
+                <span class="thermo-control-title">Target Temperature Setpoint</span>
+                <span class="thermo-mode-badge ${upHeating ? 'heating' : (upIsOff ? 'off' : 'idle')}">
+                  ${upHeating ? '🔥 Heating' : (upIsOff ? '❄️ Off' : 'Standby')}
+                </span>
+              </div>
+              <div class="thermo-stepper">
+                <button class="thermo-step-btn" data-floor="upstairs" data-action="down" title="Decrease 0.5°C">−</button>
+                <div class="thermo-setpoint-readout">
+                  <span class="thermo-setpoint-num">${upTarget.toFixed(1)}</span>
+                  <span class="thermo-setpoint-deg">°C</span>
+                </div>
+                <button class="thermo-step-btn" data-floor="upstairs" data-action="up" title="Increase 0.5°C">+</button>
+              </div>
+              <div class="thermo-presets">
+                <button class="thermo-preset-pill ${Math.abs(upTarget - 18.0) < 0.25 ? 'active' : ''}" data-floor="upstairs" data-temp="18.0">18°C Eco</button>
+                <button class="thermo-preset-pill ${Math.abs(upTarget - 20.0) < 0.25 ? 'active' : ''}" data-floor="upstairs" data-temp="20.0">20°C Comfort</button>
+                <button class="thermo-preset-pill ${Math.abs(upTarget - 21.5) < 0.25 ? 'active' : ''}" data-floor="upstairs" data-temp="21.5">21.5°C Warm</button>
+              </div>
+              <div class="thermo-mode-row">
+                <button class="thermo-mode-btn ${!upIsOff ? 'active-heat' : ''}" data-floor="upstairs" data-mode="heat">🔥 Heat Mode</button>
+                <button class="thermo-mode-btn ${upIsOff ? 'active-off' : ''}" data-floor="upstairs" data-mode="off">❄️ Turn Off</button>
+              </div>
             </div>
           </div>
 
@@ -2749,6 +3109,40 @@ export class HUDOverlay {
           </div>
         </div>
       `;
+
+      // Thermostat Step buttons (- and +)
+      const stepBtns = content.querySelectorAll('.thermo-step-btn');
+      stepBtns.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const floor = btn.getAttribute('data-floor');
+          const act = btn.getAttribute('data-action');
+          const delta = act === 'up' ? 0.5 : -0.5;
+          this.adjustThermostatTemp(floor, delta);
+        });
+      });
+
+      // Thermostat Presets
+      const presetPills = content.querySelectorAll('.thermo-preset-pill');
+      presetPills.forEach((pill) => {
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const floor = pill.getAttribute('data-floor');
+          const targetT = parseFloat(pill.getAttribute('data-temp'));
+          this.setThermostatTemp(floor, targetT);
+        });
+      });
+
+      // Thermostat Mode buttons (Heat / Off)
+      const modeBtns = content.querySelectorAll('.thermo-mode-btn');
+      modeBtns.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const floor = btn.getAttribute('data-floor');
+          const mode = btn.getAttribute('data-mode');
+          this.setThermostatMode(floor, mode);
+        });
+      });
 
       const btnDown = content.querySelector('#btn-focus-down');
       if (btnDown) {
@@ -2913,9 +3307,6 @@ export class HUDOverlay {
 
     if (!this.showTags) {
       container.style.display = 'none';
-      if (this.el.querySelector('#hud-drawer').classList.contains('open')) {
-        this.renderDrawerContent();
-      }
       return;
     }
     container.style.display = 'block';
@@ -3041,10 +3432,6 @@ export class HUDOverlay {
       });
 
       container.appendChild(badge);
-    }
-
-    if (this.el.querySelector('#hud-drawer').classList.contains('open')) {
-      this.renderDrawerContent();
     }
   }
 }
