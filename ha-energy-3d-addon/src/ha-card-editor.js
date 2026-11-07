@@ -220,8 +220,8 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <input type="text" data-key="sensor_washer" value="${c.sensor_washer || 'sensor.kitchen_washing_machine_daily_energy'}">
           </div>
           <div class="input-row">
-            <label>Living Room TV (media_player/switch)</label>
-            <input type="text" data-key="sensor_tv" value="${c.sensor_tv || 'switch.living_room_living_room_tv_plug'}">
+            <label>Living Room TV Plug (power sensor / wattage)</label>
+            <input type="text" data-key="sensor_tv" value="${c.sensor_tv || 'sensor.living_room_tv_plug_power'}">
           </div>
         </div>
 

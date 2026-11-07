@@ -1554,9 +1554,9 @@ export class HUDOverlay {
               </div>
             </div>
             <div class="sensor-row">
-              <label>📺 Living Room TV (media_player/switch)</label>
+              <label>📺 Living Room TV Plug (power wattage sensor)</label>
               <div class="sensor-input-wrap">
-                <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="media_player.living_room_tv">
+                <input type="text" list="ha-entities-datalist" id="cfg-sensor-tv" placeholder="sensor.living_room_tv_plug_power">
                 <button type="button" class="btn-entity-browse" data-target="#cfg-sensor-tv">📋 Select</button>
               </div>
             </div>
@@ -2668,7 +2668,7 @@ export class HUDOverlay {
     // Appliances auto-detection
     setIfFound('#cfg-sensor-fridge', 'sensor.refrigerator_power', 'refrigerator_power', 'fridge_power', 'refrigerator', 'fridge', 'freezer', 'kitchen_fridge');
     setIfFound('#cfg-sensor-washer', 'sensor.kitchen_washing_machine_daily_energy', 'washing_machine_power', 'washer_power', 'washing_machine', 'washer', 'laundry_power', 'laundry');
-    setIfFound('#cfg-sensor-tv', 'switch.living_room_living_room_tv_plug', 'media_player.lg_webos_tv_oled55c43la_2', 'media_player.living_room_tv', 'living_room_tv', 'lounge_tv', 'media_player.tv', 'media_player.living_room', 'switch.tv');
+    setIfFound('#cfg-sensor-tv', 'sensor.living_room_tv_plug_power', 'switch.living_room_tv_plug', 'sensor.tv_plug_power', 'switch.living_room_living_room_tv_plug', 'media_player.lg_webos_tv_oled55c43la_2', 'media_player.living_room_tv', 'living_room_tv', 'lounge_tv', 'media_player.tv', 'media_player.living_room', 'switch.tv');
     setIfFound('#cfg-light-living-lamp', 'light.living_room_lamp', 'living_room_lamp', 'corner_lamp', 'living_lamp', 'floor_lamp', 'standard_lamp', 'lamp');
 
     // Room Lights auto-detection
@@ -2881,6 +2881,13 @@ export class HUDOverlay {
               ${data.appliances?.washer?.power_w || 0} <span class="stat-unit">W</span>
             </div>
             <div class="stat-subtext">Status: ${data.appliances?.washer?.state || 'Standby'}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">LIVING ROOM TV PLUG</div>
+            <div class="stat-val" style="color:${data.appliances?.tv?.is_on ? '#60a5fa' : '#94a3b8'};">
+              ${data.appliances?.tv?.power_w || 0} <span class="stat-unit">W</span>
+            </div>
+            <div class="stat-subtext">Status: ${data.appliances?.tv?.is_on ? 'On / Active' : 'Standby'} &bull; TV Plug</div>
           </div>
         </div>
       `;
@@ -3388,7 +3395,8 @@ export class HUDOverlay {
       } else if (spot.id === 'appliance_tv') {
         const tv = data.appliances?.tv || {};
         const isTvOn = Boolean(tv.is_on);
-        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${isTvOn ? '▶ Playing' : 'OFF'}</span>`;
+        const pVal = tv.power_w !== undefined ? `${tv.power_w} W` : (isTvOn ? 'ON' : 'OFF');
+        badgeHtml = `<span>📺 Living TV</span> <span style="color:${isTvOn ? '#60a5fa' : '#94a3b8'};font-weight:700;">${pVal}</span> <span style="font-size:9px;color:${isTvOn ? '#10b981' : '#64748b'}">●</span>`;
       }
 
       const badge = document.createElement('div');
@@ -3400,7 +3408,10 @@ export class HUDOverlay {
       badge.addEventListener('click', (e) => {
         if (spot.id === 'appliance_tv') {
           const tv = data.appliances?.tv;
-          const entId = tv?.entity_id || this.currentSensorConfig?.sensor_tv || 'switch.living_room_living_room_tv_plug';
+          let entId = tv?.entity_id || 'switch.living_room_tv_plug';
+          if (entId.startsWith('sensor.')) {
+            entId = 'switch.living_room_tv_plug';
+          }
           if (entId) {
             this.onToggleLight(entId);
           } else if (tv) {

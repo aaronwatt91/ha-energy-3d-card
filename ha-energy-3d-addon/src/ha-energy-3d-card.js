@@ -166,7 +166,7 @@ export class HaEnergy3DCard extends HTMLElement {
       // Appliances & Living Room Devices
       sensor_fridge: 'sensor.refrigerator_power',
       sensor_washer: 'sensor.kitchen_washing_machine_daily_energy',
-      sensor_tv: 'switch.living_room_living_room_tv_plug',
+      sensor_tv: 'sensor.living_room_tv_plug_power',
       light_living_lamp: 'light.living_room_lamp',
       // Room Lights
       light_lounge: 'light.living_room_living_room_light',
@@ -711,7 +711,30 @@ export class HaEnergy3DCard extends HTMLElement {
     // 7. Kitchen Fridge Freezer, Living Room TV, and Corner Lamp
     const entFridge = this.resolveEntity(cfg.sensor_fridge, 'sensor.refrigerator_power', 'refrigerator_power', 'fridge_power');
     const entWasher = this.resolveEntity(cfg.sensor_washer, 'sensor.kitchen_washing_machine_daily_energy', 'washing_machine_power', 'washer_power');
-    const entTv = this.resolveEntity(cfg.sensor_tv, 'switch.living_room_living_room_tv_plug', 'media_player.lg_webos_tv_oled55c43la_2', 'media_player.living_room_tv');
+
+    // TV Power Sensor & Switch Resolution
+    const entTv = this.resolveEntity(
+      cfg.sensor_tv,
+      'sensor.living_room_tv_plug_power',
+      'switch.living_room_tv_plug',
+      'sensor.tv_plug_power',
+      'switch.living_room_living_room_tv_plug',
+      'media_player.lg_webos_tv_oled55c43la_2',
+      'media_player.living_room_tv'
+    );
+
+    let entTvPower = '';
+    let entTvSwitch = '';
+    if (entTv.startsWith('sensor.')) {
+      entTvPower = entTv;
+      entTvSwitch = this.resolveEntity(cfg.switch_tv, 'switch.living_room_tv_plug', entTv.replace('sensor.', 'switch.').replace('_power', ''));
+    } else if (entTv.startsWith('switch.')) {
+      entTvSwitch = entTv;
+      entTvPower = this.resolveEntity('sensor.living_room_tv_plug_power', entTv.replace('switch.', 'sensor.') + '_power');
+    } else {
+      entTvSwitch = entTv;
+      entTvPower = this.resolveEntity('sensor.living_room_tv_plug_power', 'sensor.tv_plug_power');
+    }
 
     const fridgeStateObj = entFridge && this._hass ? this._hass.states[entFridge] : null;
     const fridgeRawState = (fridgeStateObj ? fridgeStateObj.state : '').toLowerCase();
@@ -724,21 +747,36 @@ export class HaEnergy3DCard extends HTMLElement {
     }
     const isFridgeActive = !isFridgeUnavailable && (fridgePower > 0.005 || fridgeRawState === 'on');
 
-    const tvStateObj = entTv && this._hass ? this._hass.states[entTv] : null;
+    const tvPowerObj = entTvPower && this._hass ? this._hass.states[entTvPower] : null;
+    const tvSwitchObj = entTvSwitch && this._hass ? this._hass.states[entTvSwitch] : null;
+
     let isTvOn = false;
-    let tvPower = 0;
-    if (tvStateObj) {
-      const s = tvStateObj.state.toLowerCase();
-      isTvOn = s === 'on' || s === 'playing' || s === 'paused' || s === 'idle';
-      if (tvStateObj.attributes?.unit_of_measurement) {
-        tvPower = autoFigureKw(tvStateObj.state, tvStateObj.attributes.unit_of_measurement);
-        isTvOn = tvPower > 0.015;
-      } else {
-        tvPower = isTvOn ? 0.095 : 0.001;
+    let tvPower = 0.0;
+    let tvPowerW = 0;
+
+    if (tvPowerObj && tvPowerObj.state !== 'unavailable' && tvPowerObj.state !== 'unknown') {
+      const uom = (tvPowerObj.attributes?.unit_of_measurement || 'W').trim();
+      const val = parseFloat(tvPowerObj.state);
+      if (!isNaN(val)) {
+        if (uom.toLowerCase() === 'kw') {
+          tvPower = val;
+          tvPowerW = Math.round(val * 1000);
+        } else {
+          // Watts
+          tvPowerW = Math.round(val);
+          tvPower = val / 1000.0;
+        }
+        isTvOn = tvPowerW > 5 || (tvSwitchObj && tvSwitchObj.state === 'on');
       }
+    } else if (tvSwitchObj && tvSwitchObj.state !== 'unavailable' && tvSwitchObj.state !== 'unknown') {
+      const s = tvSwitchObj.state.toLowerCase();
+      isTvOn = s === 'on' || s === 'playing' || s === 'paused';
+      tvPowerW = isTvOn ? 37 : 1;
+      tvPower = tvPowerW / 1000.0;
     } else if (this.energyData.appliances?.tv) {
       isTvOn = Boolean(this.energyData.appliances.tv.is_on);
       tvPower = this.energyData.appliances.tv.power_kw;
+      tvPowerW = this.energyData.appliances.tv.power_w || Math.round(tvPower * 1000);
     }
 
     const washerStateObj = entWasher && this._hass ? this._hass.states[entWasher] : null;
@@ -771,10 +809,11 @@ export class HaEnergy3DCard extends HTMLElement {
         state: isWasherUnavailable ? 'Unavailable' : (isWasherActive ? 'Running' : 'Standby')
       },
       tv: {
-        entity_id: entTv || '',
+        entity_id: entTvSwitch || entTv || 'switch.living_room_tv_plug',
+        power_entity_id: entTvPower || 'sensor.living_room_tv_plug_power',
         is_on: isTvOn,
         power_kw: tvPower,
-        power_w: Math.round(tvPower * 1000),
+        power_w: tvPowerW,
         state: isTvOn ? 'On' : 'Standby'
       },
       living_lamp: lampData
@@ -956,7 +995,7 @@ export class HaEnergy3DCard extends HTMLElement {
         this.energyData.appliances.living_lamp.is_on = targetOn;
         this.energyData.appliances.living_lamp.brightness = targetOn ? 255 : 0;
       }
-      if (this.energyData.appliances.tv?.entity_id === cleanId) {
+      if (this.energyData.appliances.tv?.entity_id === cleanId || this.energyData.appliances.tv?.power_entity_id === cleanId) {
         this.energyData.appliances.tv.is_on = targetOn;
         this.energyData.appliances.tv.state = targetOn ? 'On' : 'Standby';
       }
@@ -970,8 +1009,13 @@ export class HaEnergy3DCard extends HTMLElement {
       this.hud.renderDrawerContent();
     }
 
-    const domain = cleanId.startsWith('switch.') ? 'switch' : (cleanId.startsWith('light.') ? 'light' : 'homeassistant');
-    this.callHAService(domain, 'toggle', { entity_id: cleanId });
+    let targetEntity = cleanId;
+    if (targetEntity.startsWith('sensor.') && (targetEntity.includes('tv_plug') || targetEntity.includes('tv'))) {
+      targetEntity = this.energyData.appliances?.tv?.entity_id || 'switch.living_room_tv_plug';
+    }
+
+    const domain = targetEntity.startsWith('switch.') ? 'switch' : (targetEntity.startsWith('light.') ? 'light' : 'homeassistant');
+    this.callHAService(domain, 'toggle', { entity_id: targetEntity });
   }
 
   setThermostatTemperature(entityId, temp) {
