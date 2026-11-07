@@ -1966,6 +1966,7 @@ export class HUDOverlay {
         btn.classList.add('active');
         const preset = btn.getAttribute('data-preset');
         this.activePreset = preset;
+        this.setXRayActive(false);
         this.onPresetClick(preset);
       });
     });
@@ -2583,9 +2584,7 @@ export class HUDOverlay {
     presetBtns.forEach((b) => {
       b.classList.toggle('active', b.getAttribute('data-preset') === preset);
     });
-    if (preset === 'upstairs' || preset === 'downstairs') {
-      this.setXRayActive(false);
-    }
+    this.setXRayActive(false);
   }
 
   setXRayActive(active) {

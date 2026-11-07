@@ -2529,48 +2529,39 @@ export class SceneManager {
     const presets = {
       overview: {
         pos: new THREE.Vector3(15, 12, 17),
-        target: new THREE.Vector3(2.5, 2.5, 0.0),
-        xray: false
+        target: new THREE.Vector3(2.5, 2.5, 0.0)
       },
       solar: {
         pos: new THREE.Vector3(9.20, 2.40, 0.50),
-        target: new THREE.Vector3(5.73, 1.75, -0.50),
-        xray: false
+        target: new THREE.Vector3(5.73, 1.75, -0.50)
       },
       meter: {
         pos: new THREE.Vector3(7.2, 2.3, 0.5),
-        target: new THREE.Vector3(5.28, 1.3, -0.85),
-        xray: true
+        target: new THREE.Vector3(5.28, 1.3, -0.85)
       },
       boiler: {
         pos: new THREE.Vector3(-3.8, 3.2, -11.5),
-        target: new THREE.Vector3(0.0, 1.4, -8.0),
-        xray: true
+        target: new THREE.Vector3(0.0, 1.4, -8.0)
       },
       ev: {
         pos: new THREE.Vector3(7.2, 2.2, 3.2),
-        target: new THREE.Vector3(5.2, 0.95, 1.0),
-        xray: false
+        target: new THREE.Vector3(5.2, 0.95, 1.0)
       },
       charger: {
         pos: new THREE.Vector3(7.4, 2.2, 0.4),
-        target: new THREE.Vector3(5.20, 1.25, 0.05),
-        xray: false
+        target: new THREE.Vector3(5.20, 1.25, 0.05)
       },
       downstairs: {
         pos: new THREE.Vector3(2.8, 11.5, 4.2),
-        target: new THREE.Vector3(2.8, 0.8, -4.5),
-        xray: false
+        target: new THREE.Vector3(2.8, 0.8, -4.5)
       },
       upstairs: {
         pos: new THREE.Vector3(2.8, 11.5, 4.0),
-        target: new THREE.Vector3(2.8, 3.8, -4.5),
-        xray: false
+        target: new THREE.Vector3(2.8, 3.8, -4.5)
       },
       heating: {
         pos: new THREE.Vector3(7.8, 4.5, -2.5),
-        target: new THREE.Vector3(3.4, 2.5, -3.5),
-        xray: true
+        target: new THREE.Vector3(3.4, 2.5, -3.5)
       }
     };
 
@@ -2580,18 +2571,16 @@ export class SceneManager {
     this.targetCameraPos = target.pos.clone();
     this.targetLookAt = target.target.clone();
 
+    // Presets never enable X-Ray - X-Ray is only enabled when explicitly selected from the menu
+    this.setXRayRoof(false);
+
     // Trigger cutaway mode (remove roof for upstairs; remove roof + first floor for downstairs)
     if (preset === 'downstairs') {
       this.setCutawayMode('downstairs');
-      this.setXRayRoof(false);
     } else if (preset === 'upstairs') {
       this.setCutawayMode('upstairs');
-      this.setXRayRoof(false);
     } else {
       this.setCutawayMode('normal');
-      if (target.xray !== undefined && target.xray !== this.xrayActive) {
-        this.setXRayRoof(target.xray);
-      }
     }
   }
 
