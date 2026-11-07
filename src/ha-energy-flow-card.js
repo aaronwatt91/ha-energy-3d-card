@@ -35,6 +35,7 @@ export class HaEnergyFlowCard extends HTMLElement {
   setConfig(config) {
     this._config = {
       title: 'Live Energy Flow',
+      height: '100%',
       solar_entity: 'sensor.solax_snm9wncrqy_pv1_power',
       grid_import_entity: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand',
       grid_export_entity: 'sensor.solax_snm9wncrqy_exported_power',
@@ -44,6 +45,10 @@ export class HaEnergyFlowCard extends HTMLElement {
       fridge_entity: 'sensor.refrigerator_power',
       ...config
     };
+
+    if (this._config.height) {
+      this.style.height = this._config.height;
+    }
 
     this.render();
   }
@@ -338,27 +343,42 @@ export class HaEnergyFlowCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host {
-          display: block;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          width: 100%;
+          height: 100%;
+          min-height: 0;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           color: #f8fafc;
           user-select: none;
+          box-sizing: border-box;
+          overflow: hidden;
         }
 
         .card-container {
-          background: #0c1017;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: var(--ha-card-border-radius, 20px);
+          background: radial-gradient(circle at 50% 50%, #0d1527 0%, #060a12 100%);
+          border-radius: var(--ha-card-border-radius, 16px);
           overflow: hidden;
           box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
           position: relative;
-          padding: 16px 18px 20px 18px;
+          padding: 16px 20px 16px 20px;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          width: 100%;
+          height: 100%;
+          min-height: 0;
+          box-sizing: border-box;
         }
 
         .card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
+          flex-shrink: 0;
+          z-index: 10;
         }
 
         .card-title {
@@ -385,6 +405,12 @@ export class HaEnergyFlowCard extends HTMLElement {
           50% { transform: scale(1.3); opacity: 0.6; }
         }
 
+        .header-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
         .badge-live {
           font-size: 10px;
           font-weight: 700;
@@ -396,16 +422,43 @@ export class HaEnergyFlowCard extends HTMLElement {
           border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
+        .btn-fs {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          color: #94a3b8;
+          border-radius: 8px;
+          padding: 4px 8px;
+          font-size: 13px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .btn-fs:hover {
+          background: rgba(255, 255, 255, 0.16);
+          color: #ffffff;
+        }
+
         .svg-container {
           width: 100%;
-          height: auto;
-          display: block;
+          height: 100%;
+          flex: 1;
+          min-height: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          overflow: hidden;
         }
 
         svg {
           width: 100%;
           height: 100%;
-          overflow: visible;
+          max-width: 100%;
+          max-height: 100%;
+          display: block;
         }
 
         /* Flow Paths */
@@ -527,7 +580,10 @@ export class HaEnergyFlowCard extends HTMLElement {
             <div class="pulse-dot"></div>
             <span>${title}</span>
           </div>
-          <span class="badge-live">Live Watts</span>
+          <div class="header-right">
+            <span class="badge-live">Live Watts</span>
+            <button class="btn-fs" id="btn-card-fs" title="Toggle Fullscreen">⛶</button>
+          </div>
         </div>
 
         <div class="svg-container">
@@ -730,6 +786,31 @@ export class HaEnergyFlowCard extends HTMLElement {
         </div>
       </div>
     `;
+
+    const btnFs = this.shadowRoot.querySelector('#btn-card-fs');
+    if (btnFs) {
+      btnFs.addEventListener('click', () => {
+        const doc = document;
+        if (!doc.fullscreenElement) {
+          const target = this.closest('.card-stage') || this;
+          if (target.requestFullscreen) {
+            target.requestFullscreen().catch(err => console.warn(err));
+          } else if (doc.documentElement.requestFullscreen) {
+            doc.documentElement.requestFullscreen().catch(err => console.warn(err));
+          }
+        } else {
+          if (doc.exitFullscreen) {
+            doc.exitFullscreen().catch(err => console.warn(err));
+          }
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        const isFs = !!document.fullscreenElement;
+        btnFs.innerHTML = isFs ? '✕' : '⛶';
+        btnFs.title = isFs ? 'Exit Fullscreen' : 'Toggle Fullscreen';
+      });
+    }
 
     this.updateData();
   }
