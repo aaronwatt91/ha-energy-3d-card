@@ -79,12 +79,14 @@ export class HUDOverlay {
     this.onToggleNight = options.onToggleNight || (() => {});
     this.onToggleRotate = options.onToggleRotate || (() => {});
     this.onToggleLight = options.onToggleLight || (() => {});
+    this.onWakeupVehicle = options.onWakeupVehicle || (() => {});
     this.onToggleTvAudio = options.onToggleTvAudio || (() => {});
     this.onSaveSensors = options.onSaveSensors || (() => {});
     this.onSetTemperature = options.onSetTemperature || (() => {});
     this.onSetHvacMode = options.onSetHvacMode || (() => {});
     this.onThermostatChange = options.onThermostatChange || (() => {});
     this.customLights = options.customLights || [];
+    this.lightFilterFloor = 'all';
     this.onSaveCustomLights = options.onSaveCustomLights || (() => {});
     this.onUpdateLightPosition = options.onUpdateLightPosition || (() => {});
     this.onBeaconFocus = options.onBeaconFocus || (() => {});
@@ -969,74 +971,124 @@ export class HUDOverlay {
 
         .light-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-          gap: 8px;
-          margin-top: 6px;
+          grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+          gap: 10px;
+          margin-top: 10px;
         }
 
         .light-card {
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 10px;
-          padding: 8px 10px;
+          border-radius: 12px;
+          padding: 10px 14px;
           display: flex;
-          flex-direction: column;
-          gap: 6px;
+          align-items: center;
           transition: all 0.2s ease;
         }
 
         .light-card.active {
-          background: rgba(251, 191, 36, 0.12);
-          border-color: rgba(251, 191, 36, 0.4);
-          box-shadow: 0 0 12px rgba(251, 191, 36, 0.15);
+          background: rgba(251, 191, 36, 0.10);
+          border-color: rgba(251, 191, 36, 0.35);
+          box-shadow: 0 0 14px rgba(251, 191, 36, 0.12);
         }
 
-        .light-card-top {
+        .light-card-body {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          gap: 12px;
+          width: 100%;
+        }
+
+        .light-avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: rgba(255, 255, 255, 0.06);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          flex-shrink: 0;
+          transition: all 0.2s;
+        }
+
+        .light-avatar.on {
+          background: rgba(245, 158, 11, 0.25);
+          box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+        }
+
+        .light-info {
+          flex: 1;
+          min-width: 0;
         }
 
         .light-name {
-          font-size: 11px;
+          font-size: 13px;
           font-weight: 600;
-          color: #f1f5f9;
+          color: #f8fafc;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        .light-status-pill {
-          font-size: 9px;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 4px;
-          text-transform: uppercase;
-        }
-
-        .light-status-pill.on {
-          background: #f59e0b;
-          color: #000;
-        }
-
-        .light-status-pill.off {
-          background: rgba(255, 255, 255, 0.1);
+        .light-subtext {
+          font-size: 11px;
           color: #94a3b8;
+          margin-top: 2px;
+        }
+
+        .light-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
         }
 
         .light-toggle-btn {
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #fff;
-          font-size: 10px;
-          font-weight: 600;
-          padding: 5px;
-          border-radius: 6px;
+          min-width: 52px;
+          padding: 6px 12px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 700;
+          border: 1px solid rgba(255, 255, 255, 0.12);
           cursor: pointer;
-          text-align: center;
-          pointer-events: auto;
-          transition: background 0.2s;
+          transition: all 0.2s;
+        }
+
+        .light-toggle-btn.on {
+          background: #f59e0b;
+          color: #0f172a;
+          border-color: #f59e0b;
+          box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .light-toggle-btn.off {
+          background: rgba(255, 255, 255, 0.08);
+          color: #94a3b8;
         }
 
         .light-toggle-btn:hover {
-          background: rgba(255, 255, 255, 0.2);
+          filter: brightness(1.15);
+        }
+
+        .btn-light-gear {
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 13px;
+          transition: all 0.2s;
+        }
+
+        .btn-light-gear:hover {
+          background: rgba(255, 255, 255, 0.15);
+          color: #fff;
         }
 
         .modal-footer {
@@ -1533,6 +1585,13 @@ export class HUDOverlay {
             <div class="sensor-input-wrap">
               <input type="text" list="ha-entities-datalist" id="cfg-peugeot-range" placeholder="sensor.e2008_battery_range">
               <button type="button" class="btn-entity-browse" data-target="#cfg-peugeot-range">📋 Select</button>
+            </div>
+          </div>
+          <div class="sensor-row">
+            <label>Peugeot Wakeup Button</label>
+            <div class="sensor-input-wrap">
+              <input type="text" list="ha-entities-datalist" id="cfg-peugeot-wakeup" placeholder="button.vr3ukzkxzmj557948_wakeup">
+              <button type="button" class="btn-entity-browse" data-target="#cfg-peugeot-wakeup">📋 Select</button>
             </div>
           </div>
 
@@ -2254,6 +2313,7 @@ export class HUDOverlay {
     setVal('#cfg-zappi-energy', cfg.myenergi_energy);
     setVal('#cfg-peugeot-battery', cfg.peugeot_battery);
     setVal('#cfg-peugeot-range', cfg.peugeot_range);
+    setVal('#cfg-peugeot-wakeup', cfg.peugeot_wakeup);
 
     // Thermostats
     setVal('#cfg-thermostat-downstairs', cfg.thermostat_downstairs);
@@ -2310,6 +2370,7 @@ export class HUDOverlay {
       myenergi_energy: getVal('#cfg-zappi-energy'),
       peugeot_battery: getVal('#cfg-peugeot-battery'),
       peugeot_range: getVal('#cfg-peugeot-range'),
+      peugeot_wakeup: getVal('#cfg-peugeot-wakeup'),
 
       // Thermostats
       thermostat_downstairs: getVal('#cfg-thermostat-downstairs'),
@@ -2660,6 +2721,7 @@ export class HUDOverlay {
     setIfFound('#cfg-zappi-energy', 'myenergi_zappi_30084500_charge_added_session', 'charge_added_session', 'zappi_energy', 'zappi_today');
     setIfFound('#cfg-peugeot-battery', 'sensor.vr3ukzkxzmj557948_battery', 'vr3ukzkxzmj557948_battery', 'e2008_battery', 'peugeot_battery', 'battery_level', 'soc');
     setIfFound('#cfg-peugeot-range', 'sensor.vr3ukzkxzmj557948_autonomy', 'vr3ukzkxzmj557948_autonomy', 'autonomy', 'e2008_range', 'peugeot_range', 'range');
+    setIfFound('#cfg-peugeot-wakeup', 'button.vr3ukzkxzmj557948_wakeup', 'vr3ukzkxzmj557948_wakeup', 'peugeot_wakeup', 'car_wakeup');
 
     // Thermostats auto-detection
     setIfFound('#cfg-thermostat-downstairs', 'climate.tado_x_downstairs', 'climate.downstairs', 'climate.ground_floor', 'climate.hallway', 'climate.living_room', 'downstairs_temperature');
@@ -2810,29 +2872,37 @@ export class HUDOverlay {
       const kw = toKw(s.power_kw);
       const isGenerating = kw > 0.04;
       const parts = getSolarPowerParts(kw);
+
+      let weekHtml = (s.week_kwh !== null && s.week_kwh !== undefined && s.week_kwh !== '') ? `
+        <div class="stat-card">
+          <div class="stat-label">THIS WEEK</div>
+          <div class="stat-val">${Number(s.week_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+        </div>` : '';
+      let monthHtml = (s.month_kwh !== null && s.month_kwh !== undefined && s.month_kwh !== '') ? `
+        <div class="stat-card">
+          <div class="stat-label">THIS MONTH</div>
+          <div class="stat-val">${Number(s.month_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+        </div>` : '';
+      let totalHtml = (s.total_kwh || s.year_kwh) ? `
+        <div class="stat-card">
+          <div class="stat-label">LIFETIME GENERATED</div>
+          <div class="stat-val">${Number(s.total_kwh || s.year_kwh).toFixed(0)} <span class="stat-unit">kWh</span></div>
+        </div>` : '';
+
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
             <div class="stat-label">SOLAX LIVE GENERATION</div>
             <div class="stat-val color-solar">${parts.value} <span class="stat-unit">${parts.unit}</span></div>
-            <div class="stat-subtext">Status: ${isGenerating ? 'Generating • Active Flow' : 'Frozen (No Generation)'}</div>
+            <div class="stat-subtext">Status: ${isGenerating ? 'Generating • Active Flow' : 'Standby / Night (No Generation)'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">TODAY</div>
             <div class="stat-val">${Number(s.today_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">THIS WEEK</div>
-            <div class="stat-val">${Number(s.week_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">THIS MONTH</div>
-            <div class="stat-val">${Number(s.month_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">THIS YEAR</div>
-            <div class="stat-val">${Number(s.year_kwh || 0).toFixed(0)} <span class="stat-unit">kWh</span></div>
-          </div>
+          ${weekHtml}
+          ${monthHtml}
+          ${totalHtml}
         </div>
       `;
     } else if (this.activeTab === 'electric') {
@@ -2842,45 +2912,66 @@ export class HUDOverlay {
       const isExporting = kw < -0.02 || Boolean(o.is_exporting);
       const isMoving = absKw > 0.03;
       const parts = getPowerParts(absKw);
+      const todaySpend = o.today_spend_gbp !== null && o.today_spend_gbp !== undefined ? o.today_spend_gbp : o.monthly_spend_gbp;
+
+      let yesterdayHtml = '';
+      if (o.yesterday_kwh !== null && o.yesterday_kwh !== undefined) {
+        yesterdayHtml = `
+          <div class="stat-card">
+            <div class="stat-label">YESTERDAY CONSUMED</div>
+            <div class="stat-val">${Number(o.yesterday_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+            ${o.yesterday_cost_gbp !== null && o.yesterday_cost_gbp !== undefined ? `<div class="stat-subtext">Cost: £${Number(o.yesterday_cost_gbp).toFixed(2)}</div>` : ''}
+          </div>
+        `;
+      }
+      let weekHtml = (o.week_kwh !== null && o.week_kwh !== undefined && o.week_kwh !== '') ? `
+        <div class="stat-card">
+          <div class="stat-label">THIS WEEK</div>
+          <div class="stat-val">${Number(o.week_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+        </div>` : '';
+      let monthHtml = (o.month_kwh !== null && o.month_kwh !== undefined && o.month_kwh !== '') ? `
+        <div class="stat-card">
+          <div class="stat-label">THIS MONTH</div>
+          <div class="stat-val">${Number(o.month_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+        </div>` : '';
+
+      const fridge = data.appliances?.fridge || {};
+      const fridgePowerW = fridge.power_w !== undefined ? fridge.power_w : Math.round((fridge.power_kw || 0) * 1000);
+      const fridgeActive = Boolean(fridge.is_active || fridgePowerW > 5);
+      const fridgeTempStr = (fridge.fridge_temp !== undefined && fridge.freezer_temp !== undefined)
+        ? `Fridge ${fridge.fridge_temp}°C &bull; Freezer ${fridge.freezer_temp}°C`
+        : (fridgeActive ? 'Active Cooling Cycle' : 'Standby');
+
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
-            <div class="stat-label">OCTOPUS GRID POWER (${isMoving ? (isExporting ? 'EXPORTING TO GRID' : 'IMPORTING FROM GRID') : 'IDLE / FROZEN'})</div>
+            <div class="stat-label">OCTOPUS GRID POWER (${isMoving ? (isExporting ? 'EXPORTING TO GRID' : 'IMPORTING FROM GRID') : 'IDLE / BALANCED'})</div>
             <div class="stat-val ${isExporting ? 'color-grid-export' : 'color-grid-import'}">
               ${parts.value} <span class="stat-unit">${parts.unit}</span>
             </div>
-            <div class="stat-subtext">Flow: ${isMoving ? (isExporting ? '⬆️ House to Pylon' : '⬇️ Pylon to House') : 'Frozen (0 W)'}</div>
+            <div class="stat-subtext">Flow: ${isMoving ? (isExporting ? '⬆️ House to Pylon' : '⬇️ Pylon to House') : 'Balanced (0 W)'}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">CURRENT TARIFF RATE</div>
             <div class="stat-val">${Number(o.current_rate_p || 0).toFixed(2)} <span class="stat-unit">p/kWh</span></div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">MONTH TO DATE SPEND</div>
-            <div class="stat-val">£${Number(o.monthly_spend_gbp || 0).toFixed(2)}</div>
+            <div class="stat-label">TODAY'S SPEND</div>
+            <div class="stat-val">£${Number(todaySpend || 0).toFixed(2)}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">30-MIN READING (MINI)</div>
-            <div class="stat-val">${Number(o.reading_30min_kwh || 0).toFixed(2)} <span class="stat-unit">kWh</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">TODAY</div>
+            <div class="stat-label">TODAY'S CONSUMPTION</div>
             <div class="stat-val">${Number(o.day_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
           </div>
+          ${yesterdayHtml}
+          ${weekHtml}
+          ${monthHtml}
           <div class="stat-card">
-            <div class="stat-label">THIS WEEK</div>
-            <div class="stat-val">${Number(o.week_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">THIS MONTH</div>
-            <div class="stat-val">${Number(o.month_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">KITCHEN WASHING MACHINE</div>
-            <div class="stat-val" style="color:${data.appliances?.washer?.is_active ? '#00f59b' : '#94a3b8'};">
-              ${data.appliances?.washer?.power_w || 0} <span class="stat-unit">W</span>
+            <div class="stat-label">KITCHEN REFRIGERATOR</div>
+            <div class="stat-val" style="color:${fridgeActive ? '#38bdf8' : '#94a3b8'};">
+              ${fridgePowerW} <span class="stat-unit">W</span>
             </div>
-            <div class="stat-subtext">Status: ${data.appliances?.washer?.state || 'Standby'}</div>
+            <div class="stat-subtext">${fridgeTempStr}</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">LIVING ROOM TV PLUG</div>
@@ -2889,11 +2980,40 @@ export class HUDOverlay {
             </div>
             <div class="stat-subtext">Status: ${data.appliances?.tv?.is_on ? 'On / Active' : 'Standby'} &bull; TV Plug</div>
           </div>
+          ${data.appliances?.washer?.power_w ? `
+          <div class="stat-card">
+            <div class="stat-label">KITCHEN WASHING MACHINE</div>
+            <div class="stat-val" style="color:${data.appliances?.washer?.is_active ? '#00f59b' : '#94a3b8'};">
+              ${data.appliances?.washer?.power_w || 0} <span class="stat-unit">W</span>
+            </div>
+            <div class="stat-subtext">Status: ${data.appliances?.washer?.state || 'Standby'}</div>
+          </div>` : ''}
         </div>
       `;
     } else if (this.activeTab === 'gas') {
       const g = data.octopus_gas || {};
       const isActive = Boolean(g.is_active && g.boiler_status === 'Heating');
+      let gasYesterdayHtml = '';
+      if (g.yesterday_kwh !== null && g.yesterday_kwh !== undefined) {
+        gasYesterdayHtml = `
+          <div class="stat-card">
+            <div class="stat-label">YESTERDAY CONSUMED</div>
+            <div class="stat-val">${Number(g.yesterday_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+            ${g.yesterday_cost_gbp !== null && g.yesterday_cost_gbp !== undefined ? `<div class="stat-subtext">Cost: £${Number(g.yesterday_cost_gbp).toFixed(2)}</div>` : ''}
+          </div>
+        `;
+      }
+      let gasWeekHtml = (g.week_kwh !== null && g.week_kwh !== undefined && g.week_kwh !== '') ? `
+        <div class="stat-card">
+          <div class="stat-label">THIS WEEK</div>
+          <div class="stat-val">${Number(g.week_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+        </div>` : '';
+      let gasMonthHtml = (g.month_kwh !== null && g.month_kwh !== undefined && g.month_kwh !== '') ? `
+        <div class="stat-card">
+          <div class="stat-label">THIS MONTH</div>
+          <div class="stat-val">${Number(g.month_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
+        </div>` : '';
+
       content.innerHTML = `
         <div class="stat-grid">
           <div class="stat-card stat-card-full">
@@ -2902,28 +3022,19 @@ export class HUDOverlay {
             <div class="stat-subtext">Status: ${isActive ? 'Heating (Firing)' : 'Standby (Idle)'} &bull; Supply: External LPG Bulk Tank</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">30-MIN READING (MINI)</div>
-            <div class="stat-val">${Number(g.reading_30min_kwh || 0).toFixed(2)} <span class="stat-unit">kWh</span></div>
-          </div>
-          <div class="stat-card">
             <div class="stat-label">TODAY</div>
             <div class="stat-val">${Number(g.day_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">THIS WEEK</div>
-            <div class="stat-val">${Number(g.week_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
+            <div class="stat-label">TODAY'S SPEND</div>
+            <div class="stat-val">£${Number(g.today_spend_gbp || g.monthly_spend_gbp || 0).toFixed(2)}</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-label">THIS MONTH</div>
-            <div class="stat-val">${Number(g.month_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
-          </div>
+          ${gasYesterdayHtml}
+          ${gasWeekHtml}
+          ${gasMonthHtml}
           <div class="stat-card">
             <div class="stat-label">GAS RATE</div>
             <div class="stat-val">${Number(g.current_rate_p || 0).toFixed(2)} <span class="stat-unit">p/kWh</span></div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">EST. MONTH SPEND</div>
-            <div class="stat-val">£${Number(g.monthly_spend_gbp || 0).toFixed(2)}</div>
           </div>
         </div>
       `;
@@ -2957,12 +3068,20 @@ export class HUDOverlay {
           </div>
 
           <div class="stat-card stat-card-full">
-            <div class="stat-label">PEUGEOT e-2008 BATTERY</div>
-            <div class="stat-val color-ev">${soc}% <span class="stat-unit">(${Number(ev.range_miles || 0)} miles)</span></div>
-            <div class="battery-bar-container">
-              <div class="battery-bar-fill" style="width: ${soc}%"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+              <div style="flex:1;min-width:200px;">
+                <div class="stat-label">PEUGEOT e-2008 BATTERY</div>
+                <div class="stat-val color-ev">${soc}% <span class="stat-unit">(${Number(ev.range_miles || 0)} miles)</span></div>
+                <div class="battery-bar-container">
+                  <div class="battery-bar-fill" style="width: ${soc}%"></div>
+                </div>
+                <div class="stat-subtext" style="margin-top: 6px;">Charging Cable: ${isCharging ? '⚡ Flowing to Car (5 Pulses)' : (isConnected ? '🔌 Plugged In (Idle)' : 'Disconnected')}</div>
+              </div>
+              <button class="btn-action" id="btn-wakeup-vehicle" style="background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; display:flex; align-items:center; gap:8px; padding:10px 16px; border-radius:10px; font-weight:700; font-size:12px; cursor:pointer; border:none; box-shadow:0 4px 12px rgba(2,132,199,0.3); transition:all 0.2s;">
+                <span>🚗</span>
+                <span id="btn-wakeup-text">Wake Up Vehicle</span>
+              </button>
             </div>
-            <div class="stat-subtext" style="margin-top: 6px;">Charging Cable: ${isCharging ? '⚡ Flowing to Car (5 Pulses)' : (isConnected ? '🔌 Plugged In (Idle)' : 'Disconnected')}</div>
           </div>
 
           <div class="stat-card">
@@ -2977,6 +3096,27 @@ export class HUDOverlay {
           </div>
         </div>
       `;
+
+      const btnWakeup = content.querySelector('#btn-wakeup-vehicle');
+      if (btnWakeup) {
+        btnWakeup.addEventListener('click', () => {
+          const textEl = btnWakeup.querySelector('#btn-wakeup-text');
+          btnWakeup.disabled = true;
+          btnWakeup.style.opacity = '0.7';
+          if (textEl) textEl.innerText = 'Waking vehicle...';
+          if (this.onWakeupVehicle) {
+            this.onWakeupVehicle();
+          }
+          setTimeout(() => {
+            if (textEl) textEl.innerText = '✅ Wakeup sent!';
+            setTimeout(() => {
+              btnWakeup.disabled = false;
+              btnWakeup.style.opacity = '1';
+              if (textEl) textEl.innerText = 'Wake Up Vehicle';
+            }, 3000);
+          }, 1200);
+        });
+      }
 
       const btnFocus = content.querySelector('#btn-focus-charger');
       if (btnFocus) {
@@ -3167,64 +3307,142 @@ export class HUDOverlay {
     } else if (this.activeTab === 'lights') {
       const roomLights = data.room_lights || {};
       const lights = this.customLights || [];
+      const filterFloor = this.lightFilterFloor || 'all';
+
+      let countOn = 0;
+      let groundCount = 0;
+      let firstCount = 0;
+
+      for (const lt of lights) {
+        const item = roomLights[lt.id] || (lt.id === 'living_lamp' ? data.appliances?.living_lamp : {}) || {};
+        const isOn = Boolean(item.is_on || item.state === 'on');
+        if (isOn) countOn++;
+        const isUpstairs = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0);
+        if (isUpstairs) firstCount++;
+        else groundCount++;
+      }
+
+      const visibleLights = lights.filter((lt) => {
+        const isUpstairs = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0);
+        if (filterFloor === 'ground') return !isUpstairs;
+        if (filterFloor === 'first') return isUpstairs;
+        return true;
+      });
 
       let cardsHtml = '';
-      for (const lt of lights) {
+      for (const lt of visibleLights) {
         const item = roomLights[lt.id] || (lt.id === 'living_lamp' ? data.appliances?.living_lamp : {}) || {};
         const isOn = Boolean(item.is_on || item.state === 'on');
         const bri = item.brightness !== undefined ? Math.round((item.brightness / 255) * 100) : (isOn ? 100 : 0);
         const icon = lt.isFloorLamp || lt.name?.toLowerCase().includes('lamp') ? '🛋️' : '💡';
-        const floorText = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0) ? '🛏️ Upstairs' : '🛋️ Downstairs';
-        const posText = lt.pos ? `(${lt.pos.x.toFixed(1)}, ${lt.pos.y.toFixed(1)}, ${lt.pos.z.toFixed(1)})` : '';
+        const isUpstairs = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0);
+        const floorText = isUpstairs ? '🛏️ Upstairs' : '🛋️ Downstairs';
         const defLight = DEFAULT_LIGHTS.find(d => d.id === lt.id);
         const mappedEntity = lt.entity_id || this.currentSensorConfig?.[`light_${lt.id}`] || (lt.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || defLight?.entity_id || '';
 
         cardsHtml += `
           <div class="light-card ${isOn ? 'active' : ''}">
-            <div class="light-card-top">
-              <span class="light-name">${icon} ${lt.name}</span>
-              <span class="light-status-pill ${isOn ? 'on' : 'off'}">${isOn ? '💡 ON' : 'OFF'}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; color:#94a3b8;">
-              <span>${floorText}</span>
-              <span style="font-size:9px;">${posText}</span>
-            </div>
-            <div style="font-size:10px; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
-              <span>${isOn ? `Brightness: ${bri}%` : 'Light is off'}</span>
-              <span style="font-size:9px; color:#64748b; font-family:monospace; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${mappedEntity || 'Manual Toggle'}">
-                ${mappedEntity ? `🔗 ${mappedEntity}` : '⚪ Manual'}
-              </span>
-            </div>
-            <button class="light-toggle-btn" data-entity="${mappedEntity}" data-light-id="${lt.id}">
-              ${isOn ? 'Turn Off' : 'Turn On'}
-            </button>
-            <div class="light-card-footer">
-              <button class="btn-light-sub btn-edit-light-coords" data-light-id="${lt.id}">
-                ⚙️ Move / Edit
-              </button>
-              <button class="btn-light-del btn-delete-light-item" data-light-id="${lt.id}" title="Delete light">
-                🗑️
-              </button>
+            <div class="light-card-body">
+              <div class="light-avatar ${isOn ? 'on' : 'off'}">
+                ${icon}
+              </div>
+              <div class="light-info">
+                <div class="light-name">${lt.name}</div>
+                <div class="light-subtext">${floorText} &bull; <span style="color:${isOn ? '#f59e0b' : '#94a3b8'};font-weight:${isOn ? '600' : 'normal'};">${isOn ? `${bri}% Brightness` : 'Off'}</span></div>
+              </div>
+              <div class="light-actions">
+                <button class="light-toggle-btn ${isOn ? 'on' : 'off'}" data-entity="${mappedEntity}" data-light-id="${lt.id}">
+                  ${isOn ? 'ON' : 'OFF'}
+                </button>
+                <button class="btn-light-gear btn-edit-light-coords" data-light-id="${lt.id}" title="Edit 3D Position & Entity">
+                  ⚙️
+                </button>
+              </div>
             </div>
           </div>
         `;
       }
 
       content.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
-          <div>
-            <div style="font-weight:700; font-size:13px; color:#f8fafc;">💡 Interactive 3D Lights (${lights.length})</div>
-            <div style="font-size:11px; color:#94a3b8;">Add, delete, move around in 3D, and link Home Assistant entities</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; flex-wrap:wrap;">
+          <div style="display:flex; gap:6px;">
+            <button class="thermo-preset-pill ${filterFloor === 'all' ? 'active' : ''}" data-filter-floor="all">All (${lights.length})</button>
+            <button class="thermo-preset-pill ${filterFloor === 'ground' ? 'active' : ''}" data-filter-floor="ground">🛋️ Ground Floor (${groundCount})</button>
+            <button class="thermo-preset-pill ${filterFloor === 'first' ? 'active' : ''}" data-filter-floor="first">🛏️ Upstairs (${firstCount})</button>
           </div>
-          <button class="btn-action" id="btn-add-light-ui" style="background:#0284c7; color:#fff; display:flex; align-items:center; gap:6px; padding:6px 14px; border-radius:8px; font-weight:600; font-size:12px; cursor:pointer; border:none;">
-            <span>➕</span>
-            <span>Add Light</span>
-          </button>
+          <div style="display:flex; gap:6px; align-items:center;">
+            <button class="light-toggle-btn off" id="btn-lights-all-on" style="padding:5px 10px;font-size:11px;min-width:auto;">All On</button>
+            <button class="light-toggle-btn off" id="btn-lights-all-off" style="padding:5px 10px;font-size:11px;min-width:auto;">All Off</button>
+            <button class="btn-action" id="btn-add-light-ui" style="background:#0284c7; color:#fff; display:flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; font-weight:600; font-size:11px; cursor:pointer; border:none;">
+              <span>➕</span>
+              <span>Add Light</span>
+            </button>
+          </div>
         </div>
         <div class="light-grid">
           ${cardsHtml}
         </div>
       `;
+
+      // Filter floor buttons
+      const floorFilterBtns = content.querySelectorAll('[data-filter-floor]');
+      floorFilterBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          this.lightFilterFloor = btn.getAttribute('data-filter-floor');
+          this.renderDrawerContent();
+        });
+      });
+
+      // Batch All On / All Off buttons
+      const btnAllOn = content.querySelector('#btn-lights-all-on');
+      if (btnAllOn) {
+        btnAllOn.addEventListener('click', () => {
+          for (const lt of visibleLights) {
+            const defLight = DEFAULT_LIGHTS.find(d => d.id === lt.id);
+            const entId = lt.entity_id || this.currentSensorConfig?.[`light_${lt.id}`] || (lt.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || defLight?.entity_id || '';
+            if (data.room_lights?.[lt.id]) {
+              data.room_lights[lt.id].is_on = true;
+              data.room_lights[lt.id].brightness = 255;
+            }
+            if (lt.id === 'living_lamp' && data.appliances?.living_lamp) {
+              data.appliances.living_lamp.is_on = true;
+              data.appliances.living_lamp.brightness = 255;
+            }
+            if (entId) {
+              this.onToggleLight(entId);
+            }
+            if (this.options.onToggleRoomLight) {
+              this.options.onToggleRoomLight(lt.id, true);
+            }
+          }
+          this.renderDrawerContent();
+        });
+      }
+
+      const btnAllOff = content.querySelector('#btn-lights-all-off');
+      if (btnAllOff) {
+        btnAllOff.addEventListener('click', () => {
+          for (const lt of visibleLights) {
+            const defLight = DEFAULT_LIGHTS.find(d => d.id === lt.id);
+            const entId = lt.entity_id || this.currentSensorConfig?.[`light_${lt.id}`] || (lt.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || defLight?.entity_id || '';
+            if (data.room_lights?.[lt.id]) {
+              data.room_lights[lt.id].is_on = false;
+              data.room_lights[lt.id].brightness = 0;
+            }
+            if (lt.id === 'living_lamp' && data.appliances?.living_lamp) {
+              data.appliances.living_lamp.is_on = false;
+              data.appliances.living_lamp.brightness = 0;
+            }
+            if (entId) {
+              this.onToggleLight(entId);
+            }
+            if (this.options.onToggleRoomLight) {
+              this.options.onToggleRoomLight(lt.id, false);
+            }
+          }
+          this.renderDrawerContent();
+        });
+      }
 
       // Toggle buttons
       const toggleBtns = content.querySelectorAll('.light-toggle-btn');
@@ -3276,15 +3494,6 @@ export class HUDOverlay {
         btn.addEventListener('click', () => {
           const lightId = btn.getAttribute('data-light-id');
           this.openLightEditor(lightId);
-        });
-      });
-
-      // Delete light buttons
-      const delBtns = content.querySelectorAll('.btn-delete-light-item');
-      delBtns.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const lightId = btn.getAttribute('data-light-id');
-          this.deleteLight(lightId);
         });
       });
     }

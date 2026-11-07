@@ -195,6 +195,10 @@ export class HaEnergy3DCardEditor extends HTMLElement {
             <label>Peugeot Remaining Range (miles/km)</label>
             <input type="text" data-key="peugeot_range" value="${c.peugeot_range || 'sensor.vr3ukzkxzmj557948_autonomy'}">
           </div>
+          <div class="input-row">
+            <label>Peugeot Wakeup Button</label>
+            <input type="text" data-key="peugeot_wakeup" value="${c.peugeot_wakeup || 'button.vr3ukzkxzmj557948_wakeup'}">
+          </div>
         </div>
 
         <div class="section-title">🌡️ Heating & Thermostats</div>

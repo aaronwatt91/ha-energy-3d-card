@@ -134,8 +134,8 @@ export class HaEnergy3DCard extends HTMLElement {
       // Solax Solar
       solax_power: 'sensor.solax_snm9wncrqy_ac_output_power',
       solax_today: 'sensor.solax_snm9wncrqy_today_s_generated_energy',
-      solax_week: 'sensor.solax_snm9wncrqy_today_s_generated_energy',
-      solax_month: 'sensor.solax_snm9wncrqy_today_s_generated_energy',
+      solax_week: '',
+      solax_month: '',
       solax_year: 'sensor.solax_snm9wncrqy_total_generated_energy',
       // Octopus Electric
       octopus_electric_power: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand',
@@ -144,14 +144,18 @@ export class HaEnergy3DCard extends HTMLElement {
       octopus_monthly_spend: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_cost',
       octopus_electric_30min: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_consumption',
       octopus_electric_day: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_accumulative_consumption',
-      octopus_electric_week: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_previous_accumulative_consumption',
-      octopus_electric_month: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_total_consumption',
+      octopus_electric_yesterday: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_previous_accumulative_consumption',
+      octopus_electric_yesterday_cost: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_previous_accumulative_cost',
+      octopus_electric_week: '',
+      octopus_electric_month: '',
       // Octopus Gas & Boiler
       boiler_status: 'sensor.boiler_status',
       octopus_gas_30min: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh',
       octopus_gas_day: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh',
-      octopus_gas_week: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_previous_accumulative_consumption_kwh',
-      octopus_gas_month: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_total_consumption_kwh',
+      octopus_gas_yesterday: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_previous_accumulative_consumption_kwh',
+      octopus_gas_yesterday_cost: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_previous_accumulative_cost',
+      octopus_gas_week: '',
+      octopus_gas_month: '',
       octopus_gas_rate: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_rate',
       octopus_gas_spend: 'sensor.octopus_energy_gas_e6s18975782161_7756751506_current_accumulative_cost',
       // myenergi & Peugeot EV
@@ -160,6 +164,7 @@ export class HaEnergy3DCard extends HTMLElement {
       myenergi_energy: 'sensor.myenergi_zappi_30084500_charge_added_session',
       peugeot_battery: 'sensor.vr3ukzkxzmj557948_battery',
       peugeot_range: 'sensor.vr3ukzkxzmj557948_autonomy',
+      peugeot_wakeup: 'button.vr3ukzkxzmj557948_wakeup',
       // Thermostats (Upstairs & Downstairs)
       thermostat_downstairs: 'climate.tado_x_downstairs',
       thermostat_upstairs: 'climate.smart_thermostat_x',
@@ -268,6 +273,7 @@ export class HaEnergy3DCard extends HTMLElement {
       onToggleRotate: (enable) => {
         this.sceneManager.controls.autoRotate = enable;
       },
+      onWakeupVehicle: () => this.wakeupVehicle(),
       onToggleLight: (entityId) => this.toggleLightEntity(entityId),
       onSetTemperature: (floor, temp, entityId) => this.setThermostatTemperature(entityId, temp),
       onSetHvacMode: (floor, mode, entityId) => this.setThermostatHvacMode(entityId, mode),
@@ -478,17 +484,17 @@ export class HaEnergy3DCard extends HTMLElement {
     // 1. Solax Solar Integration
     const entSolaxPower = this.resolveEntity(cfg.solax_power, 'solax_snm9wncrqy_ac_output_power', 'ac_output_power', 'pv1_power', 'solax_pv_power');
     const entSolaxToday = this.resolveEntity(cfg.solax_today, 'solax_snm9wncrqy_today_s_generated_energy', 'today_s_generated_energy', 'solax_today');
-    const entSolaxWeek  = this.resolveEntity(cfg.solax_week, 'solax_snm9wncrqy_today_s_generated_energy', 'solax_week');
-    const entSolaxMonth = this.resolveEntity(cfg.solax_month, 'solax_snm9wncrqy_today_s_generated_energy', 'solax_month');
+    const entSolaxWeek  = cfg.solax_week ? this.resolveEntity(cfg.solax_week) : null;
+    const entSolaxMonth = cfg.solax_month ? this.resolveEntity(cfg.solax_month) : null;
     const entSolaxYear  = this.resolveEntity(cfg.solax_year, 'solax_snm9wncrqy_total_generated_energy', 'total_generated_energy', 'solax_year');
 
     const solaxPower = this.getPowerInKw(entSolaxPower, this.energyData.solar.power_kw);
     this.energyData.solar = {
       power_kw: solaxPower,
       today_kwh: this.getEnergyInKwh(entSolaxToday, this.energyData.solar.today_kwh),
-      week_kwh: this.getEnergyInKwh(entSolaxWeek, this.energyData.solar.week_kwh),
-      month_kwh: this.getEnergyInKwh(entSolaxMonth, this.energyData.solar.month_kwh),
-      year_kwh: this.getEnergyInKwh(entSolaxYear, this.energyData.solar.year_kwh),
+      week_kwh: entSolaxWeek ? this.getEnergyInKwh(entSolaxWeek, null) : null,
+      month_kwh: entSolaxMonth ? this.getEnergyInKwh(entSolaxMonth, null) : null,
+      year_kwh: entSolaxYear ? this.getEnergyInKwh(entSolaxYear, this.energyData.solar.year_kwh) : null,
       status: solaxPower > 0.04 ? 'Generating' : 'Idle'
     };
 
@@ -499,8 +505,10 @@ export class HaEnergy3DCard extends HTMLElement {
     const entOctopusSpend = this.resolveEntity(cfg.octopus_monthly_spend, 'electricity_22l3956422_3200000391421_current_accumulative_cost', 'electricity_current_accumulative_cost');
     const entOctopus30min = this.resolveEntity(cfg.octopus_electric_30min, 'electricity_22l3956422_3200000391421_current_accumulative_consumption', 'electricity_30min');
     const entOctopusDay = this.resolveEntity(cfg.octopus_electric_day, 'electricity_22l3956422_3200000391421_current_accumulative_consumption', 'electricity_today');
-    const entOctopusWeek = this.resolveEntity(cfg.octopus_electric_week, 'electricity_22l3956422_3200000391421_previous_accumulative_consumption', 'electricity_week');
-    const entOctopusMonth = this.resolveEntity(cfg.octopus_electric_month, 'electricity_22l3956422_3200000391421_current_total_consumption', 'electricity_month');
+    const entOctopusYesterday = this.resolveEntity(cfg.octopus_electric_yesterday, 'electricity_22l3956422_3200000391421_previous_accumulative_consumption', 'electricity_yesterday');
+    const entOctopusYesterdayCost = this.resolveEntity(cfg.octopus_electric_yesterday_cost, 'electricity_22l3956422_3200000391421_previous_accumulative_cost', 'electricity_yesterday_cost');
+    const entOctopusWeek = cfg.octopus_electric_week ? this.resolveEntity(cfg.octopus_electric_week) : null;
+    const entOctopusMonth = cfg.octopus_electric_month ? this.resolveEntity(cfg.octopus_electric_month) : null;
 
     let electricKw = this.getPowerInKw(entOctopusPower, this.energyData.octopus_electric.power_kw);
     let exportKw = this.getPowerInKw(entOctopusExport, 0);
@@ -520,11 +528,14 @@ export class HaEnergy3DCard extends HTMLElement {
       power_kw: electricKw,
       is_exporting: isExporting,
       current_rate_p: this.getTariffRate(entOctopusRate, this.energyData.octopus_electric.current_rate_p),
+      today_spend_gbp: this.getEntityNumericValue(entOctopusSpend, this.energyData.octopus_electric.today_spend_gbp || this.energyData.octopus_electric.monthly_spend_gbp),
       monthly_spend_gbp: this.getEntityNumericValue(entOctopusSpend, this.energyData.octopus_electric.monthly_spend_gbp),
       reading_30min_kwh: this.getEnergyInKwh(entOctopus30min, this.energyData.octopus_electric.reading_30min_kwh),
       day_kwh: this.getEnergyInKwh(entOctopusDay, this.energyData.octopus_electric.day_kwh),
-      week_kwh: this.getEnergyInKwh(entOctopusWeek, this.energyData.octopus_electric.week_kwh),
-      month_kwh: this.getEnergyInKwh(entOctopusMonth, this.energyData.octopus_electric.month_kwh)
+      yesterday_kwh: entOctopusYesterday ? this.getEnergyInKwh(entOctopusYesterday, this.energyData.octopus_electric.yesterday_kwh) : null,
+      yesterday_cost_gbp: entOctopusYesterdayCost ? this.getEntityNumericValue(entOctopusYesterdayCost, this.energyData.octopus_electric.yesterday_cost_gbp) : null,
+      week_kwh: entOctopusWeek ? this.getEnergyInKwh(entOctopusWeek, null) : null,
+      month_kwh: entOctopusMonth ? this.getEnergyInKwh(entOctopusMonth, null) : null
     };
 
     // 3. Thermostats (Upstairs & Downstairs Heating Monitoring)
@@ -542,8 +553,10 @@ export class HaEnergy3DCard extends HTMLElement {
     const entGasSpend = this.resolveEntity(cfg.octopus_gas_spend, 'gas_e6s18975782161_7756751506_current_accumulative_cost', 'gas_current_accumulative_cost');
     const entGas30min = this.resolveEntity(cfg.octopus_gas_30min, 'gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh', 'gas_30min');
     const entGasDay = this.resolveEntity(cfg.octopus_gas_day, 'gas_e6s18975782161_7756751506_current_accumulative_consumption_kwh', 'gas_day');
-    const entGasWeek = this.resolveEntity(cfg.octopus_gas_week, 'gas_e6s18975782161_7756751506_previous_accumulative_consumption_kwh', 'gas_week');
-    const entGasMonth = this.resolveEntity(cfg.octopus_gas_month, 'gas_e6s18975782161_7756751506_current_total_consumption_kwh', 'gas_month');
+    const entGasYesterday = this.resolveEntity(cfg.octopus_gas_yesterday, 'gas_e6s18975782161_7756751506_previous_accumulative_consumption_kwh', 'gas_yesterday');
+    const entGasYesterdayCost = this.resolveEntity(cfg.octopus_gas_yesterday_cost, 'gas_e6s18975782161_7756751506_previous_accumulative_cost', 'gas_yesterday_cost');
+    const entGasWeek = cfg.octopus_gas_week ? this.resolveEntity(cfg.octopus_gas_week) : null;
+    const entGasMonth = cfg.octopus_gas_month ? this.resolveEntity(cfg.octopus_gas_month) : null;
 
     let isBoilerHeating = false;
     const hasDownThermo = Boolean(entThermoDown && this._hass?.states?.[entThermoDown]);
@@ -601,8 +614,11 @@ export class HaEnergy3DCard extends HTMLElement {
       boiler_status: boilerStatus,
       reading_30min_kwh: this.getEnergyInKwh(entGas30min, this.energyData.octopus_gas.reading_30min_kwh),
       day_kwh: this.getEnergyInKwh(entGasDay, this.energyData.octopus_gas.day_kwh),
-      week_kwh: this.getEnergyInKwh(entGasWeek, this.energyData.octopus_gas.week_kwh),
-      month_kwh: this.getEnergyInKwh(entGasMonth, this.energyData.octopus_gas.month_kwh),
+      today_spend_gbp: this.getEntityNumericValue(entGasSpend, this.energyData.octopus_gas.today_spend_gbp || this.energyData.octopus_gas.monthly_spend_gbp),
+      yesterday_kwh: entGasYesterday ? this.getEnergyInKwh(entGasYesterday, this.energyData.octopus_gas.yesterday_kwh) : null,
+      yesterday_cost_gbp: entGasYesterdayCost ? this.getEntityNumericValue(entGasYesterdayCost, this.energyData.octopus_gas.yesterday_cost_gbp) : null,
+      week_kwh: entGasWeek ? this.getEnergyInKwh(entGasWeek, null) : null,
+      month_kwh: entGasMonth ? this.getEnergyInKwh(entGasMonth, null) : null,
       current_rate_p: this.getTariffRate(entGasRate, this.energyData.octopus_gas.current_rate_p),
       monthly_spend_gbp: this.getEntityNumericValue(entGasSpend, this.energyData.octopus_gas.monthly_spend_gbp)
     };
@@ -799,7 +815,9 @@ export class HaEnergy3DCard extends HTMLElement {
         power_kw: fridgePower,
         power_w: isFridgeUnavailable ? 0 : Math.round(fridgePower * 1000),
         is_active: isFridgeActive,
-        state: isFridgeUnavailable ? 'Unavailable' : (isFridgeActive ? 'Running' : 'Standby')
+        state: isFridgeUnavailable ? 'Unavailable' : (isFridgeActive ? 'Running' : 'Standby'),
+        fridge_temp: this._hass?.states?.['sensor.refrigerator_fridge_temperature']?.state,
+        freezer_temp: this._hass?.states?.['sensor.refrigerator_freezer_temperature']?.state
       },
       washer: {
         entity_id: entWasher || '',
@@ -1016,6 +1034,20 @@ export class HaEnergy3DCard extends HTMLElement {
 
     const domain = targetEntity.startsWith('switch.') ? 'switch' : (targetEntity.startsWith('light.') ? 'light' : 'homeassistant');
     this.callHAService(domain, 'toggle', { entity_id: targetEntity });
+  }
+
+  wakeupVehicle() {
+    const cfg = this._config || {};
+    const entWakeup = this.resolveEntity(
+      cfg.peugeot_wakeup,
+      'button.vr3ukzkxzmj557948_wakeup',
+      'button.vr3ukzkxzmj557948_wakeup_vehicle',
+      'button.peugeot_wakeup',
+      'button.car_wakeup'
+    );
+    if (entWakeup) {
+      this.callHAService('button', 'press', { entity_id: entWakeup });
+    }
   }
 
   setThermostatTemperature(entityId, temp) {

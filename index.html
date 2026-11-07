@@ -79,22 +79,6 @@
       background: #10b981;
     }
 
-    .nav-links {
-      display: flex;
-      gap: 14px;
-      font-size: 13px;
-    }
-
-    .nav-link {
-      color: #94a3b8;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-
-    .nav-link:hover {
-      color: #38bdf8;
-    }
-
     /* Main Container */
     .app-main {
       flex: 1;
@@ -131,7 +115,7 @@
   </style>
 
   <!-- Load bundled custom card module with cache-buster -->
-  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.16"></script>
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.17"></script>
 </head>
 <body>
 
@@ -151,9 +135,6 @@
       <div class="status-pill" id="ha-conn-pill">
         <div class="status-dot" id="ha-conn-dot"></div>
         <span id="ha-conn-text">Checking Home Assistant...</span>
-      </div>
-      <div class="nav-links">
-        <a class="nav-link" href="https://github.com/aaronwatt91/ha-energy-3d-card" target="_blank">📦 GitHub</a>
       </div>
     </div>
   </nav>
@@ -204,9 +185,13 @@
         'sensor.myenergi_zappi_charge_added_session': { state: '22.4' },
         'sensor.e2008_battery_level': { state: '68' },
         'sensor.e2008_battery_range': { state: '142' },
+        'button.vr3ukzkxzmj557948_wakeup': { state: 'idle' },
 
         // Appliances & Living Room Devices
-        'sensor.fridge_power': { state: '85', attributes: { unit_of_measurement: 'W' } },
+        'sensor.refrigerator_power': { state: '37', attributes: { unit_of_measurement: 'W' } },
+        'sensor.refrigerator_fridge_temperature': { state: '1' },
+        'sensor.refrigerator_freezer_temperature': { state: '-18' },
+        'sensor.fridge_power': { state: '37', attributes: { unit_of_measurement: 'W' } },
         'sensor.washing_machine_power': { state: '420', attributes: { unit_of_measurement: 'W' } },
         'media_player.living_room_tv': { state: 'on', attributes: { friendly_name: 'Living Room TV' } },
         'light.living_room_lamp': { state: 'on', attributes: { brightness: 220, rgb_color: [255, 220, 160] } },

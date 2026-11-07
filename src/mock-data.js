@@ -17,14 +17,14 @@ export const DEFAULT_ENERGY_DATA = {
 
   // Octopus Grid & Electricity
   octopus_electric: {
-    power_kw: 0.284,         // Live power in kW (sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand: 284 W)
+    power_kw: 0.171,         // Live power in kW (sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand: 171 W)
     is_exporting: false,     // Derived: power_kw < 0
     current_rate_p: 31.57,   // Current unit rate in pence per kWh (from 0.315709 GBP/kWh)
-    monthly_spend_gbp: 1.32, // Current accumulative cost (£1.32)
-    reading_30min_kwh: 0.28, // Electricity reading
-    day_kwh: 5.42,           // Electricity consumed today (sensor.octopus_energy_electricity_..._current_accumulative_consumption)
-    week_kwh: 38.6,          // Electricity consumed this week
-    month_kwh: 164.2,        // Electricity consumed this month
+    today_spend_gbp: 1.82,   // Current accumulative cost (£1.82)
+    monthly_spend_gbp: 1.82, // Current accumulative cost (£1.82)
+    day_kwh: 7.01,           // Electricity consumed today (sensor.octopus_energy_electricity_..._current_accumulative_consumption)
+    yesterday_kwh: 7.26,     // Yesterday's consumption (7.26 kWh)
+    yesterday_cost_gbp: 2.15,// Yesterday's cost (£2.15)
     tariff_name: 'Octopus Energy Electricity'
   },
 
@@ -32,12 +32,12 @@ export const DEFAULT_ENERGY_DATA = {
   octopus_gas: {
     is_active: false,        // Boiler is on Standby (not firing)
     power_kw: 0.0,           // Live equivalent gas consumption rate (0 kW when idle)
-    reading_30min_kwh: 0.0,  // Gas reading
-    day_kwh: 5.40,           // Gas consumed today (sensor.octopus_energy_gas_..._current_accumulative_consumption_kwh)
-    week_kwh: 35.8,          // Gas consumed this week
-    month_kwh: 154.0,        // Gas consumed this month
+    day_kwh: 12.69,          // Gas consumed today (sensor.octopus_energy_gas_..._current_accumulative_consumption_kwh)
+    today_spend_gbp: 1.40,   // Gas current accumulative cost (£1.40)
+    yesterday_kwh: 29.06,    // Yesterday's gas consumption (29.06 kWh)
+    yesterday_cost_gbp: 2.82,// Yesterday's gas cost (£2.82)
     current_rate_p: 8.71,    // Gas unit rate in p/kWh (from 0.087134 GBP/kWh)
-    monthly_spend_gbp: 0.76, // Gas current accumulative cost (£0.76)
+    monthly_spend_gbp: 1.40, // Gas current accumulative cost (£1.40)
     boiler_status: 'Standby' // 'Heating', 'Standby'
   },
 
@@ -100,9 +100,11 @@ export const DEFAULT_ENERGY_DATA = {
   appliances: {
     fridge: {
       entity_id: 'sensor.refrigerator_power',
-      power_kw: 0.048, // 48W
-      power_w: 48,
-      is_active: true
+      power_kw: 0.037, // 37W
+      power_w: 37,
+      is_active: true,
+      fridge_temp: 1,
+      freezer_temp: -18
     },
     washer: {
       entity_id: 'sensor.kitchen_washing_machine_daily_energy',

@@ -150,6 +150,7 @@ export class SceneManager {
     ];
 
     this.roofParts = [];
+    this.xrayMeshes = [];
     this.topFloorMeshes = [];
     this.cuttableMeshes = [];
     this.occludingMeshes = [];
@@ -2330,25 +2331,35 @@ export class SceneManager {
 
               const name = child.name;
 
-              // Roof ghosting parts for general X-Ray
+              // Ghosting parts for seeing through all walls, roof & doors in X-Ray mode
               if (
                 name.includes('Roof_Main') ||
                 name.includes('Roof_Ridge_Tiles') ||
                 name.includes('First_Floor_Ceiling') ||
-                name.includes('Fascia_and_Soffits')
+                name.includes('Fascia_and_Soffits') ||
+                name.includes('Exterior_Walls') ||
+                name.includes('Separating_Party_Wall') ||
+                name.includes('Interior_Walls') ||
+                name.includes('Front_Entrance_Door') ||
+                name.includes('Rear_French_Doors') ||
+                name.includes('Interior_Doors')
               ) {
-                this.roofParts.push({
+                const isWall = name.includes('Wall') || name.includes('Door');
+                const ghostMat = new THREE.MeshStandardMaterial({
+                  color: isWall ? 0xa0c4e8 : 0x88aacc,
+                  transparent: true,
+                  opacity: isWall ? 0.18 : 0.14,
+                  roughness: 0.25,
+                  metalness: 0.1,
+                  depthWrite: false
+                });
+                const xrayItem = {
                   mesh: child,
                   originalMaterial: child.material,
-                  ghostMaterial: new THREE.MeshStandardMaterial({
-                    color: 0x88aacc,
-                    transparent: true,
-                    opacity: 0.15,
-                    roughness: 0.2,
-                    metalness: 0.1,
-                    depthWrite: false
-                  })
-                });
+                  ghostMaterial: ghostMat
+                };
+                this.xrayMeshes.push(xrayItem);
+                this.roofParts.push(xrayItem);
               }
 
               // Top floor meshes (Hidden when viewing downstairs so ground floor is 100% visible)
