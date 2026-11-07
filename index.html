@@ -129,8 +129,9 @@
 
   </style>
 
-  <!-- Load bundled custom card module with cache-buster -->
-  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.18"></script>
+  <!-- Load bundled custom card modules with cache-buster -->
+  <script type="module" src="./dist/ha-energy-3d-card.js?v=1.2.19"></script>
+  <script type="module" src="./dist/ha-energy-flow-card.js?v=1.2.19"></script>
 </head>
 <body>
 
@@ -140,13 +141,19 @@
       <div class="brand-logo">🏡⚡</div>
       <div>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="brand-title">Home Energy 3D Monitor</span>
+          <span class="brand-title">Home Energy Monitor</span>
           <span class="brand-badge" id="app-mode-badge">App</span>
         </div>
         <div style="font-size: 11px; color: #64748b;">Taylor Wimpey Blair TK Semi-Detached House Model</div>
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 14px;">
+      <!-- 3D vs 2D View Switcher -->
+      <div class="view-switcher" style="display: inline-flex; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9999px; padding: 3px; gap: 4px;">
+        <button id="view-btn-3d" type="button" style="background: #3b82f6; color: #ffffff; border: none; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">🏡 3D House</button>
+        <button id="view-btn-flow" type="button" style="background: transparent; color: #94a3b8; border: none; padding: 6px 14px; border-radius: 9999px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;">⚡ 2D Live Flow</button>
+      </div>
+
       <div class="status-pill" id="ha-conn-pill">
         <div class="status-dot" id="ha-conn-dot"></div>
         <span id="ha-conn-text">Checking Home Assistant...</span>
@@ -155,26 +162,69 @@
   </nav>
 
   <main class="app-main">
-    <!-- 3D Lovelace Card Stage -->
+    <!-- Lovelace Card Stage -->
     <div class="card-stage">
       <ha-energy-3d-card id="energy-card"></ha-energy-3d-card>
+      <ha-energy-flow-card id="energy-flow-card" style="display: none; width: 100%; height: 100%;"></ha-energy-flow-card>
     </div>
   </main>
 
   <!-- Interactive & Live HA Polling Script -->
   <script type="module">
-    const card = document.getElementById('energy-card');
+    const card3D = document.getElementById('energy-card');
+    const cardFlow = document.getElementById('energy-flow-card');
+    const btn3D = document.getElementById('view-btn-3d');
+    const btnFlow = document.getElementById('view-btn-flow');
 
-    // Configure card with local model
-    card.setConfig({
+    // Switcher Logic
+    btn3D.addEventListener('click', () => {
+      card3D.style.display = 'flex';
+      cardFlow.style.display = 'none';
+      btn3D.style.background = '#3b82f6';
+      btn3D.style.color = '#ffffff';
+      btnFlow.style.background = 'transparent';
+      btnFlow.style.color = '#94a3b8';
+    });
+
+    btnFlow.addEventListener('click', () => {
+      card3D.style.display = 'none';
+      cardFlow.style.display = 'flex';
+      btnFlow.style.background = '#3b82f6';
+      btnFlow.style.color = '#ffffff';
+      btn3D.style.background = 'transparent';
+      btn3D.style.color = '#94a3b8';
+    });
+
+    // Configure 3D card
+    card3D.setConfig({
       model_url: 'Taylor_Wimpey_Blair.glb',
       height: '100%',
       title: 'Taylor Wimpey Blair TK - Energy 3D'
     });
 
+    // Configure 2D flow card
+    cardFlow.setConfig({
+      title: 'Live Energy Flow',
+      solar_entity: 'sensor.solax_snm9wncrqy_pv1_power',
+      grid_import_entity: 'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand',
+      grid_export_entity: 'sensor.solax_snm9wncrqy_exported_power',
+      ev_entity: 'input_number.zappi_ev_power',
+      tv_entity: 'sensor.living_room_tv_plug_power',
+      lights_entity: 'input_number.matter_lights_power',
+      fridge_entity: 'sensor.refrigerator_power'
+    });
+
     // Mock Home Assistant states object for fallback
     let currentHass = {
       states: {
+        'sensor.solax_snm9wncrqy_pv1_power': { state: '2450', attributes: { unit_of_measurement: 'W' } },
+        'sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand': { state: '380', attributes: { unit_of_measurement: 'W' } },
+        'sensor.solax_snm9wncrqy_exported_power': { state: '0', attributes: { unit_of_measurement: 'W' } },
+        'input_number.zappi_ev_power': { state: '1400', attributes: { unit_of_measurement: 'W' } },
+        'sensor.living_room_tv_plug_power': { state: '115', attributes: { unit_of_measurement: 'W' } },
+        'input_number.matter_lights_power': { state: '28', attributes: { unit_of_measurement: 'W' } },
+        'sensor.refrigerator_power': { state: '42', attributes: { unit_of_measurement: 'W' } },
+
         'sensor.solax_pv_power_total': { state: '2.85' },
         'sensor.solax_today_s_solar_energy': { state: '14.6' },
         'sensor.solax_this_week_solar_energy': { state: '86.4' },
@@ -250,7 +300,8 @@
     };
 
     currentHass.callService = callServiceFn;
-    card.hass = currentHass;
+    card3D.hass = currentHass;
+    cardFlow.hass = currentHass;
 
     // Check Home Assistant Live API (Add-on Mode)
     const connDot = document.getElementById('ha-conn-dot');
@@ -273,7 +324,8 @@
           }
 
           currentHass = { states: statesMap, callService: callServiceFn };
-          card.hass = currentHass;
+          card3D.hass = currentHass;
+          cardFlow.hass = currentHass;
           return;
         }
       } catch (e) {

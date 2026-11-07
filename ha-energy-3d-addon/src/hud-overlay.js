@@ -3668,7 +3668,7 @@ export class HUDOverlay {
         }
         const totalW = countOn * 7;
         const color = countOn > 0 ? '#f59e0b' : '#94a3b8';
-        badgeHtml = `<span>💡 Lighting</span> <span style="color:${color};font-weight:700;">${totalW} W</span> <span style="font-size:10px;color:#94a3b8;">(${countOn} on @ 7W)</span>`;
+        badgeHtml = `<span>💡 Lighting</span> <span style="color:${color};font-weight:700;">${totalW} W</span>`;
       }
 
       const badge = document.createElement('div');
