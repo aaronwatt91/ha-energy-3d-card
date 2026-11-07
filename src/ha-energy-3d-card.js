@@ -270,11 +270,22 @@ export class HaEnergy3DCard extends HTMLElement {
       customLights: this.customLights
     });
 
+    this.sceneManager.onXRayChange = (active) => {
+      if (this.hud) {
+        this.hud.setXRayActive(active);
+      }
+    };
+
     // Initialize HUD Overlay inside viewport container
     this.hud = new HUDOverlay(this.wrapper, {
       currentSensorConfig: this._config,
       customLights: this.customLights,
-      onPresetClick: (preset) => this.sceneManager.setCameraPreset(preset),
+      onPresetClick: (preset) => {
+        this.sceneManager.setCameraPreset(preset);
+        if (this.hud) {
+          this.hud.setActivePreset(preset);
+        }
+      },
       onToggleXray: (enable) => this.sceneManager.setXRayRoof(enable),
       onToggleNight: (enable) => this.sceneManager.setNightMode(enable),
       onToggleRotate: (enable) => {

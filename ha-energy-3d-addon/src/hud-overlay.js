@@ -2577,6 +2577,24 @@ export class HUDOverlay {
     this.activePreset = null;
   }
 
+  setActivePreset(preset) {
+    this.activePreset = preset;
+    const presetBtns = this.el.querySelectorAll('[data-preset]');
+    presetBtns.forEach((b) => {
+      b.classList.toggle('active', b.getAttribute('data-preset') === preset);
+    });
+    if (preset === 'upstairs' || preset === 'downstairs') {
+      this.setXRayActive(false);
+    }
+  }
+
+  setXRayActive(active) {
+    const btnXray = this.el.querySelector('#btn-xray');
+    if (btnXray) {
+      btnXray.classList.toggle('active', !!active);
+    }
+  }
+
   openLightEditor(lightId = null) {
     const dialog = this.el.querySelector('#light-customizer-dialog');
     if (!dialog) return;

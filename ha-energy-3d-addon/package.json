@@ -1,6 +1,6 @@
 {
   "name": "ha-energy-3d-card",
-  "version": "1.2.21",
+  "version": "1.2.22",
   "description": "Interactive 3D Home Energy Monitor Lovelace Card for Home Assistant (Solax, Octopus Energy, myenergi Zappi, Peugeot e-2008)",
   "main": "dist/ha-energy-3d-card.js",
   "type": "module",

@@ -152,6 +152,8 @@ export class SceneManager {
 
     this.roofParts = [];
     this.xrayMeshes = [];
+    this.roofMeshes = [];
+    this.firstFloorMeshes = [];
     this.topFloorMeshes = [];
     this.cuttableMeshes = [];
     this.occludingMeshes = [];
@@ -2367,18 +2369,40 @@ export class SceneManager {
                 this.roofParts.push(xrayItem);
               }
 
-              // Top floor meshes (Hidden when viewing downstairs so ground floor is 100% visible)
-              if (
+              // Roof meshes (Hidden when viewing upstairs or downstairs)
+              const isRoofMesh = (
                 name.includes('Roof_') ||
                 name.includes('Fascia_and_Soffits') ||
                 name.includes('Rainwater_Gutters') ||
-                name.includes('First_Floor_') ||
+                name.includes('Solar_PV_') ||
+                name === 'First_Floor_Ceiling'
+              );
+
+              // First floor meshes (Hidden when viewing downstairs, but visible when viewing upstairs)
+              const isFirstFloorMesh = (
+                name === 'First_Floor_Structure' ||
+                name === 'First_Floor_Tiles' ||
                 name.includes('Interior_Walls_First') ||
                 name.includes('Landing_Carpet') ||
                 name.includes('Carpet_') ||
-                name.includes('Room_Labels_3D') ||
-                name.includes('Solar_PV_')
-              ) {
+                name.includes('Room_Labels_3D')
+              );
+
+              if (isRoofMesh) {
+                this.roofMeshes.push({
+                  mesh: child,
+                  originalMaterial: child.material
+                });
+              }
+
+              if (isFirstFloorMesh) {
+                this.firstFloorMeshes.push({
+                  mesh: child,
+                  originalMaterial: child.material
+                });
+              }
+
+              if (isRoofMesh || isFirstFloorMesh) {
                 this.topFloorMeshes.push({
                   mesh: child,
                   originalMaterial: child.material
@@ -2443,23 +2467,33 @@ export class SceneManager {
     for (const part of this.roofParts) {
       part.mesh.material = enable ? part.ghostMaterial : part.originalMaterial;
     }
+    if (this.onXRayChange) {
+      this.onXRayChange(enable);
+    }
   }
 
   setCutawayMode(mode) {
     this.cutawayMode = mode;
     const isDownstairs = mode === 'downstairs';
+    const isUpstairs = mode === 'upstairs';
 
-    // 1. Hide top floor structures (ceiling, roof, first floor interior walls, carpets, first floor slab)
-    for (const item of this.topFloorMeshes) {
+    // 1. Roof meshes: removed for both upstairs and downstairs
+    const hideRoof = isDownstairs || isUpstairs;
+    for (const item of this.roofMeshes) {
+      item.mesh.visible = !hideRoof;
+    }
+
+    // 2. First floor meshes: removed for downstairs, visible for upstairs and normal
+    for (const item of this.firstFloorMeshes) {
       item.mesh.visible = !isDownstairs;
     }
 
-    // 1b. Hide upstairs beds and furniture when viewing downstairs
+    // 2b. Upstairs beds and furniture: removed for downstairs, visible for upstairs and normal
     if (this.upstairsFurnitureGroup) {
       this.upstairsFurnitureGroup.visible = !isDownstairs;
     }
 
-    // 2. Slice exterior walls at ground floor ceiling level so ground floor is 100% visible from above
+    // 3. Slice exterior walls & upstairs doors/windows only for downstairs mode
     for (const mesh of this.cuttableMeshes) {
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       mats.forEach((m) => {
@@ -2471,7 +2505,7 @@ export class SceneManager {
       });
     }
 
-    // 3. Hide upstairs lights and fixtures
+    // 4. Upstairs room lights: hidden only in downstairs mode
     for (const [id, lightObj] of Object.entries(this.roomLights)) {
       const isUpstairs = lightObj.floor === 'first' || (lightObj.config?.pos?.y > 3.0);
       if (isUpstairs) {
@@ -2531,7 +2565,7 @@ export class SceneManager {
       upstairs: {
         pos: new THREE.Vector3(2.8, 11.5, 4.0),
         target: new THREE.Vector3(2.8, 3.8, -4.5),
-        xray: true
+        xray: false
       },
       heating: {
         pos: new THREE.Vector3(7.8, 4.5, -2.5),
@@ -2546,15 +2580,18 @@ export class SceneManager {
     this.targetCameraPos = target.pos.clone();
     this.targetLookAt = target.target.clone();
 
-    // Trigger cutaway mode for downstairs so top floors disappear
+    // Trigger cutaway mode (remove roof for upstairs; remove roof + first floor for downstairs)
     if (preset === 'downstairs') {
       this.setCutawayMode('downstairs');
+      this.setXRayRoof(false);
+    } else if (preset === 'upstairs') {
+      this.setCutawayMode('upstairs');
+      this.setXRayRoof(false);
     } else {
       this.setCutawayMode('normal');
-    }
-
-    if (target.xray !== undefined && target.xray !== this.xrayActive && preset !== 'downstairs') {
-      this.setXRayRoof(target.xray);
+      if (target.xray !== undefined && target.xray !== this.xrayActive) {
+        this.setXRayRoof(target.xray);
+      }
     }
   }
 
@@ -2575,6 +2612,9 @@ export class SceneManager {
       .filter((spot) => {
         if (this.cutawayMode === 'downstairs') {
           if (spot.id === 'thermostat_upstairs') return false;
+        }
+        if (this.cutawayMode === 'upstairs') {
+          if (spot.id === 'thermostat_downstairs' || spot.id === 'boiler') return false;
         }
         return true;
       })
