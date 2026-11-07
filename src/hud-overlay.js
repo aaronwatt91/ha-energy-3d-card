@@ -2950,27 +2950,6 @@ export class HUDOverlay {
       const parts = getPowerParts(absKw);
       const todaySpend = o.today_spend_gbp !== null && o.today_spend_gbp !== undefined ? o.today_spend_gbp : o.monthly_spend_gbp;
 
-      let yesterdayHtml = '';
-      if (o.yesterday_kwh !== null && o.yesterday_kwh !== undefined) {
-        yesterdayHtml = `
-          <div class="stat-card">
-            <div class="stat-label">YESTERDAY CONSUMED</div>
-            <div class="stat-val">${Number(o.yesterday_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
-            ${o.yesterday_cost_gbp !== null && o.yesterday_cost_gbp !== undefined ? `<div class="stat-subtext">Cost: £${Number(o.yesterday_cost_gbp).toFixed(2)}</div>` : ''}
-          </div>
-        `;
-      }
-      let weekHtml = (o.week_kwh !== null && o.week_kwh !== undefined && o.week_kwh !== '') ? `
-        <div class="stat-card">
-          <div class="stat-label">THIS WEEK</div>
-          <div class="stat-val">${Number(o.week_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
-        </div>` : '';
-      let monthHtml = (o.month_kwh !== null && o.month_kwh !== undefined && o.month_kwh !== '') ? `
-        <div class="stat-card">
-          <div class="stat-label">THIS MONTH</div>
-          <div class="stat-val">${Number(o.month_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
-        </div>` : '';
-
       const fridge = data.appliances?.fridge || {};
       const fridgePowerW = fridge.power_w !== undefined ? fridge.power_w : Math.round((fridge.power_kw || 0) * 1000);
       const fridgeActive = Boolean(fridge.is_active || fridgePowerW > 5);
@@ -2999,9 +2978,6 @@ export class HUDOverlay {
             <div class="stat-label">TODAY'S CONSUMPTION</div>
             <div class="stat-val">${Number(o.day_kwh || 0).toFixed(1)} <span class="stat-unit">kWh</span></div>
           </div>
-          ${yesterdayHtml}
-          ${weekHtml}
-          ${monthHtml}
           <div class="stat-card">
             <div class="stat-label">KITCHEN REFRIGERATOR</div>
             <div class="stat-val" style="color:${fridgeActive ? '#38bdf8' : '#94a3b8'};">
@@ -3010,7 +2986,7 @@ export class HUDOverlay {
             <div class="stat-subtext">${fridgeTempStr}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">LIVING ROOM TV PLUG</div>
+            <div class="stat-label">LG TV</div>
             <div class="stat-val" style="color:${data.appliances?.tv?.is_on ? '#60a5fa' : '#94a3b8'};">
               ${data.appliances?.tv?.power_w || 0} <span class="stat-unit">W</span>
             </div>
@@ -3029,26 +3005,6 @@ export class HUDOverlay {
     } else if (this.activeTab === 'gas') {
       const g = data.octopus_gas || {};
       const isActive = Boolean(g.is_active && g.boiler_status === 'Heating');
-      let gasYesterdayHtml = '';
-      if (g.yesterday_kwh !== null && g.yesterday_kwh !== undefined) {
-        gasYesterdayHtml = `
-          <div class="stat-card">
-            <div class="stat-label">YESTERDAY CONSUMED</div>
-            <div class="stat-val">${Number(g.yesterday_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
-            ${g.yesterday_cost_gbp !== null && g.yesterday_cost_gbp !== undefined ? `<div class="stat-subtext">Cost: £${Number(g.yesterday_cost_gbp).toFixed(2)}</div>` : ''}
-          </div>
-        `;
-      }
-      let gasWeekHtml = (g.week_kwh !== null && g.week_kwh !== undefined && g.week_kwh !== '') ? `
-        <div class="stat-card">
-          <div class="stat-label">THIS WEEK</div>
-          <div class="stat-val">${Number(g.week_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
-        </div>` : '';
-      let gasMonthHtml = (g.month_kwh !== null && g.month_kwh !== undefined && g.month_kwh !== '') ? `
-        <div class="stat-card">
-          <div class="stat-label">THIS MONTH</div>
-          <div class="stat-val">${Number(g.month_kwh).toFixed(1)} <span class="stat-unit">kWh</span></div>
-        </div>` : '';
 
       content.innerHTML = `
         <div class="stat-grid">
@@ -3065,9 +3021,6 @@ export class HUDOverlay {
             <div class="stat-label">TODAY'S SPEND</div>
             <div class="stat-val">£${Number(g.today_spend_gbp || g.monthly_spend_gbp || 0).toFixed(2)}</div>
           </div>
-          ${gasYesterdayHtml}
-          ${gasWeekHtml}
-          ${gasMonthHtml}
           <div class="stat-card">
             <div class="stat-label">GAS RATE</div>
             <div class="stat-val">${Number(g.current_rate_p || 0).toFixed(2)} <span class="stat-unit">p/kWh</span></div>
