@@ -226,8 +226,9 @@ export class SceneManager {
       this.css3dRenderer.domElement.addEventListener('wheel', onUserInput, { passive: true });
     }
 
-    // 5. Lighting
+    // 5. Lighting & Photorealistic IBL Environment
     this.initLighting();
+    this.initEnvironment();
 
     // 6. Energy Flow Particle System
     this.energyFlow = new EnergyFlowSystem(this.scene);
@@ -250,24 +251,28 @@ export class SceneManager {
   }
 
   initLighting() {
-    this.ambientLight = new THREE.AmbientLight(0xffffff, this.nightMode ? 0.35 : 1.1);
+    this.ambientLight = new THREE.AmbientLight(0xffffff, this.nightMode ? 0.35 : 0.85);
     this.scene.add(this.ambientLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xfffaed, this.nightMode ? 0.2 : 1.8);
-    this.sunLight.position.set(16, 22, 12);
+    // Warm golden directional sunlight with 4K soft contact shadows
+    this.sunLight = new THREE.DirectionalLight(0xfff6ea, this.nightMode ? 0.2 : 2.2);
+    this.sunLight.position.set(20, 26, 14);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.width = 2048;
-    this.sunLight.shadow.mapSize.height = 2048;
+    this.sunLight.shadow.mapSize.width = 4096;
+    this.sunLight.shadow.mapSize.height = 4096;
     this.sunLight.shadow.camera.near = 0.5;
-    this.sunLight.shadow.camera.far = 60;
-    this.sunLight.shadow.camera.left = -15;
-    this.sunLight.shadow.camera.right = 15;
-    this.sunLight.shadow.camera.top = 15;
-    this.sunLight.shadow.camera.bottom = -15;
-    this.sunLight.shadow.bias = -0.0005;
+    this.sunLight.shadow.camera.far = 65;
+    this.sunLight.shadow.camera.left = -16;
+    this.sunLight.shadow.camera.right = 16;
+    this.sunLight.shadow.camera.top = 16;
+    this.sunLight.shadow.camera.bottom = -16;
+    this.sunLight.shadow.bias = -0.00015;
+    this.sunLight.shadow.normalBias = 0.02;
+    this.sunLight.shadow.radius = 2.0;
     this.scene.add(this.sunLight);
 
-    this.hemiLight = new THREE.HemisphereLight(0xbad7f2, 0x3d5a45, this.nightMode ? 0.2 : 0.6);
+    // Natural atmospheric sky-to-ground bounce hemisphere light
+    this.hemiLight = new THREE.HemisphereLight(0xb8d5f8, 0x3a4838, this.nightMode ? 0.2 : 0.65);
     this.scene.add(this.hemiLight);
 
     this.meterPointLight = new THREE.PointLight(0x00e5ff, 0.0, 4);
@@ -285,6 +290,68 @@ export class SceneManager {
     this.rebuildCustomLights(this.customLights);
 
     this.applyLightingMode();
+  }
+
+  initEnvironment() {
+    try {
+      if (typeof document === 'undefined') return;
+
+      // 1024 x 512 Equirectangular Atmospheric Sky Dome Canvas
+      const skyCanvas = document.createElement('canvas');
+      skyCanvas.width = 1024;
+      skyCanvas.height = 512;
+      const ctx = skyCanvas.getContext('2d');
+
+      // Top to bottom atmospheric gradient: Deep Zenith -> Sky Blue -> Horizon Warmth -> Ground
+      const grad = ctx.createLinearGradient(0, 0, 0, 512);
+      grad.addColorStop(0.0, '#103965'); // Deep zenith blue
+      grad.addColorStop(0.35, '#3b82f6'); // Rich sky blue
+      grad.addColorStop(0.48, '#93c5fd'); // Lower atmosphere
+      grad.addColorStop(0.50, '#ffedd5'); // Warm golden horizon haze
+      grad.addColorStop(0.52, '#9ca3af'); // Horizon blend
+      grad.addColorStop(0.65, '#374151'); // Ground horizon
+      grad.addColorStop(1.0, '#1e293b'); // Dark ground bounce
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 512);
+
+      // Distant warm sun bloom at horizon angle
+      const sunGrad = ctx.createRadialGradient(680, 240, 5, 680, 240, 160);
+      sunGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+      sunGrad.addColorStop(0.15, 'rgba(255, 245, 220, 0.85)');
+      sunGrad.addColorStop(0.5, 'rgba(254, 215, 170, 0.35)');
+      sunGrad.addColorStop(1.0, 'rgba(254, 215, 170, 0.0)');
+      ctx.fillStyle = sunGrad;
+      ctx.beginPath();
+      ctx.arc(680, 240, 160, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Soft natural cumulus clouds in the upper hemisphere
+      for (let i = 0; i < 18; i++) {
+        const cx = (i * 58 + 40) % 1024;
+        const cy = 80 + Math.sin(i * 1.7) * 60;
+        const crad = 40 + Math.cos(i) * 25;
+        const cGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, crad);
+        cGrad.addColorStop(0, 'rgba(255, 255, 255, 0.38)');
+        cGrad.addColorStop(0.6, 'rgba(255, 255, 255, 0.15)');
+        cGrad.addColorStop(1.0, 'rgba(255, 255, 255, 0.0)');
+        ctx.fillStyle = cGrad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, crad, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const skyTex = new THREE.CanvasTexture(skyCanvas);
+      skyTex.mapping = THREE.EquirectangularReflectionMapping;
+
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      pmrem.compileEquirectangularShader();
+      const envMap = pmrem.fromEquirectangular(skyTex).texture;
+      this.scene.environment = envMap;
+      pmrem.dispose();
+      skyTex.dispose();
+    } catch (e) {
+      console.warn('Could not generate procedural environment map:', e);
+    }
   }
 
   rebuildCustomLights(lightsList) {
@@ -1463,17 +1530,17 @@ export class SceneManager {
     if (this.nightMode) {
       this.scene.background = new THREE.Color(0x050811);
       this.ambientLight.intensity = 0.12;
-      this.sunLight.intensity = 0.10;
+      this.sunLight.intensity = 0.12;
       this.sunLight.color.setHex(0x385585);
       this.hemiLight.intensity = 0.10;
       this.meterPointLight.intensity = 1.2;
       this.carPointLight.intensity = 1.2;
     } else {
       this.scene.background = new THREE.Color(0x0e1424);
-      this.ambientLight.intensity = 0.35;
-      this.sunLight.intensity = 1.8;
-      this.sunLight.color.setHex(0xfffaed);
-      this.hemiLight.intensity = 0.28;
+      this.ambientLight.intensity = 0.55;
+      this.sunLight.intensity = 2.2;
+      this.sunLight.color.setHex(0xfff6ea);
+      this.hemiLight.intensity = 0.50;
       this.meterPointLight.intensity = 0.4;
       this.carPointLight.intensity = 0.4;
     }
@@ -1484,6 +1551,59 @@ export class SceneManager {
     this.applyLightingMode();
     if (this.lastLightsData) {
       this.updateRoomLights(this.lastLightsData);
+    }
+  }
+
+  generateNormalMap(heightCanvas, strength = 2.5) {
+    if (typeof document === 'undefined') return null;
+    try {
+      const w = heightCanvas.width;
+      const h = heightCanvas.height;
+      const hCtx = heightCanvas.getContext('2d');
+      const imgData = hCtx.getImageData(0, 0, w, h);
+      const src = imgData.data;
+
+      const normCanvas = document.createElement('canvas');
+      normCanvas.width = w;
+      normCanvas.height = h;
+      const nCtx = normCanvas.getContext('2d');
+      const outImgData = nCtx.createImageData(w, h);
+      const dst = outImgData.data;
+
+      for (let y = 0; y < h; y++) {
+        const ym = (y - 1 + h) % h;
+        const yp = (y + 1) % h;
+        for (let x = 0; x < w; x++) {
+          const xm = (x - 1 + w) % w;
+          const xp = (x + 1) % w;
+
+          const hL = src[(y * w + xm) * 4] / 255;
+          const hR = src[(y * w + xp) * 4] / 255;
+          const hU = src[(ym * w + x) * 4] / 255;
+          const hD = src[(yp * w + x) * 4] / 255;
+
+          const dx = (hR - hL) * strength;
+          const dy = (hD - hU) * strength;
+          const dz = 1.0;
+          const len = Math.hypot(dx, dy, dz);
+
+          const nx = -dx / len;
+          const ny = -dy / len;
+          const nz = dz / len;
+
+          const idx = (y * w + x) * 4;
+          dst[idx]     = Math.round((nx * 0.5 + 0.5) * 255);
+          dst[idx + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+          dst[idx + 2] = Math.round((nz * 0.5 + 0.5) * 255);
+          dst[idx + 3] = 255;
+        }
+      }
+
+      nCtx.putImageData(outImgData, 0, 0);
+      return normCanvas;
+    } catch (e) {
+      console.warn('Normal map generation error:', e);
+      return null;
     }
   }
 
@@ -1763,8 +1883,54 @@ export class SceneManager {
         gCtx.fillRect(gx, gy, 1.5, 2.5);
       }
 
+      // 8. High-Efficiency Monocrystalline Solar PV Cells Texture
+      const solarC = createCanvas(512, 512);
+      const sCtx = solarC.getContext('2d');
+      sCtx.fillStyle = '#08101e'; // Deep anti-reflective photovoltaic silicon
+      sCtx.fillRect(0, 0, 512, 512);
+
+      // Grid of 6x6 solar cells with rounded chamfered corners
+      const sRows = 6;
+      const sSize = 512 / sRows;
+      for (let sx = 0; sx < sRows; sx++) {
+        for (let sy = 0; sy < sRows; sy++) {
+          const cx = sx * sSize + 1.5;
+          const cy = sy * sSize + 1.5;
+          const cs = sSize - 3;
+          sCtx.fillStyle = '#0e1b30';
+          sCtx.fillRect(cx, cy, cs, cs);
+
+          // Fine silver contact busbars & fingers
+          sCtx.strokeStyle = 'rgba(220, 230, 245, 0.45)';
+          sCtx.lineWidth = 1;
+          // 3 vertical busbars
+          for (const bx of [cx + cs * 0.25, cx + cs * 0.5, cx + cs * 0.75]) {
+            sCtx.beginPath();
+            sCtx.moveTo(bx, cy);
+            sCtx.lineTo(bx, cy + cs);
+            sCtx.stroke();
+          }
+          // Horizontal micro-fingers
+          sCtx.strokeStyle = 'rgba(180, 200, 230, 0.12)';
+          for (let fy = cy + 4; fy < cy + cs; fy += 5) {
+            sCtx.beginPath();
+            sCtx.moveTo(cx, fy);
+            sCtx.lineTo(cx + cs, fy);
+            sCtx.stroke();
+          }
+        }
+      }
+
+      // Generate Tangent-Space Normal Maps for tactile physical depth
+      const roughcastNormC = this.generateNormalMap(roughcastBumpC, 3.2);
+      const roofNormC = this.generateNormalMap(roofBumpC, 2.6);
+      const woodNormC = this.generateNormalMap(woodBumpC, 2.2);
+      const tileNormC = this.generateNormalMap(tileBumpC, 2.4);
+      const pavNormC = this.generateNormalMap(pavBumpC, 2.8);
+
       // Create Three.js CanvasTextures with proper repeat wrapping
       const makeTex = (canvas, repX, repY) => {
+        if (!canvas) return null;
         const tex = new THREE.CanvasTexture(canvas);
         tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.RepeatWrapping;
@@ -1774,17 +1940,18 @@ export class SceneManager {
 
       return {
         roughcastMap: makeTex(roughcastC, 6, 6),
-        roughcastBump: makeTex(roughcastBumpC, 6, 6),
+        roughcastNormal: makeTex(roughcastNormC, 6, 6),
         roofMap: makeTex(roofC, 5, 5),
-        roofBump: makeTex(roofBumpC, 5, 5),
+        roofNormal: makeTex(roofNormC, 5, 5),
         woodMap: makeTex(woodC, 3, 3),
-        woodBump: makeTex(woodBumpC, 3, 3),
+        woodNormal: makeTex(woodNormC, 3, 3),
         tileMap: makeTex(tileC, 3, 3),
-        tileBump: makeTex(tileBumpC, 3, 3),
+        tileNormal: makeTex(tileNormC, 3, 3),
         carpetMap: makeTex(carpetC, 4, 4),
         pavingMap: makeTex(pavC, 4, 4),
-        pavingBump: makeTex(pavBumpC, 4, 4),
-        grassMap: makeTex(grassC, 6, 6)
+        pavingNormal: makeTex(pavNormC, 4, 4),
+        grassMap: makeTex(grassC, 6, 6),
+        solarMap: makeTex(solarC, 2, 2)
       };
     } catch (e) {
       console.warn('Procedural texture generation error:', e);
@@ -1800,28 +1967,28 @@ export class SceneManager {
       if (!child.isMesh) return;
       const n = child.name;
 
-      // 1. Exterior Walls (Authentic Scottish White Roughcast / Wetdash Harling with granular tactile bump map)
+      // 1. Exterior Walls (Authentic Scottish White Roughcast with Tangent-Space Normal Map)
       if (n.includes('Exterior_Walls') || n.includes('Separating_Party_Wall')) {
         if (tex) {
           child.material = new THREE.MeshStandardMaterial({
             map: tex.roughcastMap,
-            bumpMap: tex.roughcastBump,
-            bumpScale: 0.05,
+            normalMap: tex.roughcastNormal,
+            normalScale: new THREE.Vector2(1.8, 1.8),
             roughness: 0.94,
             metalness: 0.02
           });
         }
       }
 
-      // 2. Slate Roof (Interlocking Scottish dark slate with tile course relief)
+      // 2. Slate Roof (Interlocking Scottish dark slate with 3D tile thickness Normal Map)
       else if (n.includes('Roof_Main')) {
         if (tex) {
           child.material = new THREE.MeshStandardMaterial({
             map: tex.roofMap,
-            bumpMap: tex.roofBump,
-            bumpScale: 0.05,
-            roughness: 0.82,
-            metalness: 0.1
+            normalMap: tex.roofNormal,
+            normalScale: new THREE.Vector2(1.5, 1.5),
+            roughness: 0.78,
+            metalness: 0.12
           });
         }
       }
@@ -1833,34 +2000,37 @@ export class SceneManager {
         });
       }
       else if (n.includes('Roof_Solar_Panels')) {
-        child.material = new THREE.MeshStandardMaterial({
-          color: 0x101a2c,
-          roughness: 0.12,
-          metalness: 0.88
+        child.material = new THREE.MeshPhysicalMaterial({
+          map: tex?.solarMap,
+          color: 0x0a1424,
+          roughness: 0.08,
+          metalness: 0.92,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.04
         });
       }
 
-      // 3. Ground Floor Hardwood Flooring (Warm natural oak planks)
+      // 3. Ground Floor Hardwood Flooring (Warm natural oak planks with groove Normal Map)
       else if (n.includes('Ground_Floor_Wood_Floor')) {
         if (tex) {
           child.material = new THREE.MeshStandardMaterial({
             map: tex.woodMap,
-            bumpMap: tex.woodBump,
-            bumpScale: 0.025,
-            roughness: 0.32,
-            metalness: 0.05
+            normalMap: tex.woodNormal,
+            normalScale: new THREE.Vector2(1.2, 1.2),
+            roughness: 0.30,
+            metalness: 0.04
           });
         }
       }
 
-      // 4. Ground Floor & First Floor Tiles (Porcelain marble tile with recessed grout)
+      // 4. Ground Floor & First Floor Tiles (Porcelain marble tile with recessed grout Normal Map)
       else if (n.includes('Ground_Floor_Tile_Floor') || n.includes('First_Floor_Tiles')) {
         if (tex) {
           child.material = new THREE.MeshStandardMaterial({
             map: tex.tileMap,
-            bumpMap: tex.tileBump,
-            bumpScale: 0.02,
-            roughness: 0.22,
+            normalMap: tex.tileNormal,
+            normalScale: new THREE.Vector2(1.2, 1.2),
+            roughness: 0.18,
             metalness: 0.08
           });
         }
@@ -1871,7 +2041,7 @@ export class SceneManager {
         if (tex) {
           child.material = new THREE.MeshStandardMaterial({
             map: tex.carpetMap,
-            roughness: 0.95,
+            roughness: 0.96,
             metalness: 0.02
           });
         }
@@ -1902,12 +2072,14 @@ export class SceneManager {
         });
       }
       else if (n.includes('Windows_Glass')) {
-        child.material = new THREE.MeshStandardMaterial({
-          color: 0x93c5fd,
-          roughness: 0.04,
-          metalness: 0.15,
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: 0xa5c4e8,
+          transmission: 0.88,
+          roughness: 0.03,
+          metalness: 0.12,
+          ior: 1.52,
           transparent: true,
-          opacity: 0.28,
+          opacity: 0.25,
           depthWrite: false
         });
       }
@@ -1926,8 +2098,8 @@ export class SceneManager {
         if (tex) {
           child.material = new THREE.MeshStandardMaterial({
             map: tex.pavingMap,
-            bumpMap: tex.pavingBump,
-            bumpScale: 0.035,
+            normalMap: tex.pavingNormal,
+            normalScale: new THREE.Vector2(1.5, 1.5),
             roughness: 0.78,
             metalness: 0.05
           });
@@ -1966,7 +2138,79 @@ export class SceneManager {
         });
       }
 
-      // 10. Kitchen Finishes
+      // 10. Peugeot e-2008 EV Showroom Physical Materials
+      else if (n.includes('Car_Peugeot_e2008_Body')) {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: 0x1d4ed8, // Metallic electric blue
+          metalness: 0.88,
+          roughness: 0.18,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.06
+        });
+      }
+      else if (n.includes('Car_Peugeot_e2008_Trim')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x0f172a,
+          roughness: 0.12,
+          metalness: 0.4
+        });
+      }
+      else if (n.includes('Car_Peugeot_e2008_Glass')) {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: 0x1e293b,
+          transmission: 0.85,
+          roughness: 0.05,
+          metalness: 0.1,
+          transparent: true,
+          opacity: 0.35
+        });
+      }
+      else if (n.includes('Car_Peugeot_e2008_Wheels')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xe2e8f0,
+          metalness: 0.95,
+          roughness: 0.12
+        });
+      }
+      else if (n.includes('Car_Peugeot_e2008_Tires')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x181c24,
+          roughness: 0.92,
+          metalness: 0.02
+        });
+      }
+      else if (n.includes('Car_Peugeot_e2008_Lights')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          emissive: 0xffffff,
+          emissiveIntensity: 0.45,
+          roughness: 0.1
+        });
+      }
+      else if (n.includes('Car_Peugeot_e2008_Taillights')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xdc2626,
+          emissive: 0xef4444,
+          emissiveIntensity: 0.65,
+          roughness: 0.2
+        });
+      }
+      else if (n.includes('EV_Charger')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0xf8fafc,
+          roughness: 0.25,
+          metalness: 0.15
+        });
+      }
+      else if (n.includes('EV_Charging_Cable')) {
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          roughness: 0.85,
+          metalness: 0.05
+        });
+      }
+
+      // 11. Kitchen Finishes
       else if (n.includes('Kitchen_Worktop')) {
         child.material = new THREE.MeshStandardMaterial({
           color: 0x1e2430,
@@ -1996,7 +2240,7 @@ export class SceneManager {
         });
       }
 
-      // 11. Sanitaryware & Staircase
+      // 12. Sanitaryware & Staircase
       else if (n.includes('Sanitaryware')) {
         child.material = new THREE.MeshStandardMaterial({
           color: 0xffffff,
