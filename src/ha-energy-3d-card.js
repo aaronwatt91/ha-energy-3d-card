@@ -77,6 +77,11 @@ export class HaEnergy3DCard extends HTMLElement {
     this.sceneManager = null;
     this.hud = null;
     this.energyData = JSON.parse(JSON.stringify(DEFAULT_ENERGY_DATA));
+    this._pendingState = {
+      lights: {},
+      thermostats: {}
+    };
+    this._thermoDebounceTimers = {};
 
     try {
       const savedSensors = JSON.parse(localStorage.getItem('ha_energy_3d_custom_sensors') || '{}');
@@ -88,21 +93,30 @@ export class HaEnergy3DCard extends HTMLElement {
     try {
       const savedLights = JSON.parse(localStorage.getItem('ha_energy_3d_custom_lights') || 'null');
       if (savedLights && Array.isArray(savedLights) && savedLights.length) {
-        // Clean out legacy dummy entity IDs that prevent lights from working
+        // Clean out legacy dummy entity IDs that prevent lights from working and heal with defaults
         const dummyEntities = new Set([
           'light.living_room', 'light.kitchen', 'light.dining_room', 'light.downstairs_wc',
           'light.master_bedroom', 'light.ensuite', 'light.bedroom_2', 'light.bedroom_3',
           'light.family_bathroom', 'light.landing'
         ]);
         for (const l of savedLights) {
-          if (l.id !== 'living_lamp' && dummyEntities.has(l.entity_id)) {
-            l.entity_id = this.customSensors[`light_${l.id}`] || this.customSensors[`light_${l.id === 'master_bedroom' ? 'master' : l.id}`] || '';
+          const def = DEFAULT_LIGHTS.find(d => d.id === l.id);
+          if (!l.entity_id || dummyEntities.has(l.entity_id)) {
+            l.entity_id = this.customSensors[`light_${l.id}`] || def?.entity_id || '';
           }
-          if (l.id === 'living_lamp' && (l.name === 'Living Room Corner Lamp' || !l.name)) {
-            l.name = 'Living Room Lamp';
+          if (l.id === 'living_lamp') {
+            if (!l.entity_id || l.entity_id === 'light.living_room_corner_lamp' || dummyEntities.has(l.entity_id)) {
+              l.entity_id = 'light.living_room_lamp';
+            }
+            if (l.name === 'Living Room Corner Lamp' || !l.name) {
+              l.name = 'Living Room Lamp';
+            }
           }
         }
         this.customLights = savedLights;
+        try {
+          localStorage.setItem('ha_energy_3d_custom_lights', JSON.stringify(this.customLights));
+        } catch (err) {}
       } else {
         this.customLights = JSON.parse(JSON.stringify(DEFAULT_LIGHTS));
       }
@@ -180,6 +194,7 @@ export class HaEnergy3DCard extends HTMLElement {
       height: '560px',
       night_mode: false,
       auto_rotate: false,
+      ...HaEnergy3DCard.getStubConfig(),
       ...config,
       ...this.customSensors
     };
@@ -784,49 +799,72 @@ export class HaEnergy3DCard extends HTMLElement {
       is_heating: defaultState?.is_heating || false,
       state: defaultState?.state || 'heat'
     };
-    if (!this._hass || !entityId) return res;
-    const stateObj = this._hass.states[entityId];
-    if (!stateObj || stateObj.state === 'unavailable' || stateObj.state === 'unknown') return res;
+    if (this._hass && entityId && this._hass.states?.[entityId]) {
+      const stateObj = this._hass.states[entityId];
+      if (stateObj.state !== 'unavailable' && stateObj.state !== 'unknown') {
+        res.state = stateObj.state;
+        const attr = stateObj.attributes || {};
+        if (attr.current_temperature !== undefined) {
+          res.current_temp = parseFloat(attr.current_temperature);
+        } else {
+          const num = parseFloat(stateObj.state);
+          if (!isNaN(num)) res.current_temp = num;
+        }
 
-    res.state = stateObj.state;
-    const attr = stateObj.attributes || {};
-    if (attr.current_temperature !== undefined) {
-      res.current_temp = parseFloat(attr.current_temperature);
-    } else {
-      const num = parseFloat(stateObj.state);
-      if (!isNaN(num)) res.current_temp = num;
+        if (attr.temperature !== undefined) {
+          res.target_temp = parseFloat(attr.temperature);
+        } else if (attr.target_temp_high !== undefined) {
+          res.target_temp = parseFloat(attr.target_temp_high);
+        }
+        if (attr.hvac_action !== undefined) {
+          res.hvac_action = attr.hvac_action;
+        }
+      }
     }
 
-    if (attr.temperature !== undefined) {
-      res.target_temp = parseFloat(attr.temperature);
-    } else if (attr.target_temp_high !== undefined) {
-      res.target_temp = parseFloat(attr.target_temp_high);
+    // Check pending optimistic state lock so UI doesn't snap back while HA updates
+    const pending = this._pendingState?.thermostats?.[entityId];
+    if (pending) {
+      if (Date.now() > pending.expiry) {
+        delete this._pendingState.thermostats[entityId];
+      } else {
+        if (pending.target_temp !== undefined) {
+          if (res.target_temp === pending.target_temp) {
+            delete pending.target_temp;
+          } else {
+            res.target_temp = pending.target_temp;
+          }
+        }
+        if (pending.hvac_mode !== undefined) {
+          if (res.state === pending.hvac_mode) {
+            delete pending.hvac_mode;
+          } else {
+            res.state = pending.hvac_mode;
+          }
+        }
+      }
     }
 
-    const rawState = (stateObj.state || '').toLowerCase().trim();
+    const rawState = (res.state || '').toLowerCase().trim();
     const isOff = rawState === 'off' || rawState === 'standby' || rawState === 'idle';
     const isSetToHeat = !isOff && (rawState === 'heat' || rawState === 'heating' || rawState === 'auto' || rawState === 'on' || rawState === 'boost' || rawState === 'comfort' || rawState === '');
 
     const hasTarget = res.target_temp !== null && !isNaN(res.target_temp);
     const hasCurrent = res.current_temp !== null && !isNaN(res.current_temp);
-    const action = (attr.hvac_action || '').toLowerCase().trim();
+    const action = (res.hvac_action || '').toLowerCase().trim();
 
     // Reached or exceeded set temperature check
-    // "if a thermostat is set to heat but it has reached its set temperture or exceeded it set the boiler to stand by."
     const reachedOrExceeded = hasTarget && hasCurrent && (res.current_temp >= res.target_temp);
 
     let isHeating = false;
     if (!isOff && isSetToHeat) {
       if (hasTarget && hasCurrent) {
         if (reachedOrExceeded) {
-          // Reached or exceeded set temperature -> NOT heating
           isHeating = false;
         } else {
-          // Below set temperature: calling for heat unless explicitly idle or off
           isHeating = action !== 'idle' && action !== 'off';
         }
       } else {
-        // Temperatures not numerical -> fall back to action or mode
         isHeating = action === 'heating' || rawState === 'heating';
       }
     } else {
@@ -852,65 +890,248 @@ export class HaEnergy3DCard extends HTMLElement {
       rgb_color: prevRgb
     };
 
-    if (!cleanId) {
-      // Unmapped entity: respect current/manual toggle state
-      return res;
+    if (cleanId && this._hass?.states?.[cleanId]) {
+      const stateObj = this._hass.states[cleanId];
+      if (stateObj.state !== 'unavailable' && stateObj.state !== 'unknown') {
+        res.is_on = stateObj.state === 'on';
+        const attr = stateObj.attributes || {};
+        res.brightness = attr.brightness !== undefined ? attr.brightness : (res.is_on ? 255 : 0);
+        if (attr.rgb_color && Array.isArray(attr.rgb_color)) {
+          res.rgb_color = attr.rgb_color;
+        }
+      }
     }
 
-    if (!this._hass) return res;
-    const stateObj = this._hass.states[cleanId];
-    if (!stateObj) {
-      // Entity not found in this HA instance: retain current/manual toggle state
-      return res;
+    // Check pending optimistic light state
+    const pending = this._pendingState?.lights?.[cleanId];
+    if (pending) {
+      if (Date.now() > pending.expiry) {
+        delete this._pendingState.lights[cleanId];
+      } else if (this._hass?.states?.[cleanId] && (this._hass.states[cleanId].state === 'on') === pending.is_on) {
+        delete this._pendingState.lights[cleanId];
+      } else {
+        res.is_on = pending.is_on;
+        res.brightness = pending.is_on ? (pending.brightness || 255) : 0;
+      }
     }
 
-    if (stateObj.state === 'unavailable' || stateObj.state === 'unknown') {
-      res.is_on = false;
-      res.brightness = 0;
-      return res;
-    }
-
-    res.is_on = stateObj.state === 'on';
-    const attr = stateObj.attributes || {};
-    res.brightness = attr.brightness !== undefined ? attr.brightness : (res.is_on ? 255 : 0);
-    if (attr.rgb_color && Array.isArray(attr.rgb_color)) {
-      res.rgb_color = attr.rgb_color;
-    }
     return res;
   }
 
   toggleLightEntity(entityId) {
-    if (!this._hass || !entityId) return;
-    const domain = entityId.split('.')[0] || 'light';
-    try {
-      this._hass.callService(domain, 'toggle', { entity_id: entityId });
-    } catch (e) {
-      console.warn('Call service error:', e);
+    let cleanId = entityId ? entityId.trim() : '';
+    if (!cleanId && this._config) {
+      cleanId = this._config.light_living_lamp || '';
     }
+    if (!cleanId) return;
+
+    // Resolve if user passed a short name or default
+    const def = DEFAULT_LIGHTS.find(d => d.id === cleanId || d.entity_id === cleanId);
+    if (def && !this._hass?.states?.[cleanId] && def.entity_id) {
+      cleanId = def.entity_id;
+    }
+
+    const current = this.getLightState(cleanId, this.energyData.room_lights?.[cleanId]);
+    const targetOn = !current.is_on;
+
+    // Set optimistic state immediately
+    if (!this._pendingState.lights) this._pendingState.lights = {};
+    this._pendingState.lights[cleanId] = {
+      is_on: targetOn,
+      brightness: targetOn ? 255 : 0,
+      expiry: Date.now() + 4500
+    };
+
+    // Update internal energyData right away
+    if (this.energyData.room_lights) {
+      for (const k of Object.keys(this.energyData.room_lights)) {
+        if (this.energyData.room_lights[k].entity_id === cleanId || k === cleanId) {
+          this.energyData.room_lights[k].is_on = targetOn;
+          this.energyData.room_lights[k].brightness = targetOn ? 255 : 0;
+        }
+      }
+    }
+    if (this.energyData.appliances) {
+      if (this.energyData.appliances.living_lamp?.entity_id === cleanId) {
+        this.energyData.appliances.living_lamp.is_on = targetOn;
+        this.energyData.appliances.living_lamp.brightness = targetOn ? 255 : 0;
+      }
+      if (this.energyData.appliances.tv?.entity_id === cleanId) {
+        this.energyData.appliances.tv.is_on = targetOn;
+        this.energyData.appliances.tv.state = targetOn ? 'On' : 'Standby';
+      }
+    }
+
+    if (this.sceneManager) {
+      this.sceneManager.updateRoomLights(this.energyData.room_lights);
+      this.sceneManager.updateAppliances(this.energyData.appliances);
+    }
+    if (this.hud) {
+      this.hud.renderDrawerContent();
+    }
+
+    const domain = cleanId.startsWith('switch.') ? 'switch' : (cleanId.startsWith('light.') ? 'light' : 'homeassistant');
+    const service = targetOn ? 'turn_on' : 'turn_off';
+
+    if (this._hass) {
+      try {
+        this._hass.callService(domain, 'toggle', { entity_id: cleanId }, { entity_id: cleanId })
+          .catch((err) => {
+            console.warn(`callService ${domain}.toggle error, trying ${service}:`, err);
+            this._hass.callService(domain, service, { entity_id: cleanId }, { entity_id: cleanId })
+              .catch((e2) => console.warn(`callService ${domain}.${service} error:`, e2));
+          });
+      } catch (e) {
+        console.warn('Call service error:', e);
+      }
+    }
+
+    this.dispatchEvent(new CustomEvent('hass-call-service', {
+      detail: { domain, service: 'toggle', serviceData: { entity_id: cleanId } },
+      bubbles: true,
+      composed: true
+    }));
   }
 
   setThermostatTemperature(entityId, temp) {
-    if (!this._hass || !entityId) return;
-    try {
-      this._hass.callService('climate', 'set_temperature', {
-        entity_id: entityId,
-        temperature: Number(temp)
-      });
-    } catch (e) {
-      console.warn('Call climate set_temperature error:', e);
+    let cleanId = entityId ? entityId.trim() : '';
+    if (!cleanId || cleanId === 'climate.downstairs' || (cleanId.includes('downstairs') && !this._hass?.states?.[cleanId])) {
+      cleanId = this.resolveEntity(this._config?.thermostat_downstairs, 'climate.tado_x_downstairs', 'climate.downstairs');
+    } else if (cleanId === 'climate.upstairs' || (cleanId.includes('upstairs') && !this._hass?.states?.[cleanId])) {
+      cleanId = this.resolveEntity(this._config?.thermostat_upstairs, 'climate.smart_thermostat_x', 'climate.upstairs');
     }
+    if (!cleanId) return;
+
+    const numTemp = Math.round(Number(temp) * 2) / 2;
+    if (isNaN(numTemp)) return;
+
+    // Apply optimistic lock for 5 seconds
+    if (!this._pendingState.thermostats) this._pendingState.thermostats = {};
+    if (!this._pendingState.thermostats[cleanId]) this._pendingState.thermostats[cleanId] = {};
+    this._pendingState.thermostats[cleanId].target_temp = numTemp;
+    this._pendingState.thermostats[cleanId].expiry = Date.now() + 5000;
+
+    // Update in-memory energyData
+    if (this.energyData.thermostats) {
+      for (const floor of ['downstairs', 'upstairs']) {
+        const th = this.energyData.thermostats[floor];
+        if (th && (th.entity_id === cleanId || (!th.entity_id && (floor === 'downstairs' ? cleanId.includes('downstairs') : cleanId.includes('smart_thermostat_x'))))) {
+          th.target_temp = numTemp;
+          const isOff = (th.state || '').toLowerCase() === 'off';
+          th.is_heating = !isOff && (th.current_temp < numTemp);
+        }
+      }
+    }
+
+    // Sync boiler heating demand
+    const dt = this.energyData.thermostats?.downstairs;
+    const ut = this.energyData.thermostats?.upstairs;
+    const boilerHeating = Boolean((dt && dt.is_heating) || (ut && ut.is_heating));
+    if (this.energyData.octopus_gas) {
+      this.energyData.octopus_gas.is_active = boilerHeating;
+      this.energyData.octopus_gas.boiler_status = boilerHeating ? 'Heating' : 'Standby';
+    }
+
+    if (this.sceneManager) {
+      this.sceneManager.updateEnergyData(this.energyData);
+    }
+    if (this.hud) {
+      this.hud.renderDrawerContent();
+    }
+
+    // Debounce the actual service call by 250ms so rapid clicks don't flood HA / Tado
+    if (this._thermoDebounceTimers[cleanId]) {
+      clearTimeout(this._thermoDebounceTimers[cleanId]);
+    }
+    this._thermoDebounceTimers[cleanId] = setTimeout(() => {
+      delete this._thermoDebounceTimers[cleanId];
+      if (this._hass) {
+        try {
+          this._hass.callService('climate', 'set_temperature', {
+            entity_id: cleanId,
+            temperature: numTemp
+          }, {
+            entity_id: cleanId
+          }).catch(err => console.warn('set_temperature error:', err));
+        } catch (e) {
+          console.warn('Call climate set_temperature error:', e);
+        }
+      }
+      this.dispatchEvent(new CustomEvent('hass-call-service', {
+        detail: {
+          domain: 'climate',
+          service: 'set_temperature',
+          serviceData: { entity_id: cleanId, temperature: numTemp }
+        },
+        bubbles: true,
+        composed: true
+      }));
+    }, 250);
   }
 
   setThermostatHvacMode(entityId, mode) {
-    if (!this._hass || !entityId) return;
-    try {
-      this._hass.callService('climate', 'set_hvac_mode', {
-        entity_id: entityId,
-        hvac_mode: mode
-      });
-    } catch (e) {
-      console.warn('Call climate set_hvac_mode error:', e);
+    let cleanId = entityId ? entityId.trim() : '';
+    if (!cleanId || cleanId === 'climate.downstairs' || (cleanId.includes('downstairs') && !this._hass?.states?.[cleanId])) {
+      cleanId = this.resolveEntity(this._config?.thermostat_downstairs, 'climate.tado_x_downstairs', 'climate.downstairs');
+    } else if (cleanId === 'climate.upstairs' || (cleanId.includes('upstairs') && !this._hass?.states?.[cleanId])) {
+      cleanId = this.resolveEntity(this._config?.thermostat_upstairs, 'climate.smart_thermostat_x', 'climate.upstairs');
     }
+    if (!cleanId) return;
+
+    if (!this._pendingState.thermostats) this._pendingState.thermostats = {};
+    if (!this._pendingState.thermostats[cleanId]) this._pendingState.thermostats[cleanId] = {};
+    this._pendingState.thermostats[cleanId].hvac_mode = mode;
+    this._pendingState.thermostats[cleanId].expiry = Date.now() + 5000;
+
+    // Update in-memory energyData
+    if (this.energyData.thermostats) {
+      for (const floor of ['downstairs', 'upstairs']) {
+        const th = this.energyData.thermostats[floor];
+        if (th && (th.entity_id === cleanId || (!th.entity_id && (floor === 'downstairs' ? cleanId.includes('downstairs') : cleanId.includes('smart_thermostat_x'))))) {
+          th.state = mode;
+          const isOff = mode === 'off';
+          th.is_heating = !isOff && (th.current_temp < th.target_temp);
+        }
+      }
+    }
+
+    // Sync boiler heating demand
+    const dt = this.energyData.thermostats?.downstairs;
+    const ut = this.energyData.thermostats?.upstairs;
+    const boilerHeating = Boolean((dt && dt.is_heating) || (ut && ut.is_heating));
+    if (this.energyData.octopus_gas) {
+      this.energyData.octopus_gas.is_active = boilerHeating;
+      this.energyData.octopus_gas.boiler_status = boilerHeating ? 'Heating' : 'Standby';
+    }
+
+    if (this.sceneManager) {
+      this.sceneManager.updateEnergyData(this.energyData);
+    }
+    if (this.hud) {
+      this.hud.renderDrawerContent();
+    }
+
+    if (this._hass) {
+      try {
+        this._hass.callService('climate', 'set_hvac_mode', {
+          entity_id: cleanId,
+          hvac_mode: mode
+        }, {
+          entity_id: cleanId
+        }).catch(err => console.warn('set_hvac_mode error:', err));
+      } catch (e) {
+        console.warn('Call climate set_hvac_mode error:', e);
+      }
+    }
+    this.dispatchEvent(new CustomEvent('hass-call-service', {
+      detail: {
+        domain: 'climate',
+        service: 'set_hvac_mode',
+        serviceData: { entity_id: cleanId, hvac_mode: mode }
+      },
+      bubbles: true,
+      composed: true
+    }));
   }
 
   getCardSize() {

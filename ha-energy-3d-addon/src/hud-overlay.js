@@ -1,3 +1,5 @@
+import { DEFAULT_LIGHTS } from './scene-manager.js';
+
 function toKw(val) {
   const num = parseFloat(val);
   if (isNaN(num)) return 0;
@@ -2529,7 +2531,8 @@ export class HUDOverlay {
 
     // Populate inputs
     this.el.querySelector('#custom-light-name').value = this.editingLight.name || '';
-    const currentEntity = this.editingLight.entity_id || this.currentSensorConfig?.[`light_${this.editingLight.id}`] || (this.editingLight.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || '';
+    const defLight = DEFAULT_LIGHTS.find(d => d.id === this.editingLight.id);
+    const currentEntity = this.editingLight.entity_id || this.currentSensorConfig?.[`light_${this.editingLight.id}`] || (this.editingLight.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || defLight?.entity_id || '';
     this.el.querySelector('#custom-light-entity').value = currentEntity;
 
     // Floor buttons
@@ -2718,8 +2721,8 @@ export class HUDOverlay {
     t.is_heating = !isOff && (currentTemp < newTarget);
 
     const entId = floor === 'downstairs'
-      ? (t.entity_id || this.currentSensorConfig?.thermostat_downstairs || 'climate.downstairs')
-      : (t.entity_id || this.currentSensorConfig?.thermostat_upstairs || 'climate.upstairs');
+      ? (t.entity_id || this.currentSensorConfig?.thermostat_downstairs || 'climate.tado_x_downstairs')
+      : (t.entity_id || this.currentSensorConfig?.thermostat_upstairs || 'climate.smart_thermostat_x');
 
     if (this.onSetTemperature) {
       this.onSetTemperature(floor, newTarget, entId);
@@ -2748,8 +2751,8 @@ export class HUDOverlay {
     t.is_heating = !isOff && (currentTemp < targetTemp);
 
     const entId = floor === 'downstairs'
-      ? (t.entity_id || this.currentSensorConfig?.thermostat_downstairs || 'climate.downstairs')
-      : (t.entity_id || this.currentSensorConfig?.thermostat_upstairs || 'climate.upstairs');
+      ? (t.entity_id || this.currentSensorConfig?.thermostat_downstairs || 'climate.tado_x_downstairs')
+      : (t.entity_id || this.currentSensorConfig?.thermostat_upstairs || 'climate.smart_thermostat_x');
 
     if (this.onSetHvacMode) {
       this.onSetHvacMode(floor, mode, entId);
@@ -3166,7 +3169,8 @@ export class HUDOverlay {
         const icon = lt.isFloorLamp || lt.name?.toLowerCase().includes('lamp') ? '🛋️' : '💡';
         const floorText = lt.floor === 'first' || (lt.pos && lt.pos.y > 3.0) ? '🛏️ Upstairs' : '🛋️ Downstairs';
         const posText = lt.pos ? `(${lt.pos.x.toFixed(1)}, ${lt.pos.y.toFixed(1)}, ${lt.pos.z.toFixed(1)})` : '';
-        const mappedEntity = lt.entity_id || this.currentSensorConfig?.[`light_${lt.id}`] || (lt.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || '';
+        const defLight = DEFAULT_LIGHTS.find(d => d.id === lt.id);
+        const mappedEntity = lt.entity_id || this.currentSensorConfig?.[`light_${lt.id}`] || (lt.id === 'living_lamp' ? this.currentSensorConfig?.light_living_lamp : '') || defLight?.entity_id || '';
 
         cardsHtml += `
           <div class="light-card ${isOn ? 'active' : ''}">
@@ -3219,9 +3223,10 @@ export class HUDOverlay {
       const toggleBtns = content.querySelectorAll('.light-toggle-btn');
       toggleBtns.forEach((btn) => {
         btn.addEventListener('click', () => {
-          const entId = btn.getAttribute('data-entity')?.trim();
           const lightId = btn.getAttribute('data-light-id');
           if (!lightId) return;
+          const defLight = DEFAULT_LIGHTS.find(d => d.id === lightId);
+          const entId = btn.getAttribute('data-entity')?.trim() || defLight?.entity_id || '';
 
           let lightInfo = data.room_lights?.[lightId];
           if (lightId === 'living_lamp') {
@@ -3395,8 +3400,9 @@ export class HUDOverlay {
       badge.addEventListener('click', (e) => {
         if (spot.id === 'appliance_tv') {
           const tv = data.appliances?.tv;
-          if (tv?.entity_id) {
-            this.onToggleLight(tv.entity_id);
+          const entId = tv?.entity_id || this.currentSensorConfig?.sensor_tv || 'switch.living_room_living_room_tv_plug';
+          if (entId) {
+            this.onToggleLight(entId);
           } else if (tv) {
             tv.is_on = !tv.is_on;
             this.updateData(data);
