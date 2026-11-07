@@ -9,7 +9,7 @@
  *    overnight EV charging plateau (7 kW), and appliance power spikes.
  */
 
-const CARD_VERSION = '1.2.27';
+const CARD_VERSION = '1.2.28';
 
 export class HaEnergyFlowCard extends HTMLElement {
   constructor() {
@@ -39,6 +39,7 @@ export class HaEnergyFlowCard extends HTMLElement {
       ev_entity: 'input_number.zappi_ev_power',
       tv_entity: 'sensor.living_room_tv_plug_power',
       lights_entity: 'input_number.matter_lights_power',
+      washer_entity: 'sensor.washing_machine_power',
       fridge_entity: 'sensor.refrigerator_power'
     };
   }
@@ -54,6 +55,7 @@ export class HaEnergyFlowCard extends HTMLElement {
       ev_entity: 'input_number.zappi_ev_power',
       tv_entity: 'sensor.living_room_tv_plug_power',
       lights_entity: 'input_number.matter_lights_power',
+      washer_entity: 'sensor.washing_machine_power',
       fridge_entity: 'sensor.refrigerator_power',
       ...config
     };
@@ -152,6 +154,24 @@ export class HaEnergyFlowCard extends HTMLElement {
     const p2 = this.getEntityNumeric('sensor.solax_snm9wncrqy_pv2_power', 0);
     if (p1 + p2 > 0) return p1 + p2;
     return this.getEntityNumeric('sensor.solax_snm9wncrqy_ac_output_power', 0);
+  }
+
+  // Calculate Washing Machine fallback
+  getWasherPowerFallback() {
+    const candidates = [
+      'sensor.washing_machine_power',
+      'sensor.kitchen_washing_machine_power',
+      'sensor.washer_power',
+      'sensor.washing_machine_plug_power',
+      'sensor.kitchen_washing_machine_plug_power',
+      'sensor.laundry_power',
+      'sensor.kitchen_washing_machine_daily_energy'
+    ];
+    for (const c of candidates) {
+      const v = this.getEntityNumeric(c, -1);
+      if (v >= 0) return v;
+    }
+    return 0;
   }
 
   /**
@@ -373,10 +393,13 @@ export class HaEnergyFlowCard extends HTMLElement {
     let lightsW = this.getEntityNumeric(this._config.lights_entity, -1);
     if (lightsW < 0) lightsW = this.getLightsPowerFallback();
 
+    let washerW = this.getEntityNumeric(this._config.washer_entity, -1);
+    if (washerW < 0) washerW = this.getWasherPowerFallback();
+
     const fridgeW = this.getEntityNumeric(this._config.fridge_entity, 0);
 
     // 3. Central Home Node = Grid Import + Solar - Export
-    const knownConsumers = evW + tvW + lightsW + fridgeW;
+    const knownConsumers = evW + tvW + lightsW + washerW + fridgeW;
     let homeW = Math.max(0, gridImportW + solarW - gridExportW);
     if (homeW < knownConsumers) {
       homeW = knownConsumers;
@@ -425,6 +448,13 @@ export class HaEnergyFlowCard extends HTMLElement {
         dur: this.calculateDuration(lightsW),
         color: '#fbbf24',
         pathId: 'path-lights'
+      },
+      washer: {
+        active: washerW > 5,
+        watts: washerW,
+        dur: this.calculateDuration(washerW),
+        color: '#f43f5e',
+        pathId: 'path-washer'
       },
       fridge: {
         active: fridgeW > 5,
@@ -480,6 +510,7 @@ export class HaEnergyFlowCard extends HTMLElement {
     updateNode('ev', evW, evW > 5, '#06d6a0');
     updateNode('tv', tvW, tvW > 5, '#38bdf8');
     updateNode('lights', lightsW, lightsW > 2, '#fbbf24');
+    updateNode('washer', washerW, washerW > 5, '#f43f5e');
     updateNode('fridge', fridgeW, fridgeW > 5, '#a78bfa');
 
     // Update real 24h rolling buffer
@@ -899,7 +930,7 @@ export class HaEnergyFlowCard extends HTMLElement {
     if (this._animFrame) return;
 
     // Initialize particle progress trackers
-    const flowKeys = ['solar', 'grid_import', 'grid_export', 'ev', 'tv', 'lights', 'fridge'];
+    const flowKeys = ['solar', 'grid_import', 'grid_export', 'ev', 'tv', 'lights', 'washer', 'fridge'];
     for (const key of flowKeys) {
       if (!this._particles[key]) {
         this._particles[key] = [0.0, 0.33, 0.66];
@@ -1194,7 +1225,7 @@ export class HaEnergyFlowCard extends HTMLElement {
           backdrop-filter: blur(14px);
           -webkit-backdrop-filter: blur(14px);
           border-radius: 14px;
-          padding: 8px 10px;
+          padding: 6px 10px;
           display: flex;
           flex-direction: column;
           justify-content: center;
@@ -1511,32 +1542,36 @@ export class HaEnergyFlowCard extends HTMLElement {
 
               <!-- Guide Flow Paths (Curved Béziers) -->
               <!-- 1. Solar to Home -->
-              <path id="path-solar" class="flow-path-bg" d="M 185 95 C 265 95, 255 195, 325 195" />
-              <path class="flow-path-glow" stroke="#f59e0b" d="M 185 95 C 265 95, 255 195, 325 195" />
+              <path id="path-solar" class="flow-path-bg" d="M 185 100 C 265 100, 255 200, 325 200" />
+              <path class="flow-path-glow" stroke="#f59e0b" d="M 185 100 C 265 100, 255 200, 325 200" />
 
               <!-- 2. Grid to Home (Import) -->
-              <path id="path-grid-import" class="flow-path-bg" d="M 185 335 C 265 335, 255 245, 325 245" />
-              <path class="flow-path-glow" stroke="#3b82f6" d="M 185 335 C 265 335, 255 245, 325 245" />
+              <path id="path-grid-import" class="flow-path-bg" d="M 185 330 C 265 330, 255 235, 325 235" />
+              <path class="flow-path-glow" stroke="#3b82f6" d="M 185 330 C 265 330, 255 235, 325 235" />
 
               <!-- 3. Home to Grid (Export) -->
-              <path id="path-grid-export" class="flow-path-bg" d="M 325 245 C 255 245, 265 335, 185 335" />
-              <path class="flow-path-glow" stroke="#10b981" d="M 325 245 C 255 245, 265 335, 185 335" />
+              <path id="path-grid-export" class="flow-path-bg" d="M 325 235 C 255 235, 265 330, 185 330" />
+              <path class="flow-path-glow" stroke="#10b981" d="M 325 235 C 255 235, 265 330, 185 330" />
 
               <!-- 4. Home to Zappi EV -->
-              <path id="path-ev" class="flow-path-bg" d="M 455 190 C 525 190, 525 65, 595 65" />
-              <path class="flow-path-glow" stroke="#06d6a0" d="M 455 190 C 525 190, 525 65, 595 65" />
+              <path id="path-ev" class="flow-path-bg" d="M 455 190 C 525 190, 525 53, 595 53" />
+              <path class="flow-path-glow" stroke="#06d6a0" d="M 455 190 C 525 190, 525 53, 595 53" />
 
               <!-- 5. Home to LG TV -->
-              <path id="path-tv" class="flow-path-bg" d="M 455 205 C 525 205, 525 165, 595 165" />
-              <path class="flow-path-glow" stroke="#38bdf8" d="M 455 205 C 525 205, 525 165, 595 165" />
+              <path id="path-tv" class="flow-path-bg" d="M 455 205 C 525 205, 525 133, 595 133" />
+              <path class="flow-path-glow" stroke="#38bdf8" d="M 455 205 C 525 205, 525 133, 595 133" />
 
               <!-- 6. Home to Lights -->
-              <path id="path-lights" class="flow-path-bg" d="M 455 235 C 525 235, 525 265, 595 265" />
-              <path class="flow-path-glow" stroke="#fbbf24" d="M 455 235 C 525 235, 525 265, 595 265" />
+              <path id="path-lights" class="flow-path-bg" d="M 455 220 C 525 220, 525 213, 595 213" />
+              <path class="flow-path-glow" stroke="#fbbf24" d="M 455 220 C 525 220, 525 213, 595 213" />
 
-              <!-- 7. Home to Fridge -->
-              <path id="path-fridge" class="flow-path-bg" d="M 455 250 C 525 250, 525 365, 595 365" />
-              <path class="flow-path-glow" stroke="#a78bfa" d="M 455 250 C 525 250, 525 365, 595 365" />
+              <!-- 7. Home to Washing Machine -->
+              <path id="path-washer" class="flow-path-bg" d="M 455 235 C 525 235, 525 293, 595 293" />
+              <path class="flow-path-glow" stroke="#f43f5e" d="M 455 235 C 525 235, 525 293, 595 293" />
+
+              <!-- 8. Home to Fridge -->
+              <path id="path-fridge" class="flow-path-bg" d="M 455 250 C 525 250, 525 373, 595 373" />
+              <path class="flow-path-glow" stroke="#a78bfa" d="M 455 250 C 525 250, 525 373, 595 373" />
 
               <!-- Animated Moving Particles Groups -->
               <g id="particles-solar" fill="#f59e0b" style="opacity:0;">
@@ -1569,6 +1604,11 @@ export class HaEnergyFlowCard extends HTMLElement {
                 <circle class="particle-dot" />
                 <circle class="particle-dot" />
               </g>
+              <g id="particles-washer" fill="#f43f5e" style="opacity:0;">
+                <circle class="particle-dot" />
+                <circle class="particle-dot" />
+                <circle class="particle-dot" />
+              </g>
               <g id="particles-fridge" fill="#a78bfa" style="opacity:0;">
                 <circle class="particle-dot" />
                 <circle class="particle-dot" />
@@ -1576,7 +1616,7 @@ export class HaEnergyFlowCard extends HTMLElement {
               </g>
 
               <!-- 1. Solar Inverter Node (Top Left) -->
-              <foreignObject x="20" y="60" width="165" height="70">
+              <foreignObject x="20" y="65" width="165" height="70">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-solar">
                   <div class="node-header">
                     <div class="node-title-wrap">
@@ -1593,7 +1633,7 @@ export class HaEnergyFlowCard extends HTMLElement {
               </foreignObject>
 
               <!-- 2. Grid Node (Bottom Left - Import/Export) -->
-              <foreignObject x="20" y="300" width="165" height="70">
+              <foreignObject x="20" y="295" width="165" height="70">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-grid">
                   <div class="node-header">
                     <div class="node-title-wrap">
@@ -1610,7 +1650,7 @@ export class HaEnergyFlowCard extends HTMLElement {
               </foreignObject>
 
               <!-- 3. Central Home Node (Center) -->
-              <foreignObject x="325" y="170" width="130" height="95">
+              <foreignObject x="325" y="165" width="130" height="95">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="node-card home" id="box-home">
                   <div class="node-header">
                     <div class="node-title-wrap">
@@ -1627,7 +1667,7 @@ export class HaEnergyFlowCard extends HTMLElement {
               </foreignObject>
 
               <!-- 4. Zappi EV Charger (Top Right) -->
-              <foreignObject x="595" y="30" width="165" height="70">
+              <foreignObject x="595" y="20" width="165" height="66">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-ev">
                   <div class="node-header">
                     <div class="node-title-wrap">
@@ -1644,7 +1684,7 @@ export class HaEnergyFlowCard extends HTMLElement {
               </foreignObject>
 
               <!-- 5. LG TV (Mid-Top Right) -->
-              <foreignObject x="595" y="130" width="165" height="70">
+              <foreignObject x="595" y="100" width="165" height="66">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-tv">
                   <div class="node-header">
                     <div class="node-title-wrap">
@@ -1660,8 +1700,8 @@ export class HaEnergyFlowCard extends HTMLElement {
                 </div>
               </foreignObject>
 
-              <!-- 6. Matter Lights (Mid-Bottom Right) -->
-              <foreignObject x="595" y="230" width="165" height="70">
+              <!-- 6. Matter Lights (Center Right) -->
+              <foreignObject x="595" y="180" width="165" height="66">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-lights">
                   <div class="node-header">
                     <div class="node-title-wrap">
@@ -1677,8 +1717,25 @@ export class HaEnergyFlowCard extends HTMLElement {
                 </div>
               </foreignObject>
 
-              <!-- 7. Fridge (Bottom Right) -->
-              <foreignObject x="595" y="330" width="165" height="70">
+              <!-- 7. Washing Machine (Mid-Bottom Right) -->
+              <foreignObject x="595" y="260" width="165" height="66">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-washer">
+                  <div class="node-header">
+                    <div class="node-title-wrap">
+                      <span class="node-icon">🧺</span>
+                      <span class="node-title">Washing Machine</span>
+                    </div>
+                    <span class="status-pill idle" id="pill-washer">IDLE</span>
+                  </div>
+                  <div class="node-value">
+                    <span id="val-washer">0 W</span>
+                    <span class="node-sub" id="sub-washer"></span>
+                  </div>
+                </div>
+              </foreignObject>
+
+              <!-- 8. Fridge (Bottom Right) -->
+              <foreignObject x="595" y="340" width="165" height="66">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-fridge">
                   <div class="node-header">
                     <div class="node-title-wrap">
