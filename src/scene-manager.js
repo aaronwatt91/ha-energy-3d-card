@@ -137,7 +137,7 @@ export class SceneManager {
     };
 
     this.hotspots = [
-      { id: 'solar', name: 'Solax Solar Inverter', pos: new THREE.Vector3(5.58, 1.78, -0.50) },
+      { id: 'solar', name: 'Solax Solar Inverter', pos: new THREE.Vector3(5.88, 1.78, -0.50) },
       { id: 'grid', name: 'Octopus Grid & Meter', pos: new THREE.Vector3(5.30, 2.00, -0.85) },
       { id: 'boiler', name: 'Combi Boiler & Gas', pos: new THREE.Vector3(0.45, 1.80, -8.30) },
       { id: 'ev', name: 'Peugeot e-2008 EV', pos: new THREE.Vector3(5.25, 1.20, 1.35) },
@@ -1207,13 +1207,14 @@ export class SceneManager {
     this.upstairsFurnitureGroup.add(cotGroup);
 
     // ==========================================
-    // 6. Solax Solar Inverter on Exterior Brick Wall & Cable Conduit
-    // Mounted on the right exterior brick wall (driveway side) at x = 5.42, y = 1.75, z = -0.50
-    // Solar cable runs along roof eaves and cascades straight DOWN the outside brick wall into inverter
+    // 6. Solax Solar Inverter on External Party Wall & Cable Conduit
+    // Mounted on the external party wall surface at x = 5.73, y = 1.75, z = -0.50
+    // (Back heatsink sits flush against party wall at x = 5.62, body faces +X outwards)
+    // Solar cable runs along roof eaves and cascades straight DOWN the outside party wall into inverter
     // ==========================================
     const inverterGroup = new THREE.Group();
-    inverterGroup.position.set(5.42, 1.75, -0.50);
-    inverterGroup.rotation.y = Math.PI / 2; // Face +X outwards into driveway
+    inverterGroup.position.set(5.73, 1.75, -0.50);
+    inverterGroup.rotation.y = Math.PI / 2; // Face +X outwards
 
     // Main inverter body (Clean modern white casing with bevels)
     const invBody = new THREE.Mesh(
@@ -1316,18 +1317,18 @@ export class SceneManager {
     this.applianceInverter = inverterGroup;
 
     // Physical Solar DC Cable Conduit:
-    // Runs from under roof panels, along exterior eaves to right side wall, and straight down outside into the inverter
+    // Runs from under roof panels, along exterior eaves to party wall, and straight down outside into the inverter
     const solarCurve = this.energyFlow?.paths?.solar || new THREE.CatmullRomCurve3([
       new THREE.Vector3(2.50, 6.45, -6.50),
       new THREE.Vector3(4.10, 6.55, -6.50),
-      new THREE.Vector3(5.42, 6.55, -6.50),
-      new THREE.Vector3(5.42, 5.20, -4.50),
-      new THREE.Vector3(5.42, 3.80, -2.50),
-      new THREE.Vector3(5.42, 2.60, -1.00),
-      new THREE.Vector3(5.42, 2.05, -0.50),
-      new THREE.Vector3(5.42, 1.75, -0.50),
-      new THREE.Vector3(5.42, 1.40, -0.50),
-      new THREE.Vector3(5.35, 1.25, -0.75)
+      new THREE.Vector3(5.63, 6.55, -6.50),
+      new THREE.Vector3(5.63, 5.20, -4.50),
+      new THREE.Vector3(5.63, 3.80, -2.50),
+      new THREE.Vector3(5.63, 2.60, -1.00),
+      new THREE.Vector3(5.63, 2.05, -0.50),
+      new THREE.Vector3(5.63, 1.75, -0.50),
+      new THREE.Vector3(5.63, 1.40, -0.50),
+      new THREE.Vector3(5.50, 1.25, -0.75)
     ]);
 
     const cableGeom = new THREE.TubeGeometry(solarCurve, 84, 0.016, 8, false);
@@ -1342,12 +1343,12 @@ export class SceneManager {
     this.appliancesGroup.add(solarCableConduit);
     this.solarCableConduit = solarCableConduit;
 
-    // Cable wall saddles / mounting cleats along the exterior brick wall
+    // Cable wall saddles / mounting cleats along the external party wall
     const saddleMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3, metalness: 0.8 });
     for (let t = 0.30; t <= 0.88; t += 0.08) {
       const pt = solarCurve.getPointAt(t);
       const saddle = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.04, 0.045), saddleMat);
-      saddle.position.set(5.43, pt.y, pt.z);
+      saddle.position.set(5.64, pt.y, pt.z);
       this.appliancesGroup.add(saddle);
     }
   }
@@ -1497,68 +1498,76 @@ export class SceneManager {
         return c;
       };
 
-      // 1. Scottish Brickwork Texture & Bump Map (Warm Scottish red-buff brick with sand mortar)
-      const brickC = createCanvas(512, 512);
-      const bCtx = brickC.getContext('2d');
-      const brickBumpC = createCanvas(512, 512);
-      const bbCtx = brickBumpC.getContext('2d');
+      // 1. Scottish White Roughcast / Wetdash Texture & Bump Map (Crisp white architectural render with embedded aggregate chips and stipple depth)
+      const roughcastC = createCanvas(512, 512);
+      const rcCtx = roughcastC.getContext('2d');
+      const roughcastBumpC = createCanvas(512, 512);
+      const rcbCtx = roughcastBumpC.getContext('2d');
 
-      // Mortar base
-      bCtx.fillStyle = '#cfc9be';
-      bCtx.fillRect(0, 0, 512, 512);
-      bbCtx.fillStyle = '#181818';
-      bbCtx.fillRect(0, 0, 512, 512);
+      // Crisp architectural white base coat
+      rcCtx.fillStyle = '#f4f5f8';
+      rcCtx.fillRect(0, 0, 512, 512);
+      rcbCtx.fillStyle = '#828282'; // Mid neutral grey base
+      rcbCtx.fillRect(0, 0, 512, 512);
 
-      // Add sand grains to mortar
-      for (let i = 0; i < 400; i++) {
-        const mx = Math.random() * 512;
-        const my = Math.random() * 512;
-        bCtx.fillStyle = Math.random() > 0.5 ? '#b8b2a7' : '#dedad2';
-        bCtx.fillRect(mx, my, 1.5, 1.5);
+      // Subtle plaster wash variation across broad areas
+      for (let i = 0; i < 8; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const rad = 80 + Math.random() * 120;
+        const grad = rcCtx.createRadialGradient(x, y, 10, x, y, rad);
+        grad.addColorStop(0, Math.random() > 0.5 ? 'rgba(235, 238, 242, 0.5)' : 'rgba(255, 255, 255, 0.6)');
+        grad.addColorStop(1, 'rgba(244, 245, 248, 0)');
+        rcCtx.fillStyle = grad;
+        rcCtx.beginPath();
+        rcCtx.arc(x, y, rad, 0, Math.PI * 2);
+        rcCtx.fill();
       }
 
-      const rows = 8;
-      const rh = 512 / rows; // 64px per row
-      const bw = 128; // 4 bricks per row
-      const gap = 5;
-      const brickColors = ['#a3432d', '#b54e36', '#9c3d27', '#ab4932', '#8d3420', '#bd5a40'];
-
-      for (let r = 0; r < rows; r++) {
-        const y = r * rh;
-        const xOffset = (r % 2 === 0) ? 0 : -bw / 2;
-        for (let x = xOffset - bw; x < 512 + bw; x += bw) {
-          const bx = x + gap / 2;
-          const by = y + gap / 2;
-          const w = bw - gap;
-          const h = rh - gap;
-
-          // Brick face color variation
-          const baseCol = brickColors[Math.floor(Math.random() * brickColors.length)];
-          bCtx.fillStyle = baseCol;
-          bCtx.fillRect(bx, by, w, h);
-
-          // Subtle gradient across brick
-          const bGrad = bCtx.createLinearGradient(bx, by, bx, by + h);
-          bGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
-          bGrad.addColorStop(1, 'rgba(0, 0, 0, 0.12)');
-          bCtx.fillStyle = bGrad;
-          bCtx.fillRect(bx, by, w, h);
-
-          // Surface grain / speckle
-          for (let p = 0; p < 25; p++) {
-            const px = bx + Math.random() * w;
-            const py = by + Math.random() * h;
-            bCtx.fillStyle = Math.random() > 0.5 ? 'rgba(0,0,0,0.15)' : 'rgba(255,200,180,0.18)';
-            bCtx.fillRect(px, py, 1.5, 1.5);
-          }
-
-          // Bump map: raised brick surface with beveled edges
-          bbCtx.fillStyle = '#e5e5e5';
-          bbCtx.fillRect(bx + 1, by + 1, w - 2, h - 2);
-          bbCtx.strokeStyle = '#777777';
-          bbCtx.lineWidth = 1;
-          bbCtx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
+      // Fine sand stipple (15,000 tiny grains for dense stone texture)
+      for (let i = 0; i < 15000; i++) {
+        const sx = Math.random() * 512;
+        const sy = Math.random() * 512;
+        const tone = Math.random();
+        if (tone < 0.35) {
+          rcCtx.fillStyle = 'rgba(195, 200, 210, 0.35)'; // Soft shadow grain
+          rcbCtx.fillStyle = '#505050'; // Recessed pit
+        } else if (tone < 0.70) {
+          rcCtx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // White quartz highlight
+          rcbCtx.fillStyle = '#b8b8b8'; // Raised grain
+        } else {
+          rcCtx.fillStyle = 'rgba(225, 220, 210, 0.4)'; // Warm sand grain
+          rcbCtx.fillStyle = '#909090';
         }
+        rcCtx.fillRect(sx, sy, 1.2, 1.2);
+        rcbCtx.fillRect(sx, sy, 1.2, 1.2);
+      }
+
+      // Distinct embedded aggregate / crushed granite pebbles (2,800 chips, 2-3.5px)
+      const pebblePalette = [
+        '#d8dbe0', // Light grey granite
+        '#c5cad2', // Medium granite
+        '#ffffff', // White quartz chip
+        '#e8e4dc', // Pale limestone chip
+        '#b0b6c2', // Darker flint chip
+        '#f0f2f5'  // Crisp white chip
+      ];
+
+      for (let i = 0; i < 2800; i++) {
+        const px = Math.random() * 512;
+        const py = Math.random() * 512;
+        const pw = 1.8 + Math.random() * 2.2;
+        const ph = 1.8 + Math.random() * 2.2;
+        const pCol = pebblePalette[Math.floor(Math.random() * pebblePalette.length)];
+
+        rcCtx.fillStyle = pCol;
+        rcCtx.fillRect(px, py, pw, ph);
+
+        // Bump map: 3D aggregate relief (bright raised pebble face, dark shadow edge)
+        rcbCtx.fillStyle = '#e5e5e5';
+        rcbCtx.fillRect(px, py, pw, ph);
+        rcbCtx.fillStyle = '#383838'; // Shadow recess beneath pebble
+        rcbCtx.fillRect(px + pw * 0.5, py + ph * 0.5, pw * 0.6, ph * 0.6);
       }
 
       // 2. Slate Roof Tiles & Bump (Modern Scottish charcoal interlocking slate)
@@ -1764,8 +1773,8 @@ export class SceneManager {
       };
 
       return {
-        brickMap: makeTex(brickC, 4, 4),
-        brickBump: makeTex(brickBumpC, 4, 4),
+        roughcastMap: makeTex(roughcastC, 6, 6),
+        roughcastBump: makeTex(roughcastBumpC, 6, 6),
         roofMap: makeTex(roofC, 5, 5),
         roofBump: makeTex(roofBumpC, 5, 5),
         woodMap: makeTex(woodC, 3, 3),
@@ -1791,15 +1800,15 @@ export class SceneManager {
       if (!child.isMesh) return;
       const n = child.name;
 
-      // 1. Exterior Walls (Authentic Scottish brickwork with mortar depth bump map)
+      // 1. Exterior Walls (Authentic Scottish White Roughcast / Wetdash Harling with granular tactile bump map)
       if (n.includes('Exterior_Walls') || n.includes('Separating_Party_Wall')) {
         if (tex) {
           child.material = new THREE.MeshStandardMaterial({
-            map: tex.brickMap,
-            bumpMap: tex.brickBump,
-            bumpScale: 0.04,
-            roughness: 0.88,
-            metalness: 0.05
+            map: tex.roughcastMap,
+            bumpMap: tex.roughcastBump,
+            bumpScale: 0.05,
+            roughness: 0.94,
+            metalness: 0.02
           });
         }
       }
@@ -2202,8 +2211,8 @@ export class SceneManager {
         xray: false
       },
       solar: {
-        pos: new THREE.Vector3(8.80, 2.40, 0.50),
-        target: new THREE.Vector3(5.42, 1.75, -0.50),
+        pos: new THREE.Vector3(9.20, 2.40, 0.50),
+        target: new THREE.Vector3(5.73, 1.75, -0.50),
         xray: false
       },
       meter: {

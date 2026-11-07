@@ -20,18 +20,18 @@ export class EnergyFlowSystem {
 
     // Exact centerline 3D splines matching the geometry of Taylor Wimpey Blair model
     this.paths = {
-      // 1. Solar PV: Underside of panels -> exterior eaves -> runs down outside brick wall into inverter -> meter
+      // 1. Solar PV: Underside of panels -> exterior eaves -> runs down outside party wall into inverter -> meter
       solar: new THREE.CatmullRomCurve3([
         new THREE.Vector3(2.50, 6.45, -6.50), // Under panels
         new THREE.Vector3(4.10, 6.55, -6.50), // Cable run under panel array
-        new THREE.Vector3(5.42, 6.55, -6.50), // Exterior eaves / right wall junction
-        new THREE.Vector3(5.42, 5.20, -4.50), // Down upper exterior brick wall
-        new THREE.Vector3(5.42, 3.80, -2.50), // Down mid exterior brick wall
-        new THREE.Vector3(5.42, 2.60, -1.00), // Leading to outdoor inverter
-        new THREE.Vector3(5.42, 2.05, -0.50), // Entering top DC glands of Solax inverter
-        new THREE.Vector3(5.42, 1.75, -0.50), // Through Solax Inverter
-        new THREE.Vector3(5.42, 1.40, -0.50), // AC output drop down wall
-        new THREE.Vector3(5.35, 1.25, -0.75)  // Smart meter box / consumer unit entry
+        new THREE.Vector3(5.63, 6.55, -6.50), // Exterior eaves / party wall junction
+        new THREE.Vector3(5.63, 5.20, -4.50), // Down upper external party wall
+        new THREE.Vector3(5.63, 3.80, -2.50), // Down mid external party wall
+        new THREE.Vector3(5.63, 2.60, -1.00), // Leading to outdoor inverter
+        new THREE.Vector3(5.63, 2.05, -0.50), // Entering top DC glands of Solax inverter
+        new THREE.Vector3(5.63, 1.75, -0.50), // Through Solax Inverter
+        new THREE.Vector3(5.63, 1.40, -0.50), // AC output drop down wall
+        new THREE.Vector3(5.50, 1.25, -0.75)  // Smart meter box / consumer unit entry through party wall
       ]),
 
       // 2. Grid Overhead Service: Pylon distribution box (t=0) -> Catenary sag -> House bracket -> PVC drop -> Smart meter (t=1)
