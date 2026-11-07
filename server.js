@@ -25,7 +25,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   let pathname = url.pathname;
 
-  // 1. Home Assistant Supervisor API Proxy
+  // 1. Home Assistant Supervisor API Proxy: States
   if (pathname === '/api/ha-states') {
     if (!SUPERVISOR_TOKEN) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -43,6 +43,36 @@ const server = http.createServer(async (req, res) => {
       const data = await response.json();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ standalone: false, states: data }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  // 1b. Home Assistant Supervisor API Proxy: History (24h period)
+  if (pathname === '/api/ha-history') {
+    if (!SUPERVISOR_TOKEN) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ standalone: true, history: [] }));
+      return;
+    }
+
+    try {
+      const filterEntityId = url.searchParams.get('filter_entity_id') || '';
+      const startParam = url.searchParams.get('start_time');
+      const startTime = startParam || new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const haUrl = `http://supervisor/core/api/history/period/${encodeURIComponent(startTime)}?filter_entity_id=${encodeURIComponent(filterEntityId)}&minimal_response=true&no_attributes=true`;
+
+      const response = await fetch(haUrl, {
+        headers: {
+          Authorization: `Bearer ${SUPERVISOR_TOKEN}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ standalone: false, history: data }));
     } catch (err) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: err.message }));

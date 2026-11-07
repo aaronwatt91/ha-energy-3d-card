@@ -9,7 +9,7 @@
  *    overnight EV charging plateau (7 kW), and appliance power spikes.
  */
 
-const CARD_VERSION = '1.1.0';
+const CARD_VERSION = '1.2.27';
 
 export class HaEnergyFlowCard extends HTMLElement {
   constructor() {
@@ -21,10 +21,12 @@ export class HaEnergyFlowCard extends HTMLElement {
     this._lastTimestamp = 0;
     this._particles = {};
     this._viewMode = 'flow'; // 'flow' | 'chart' | 'split'
-    this._historyPoints = this.generateInitial24hBaseline();
+    this._historyPoints = this.loadStoredHistory();
     this._historyFetched = false;
     this._lastHistoryFetchTime = 0;
     this._isScrubbing = false;
+    this._cachedSolarCoords = [];
+    this._cachedGridCoords = [];
   }
 
   static getStubConfig() {
@@ -153,81 +155,63 @@ export class HaEnergyFlowCard extends HTMLElement {
   }
 
   /**
-   * Generates a realistic 24-hour baseline curve matching the exact phenomena:
-   * 1. Midday "Solar Hump": bell curve peaking 1,000 W – 3,400+ W between 06:30 and 18:30.
-   * 2. Zero Grid / Self-Sufficiency Zone: grid demand drops near 0 W during high solar.
-   * 3. Power Spikes: kettle (~2,400 W), washer (~1,600 W), oven (~2,600 W).
-   * 4. Overnight EV Charging: plateau around 7,000 W (7 kW) during off-peak (23:30–04:30).
-   * 5. Nighttime Baseline: ~180 W – 220 W.
+   * Load real recorded historical data from localStorage.
+   * Only real historical readings are stored; synthetic/made-up data is never used.
    */
-  generateInitial24hBaseline() {
-    const points = [];
-    const now = Date.now();
-    const count = 288; // Every 5 minutes over 24h
-    const stepMs = (24 * 3600 * 1000) / count;
-
-    for (let i = count; i >= 0; i--) {
-      const t = now - (i * stepMs);
-      const date = new Date(t);
-      const hours = date.getHours() + (date.getMinutes() / 60.0);
-
-      // 1. Solar Curve
-      let solarW = 0;
-      if (hours >= 6.5 && hours <= 18.5) {
-        const solarNorm = Math.sin(((hours - 6.5) / 12.0) * Math.PI);
-        const cloudVariance = 0.90 + 0.10 * Math.sin(hours * 3.7);
-        solarW = Math.max(0, Math.round(solarNorm * 3350 * cloudVariance));
-      }
-
-      // 2. Grid Demand Curve
-      let gridW = 195 + Math.round(Math.sin(hours * 2.2) * 25); // Baseline ~195 W
-
-      // Overnight EV Charging Plateau (23:30 – 04:45 @ ~7 kW)
-      if (hours >= 23.5 || hours < 4.75) {
-        gridW += 6950 + Math.round(Math.sin(hours * 7.5) * 60);
-      } else {
-        // Daytime / Evening Appliance Spikes
-        if (hours >= 7.1 && hours <= 7.35) {
-          gridW += 2450; // Morning kettle spike
-        } else if (hours >= 8.5 && hours <= 9.3) {
-          gridW += 1650; // Washing machine run
-        } else if (hours >= 12.1 && hours <= 12.5) {
-          gridW += 1850; // Lunchtime cooking
-        } else if (hours >= 17.5 && hours <= 18.4) {
-          gridW += 2650; // Dinner oven / hob
-        } else if (hours >= 20.0 && hours <= 22.3) {
-          gridW += 420;  // Evening TV and lighting
-        }
-
-        // Self-sufficiency: when solar exceeds demand, grid drops to zero
-        if (solarW > 250) {
-          gridW = Math.max(15, gridW - Math.round(solarW * 0.92));
+  loadStoredHistory() {
+    try {
+      const raw = localStorage.getItem('ha_energy_flow_24h_history_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cutoff = Date.now() - 24 * 3600 * 1000;
+          const valid = parsed
+            .filter(p => typeof p.time === 'number' && p.time >= cutoff)
+            .sort((a, b) => a.time - b.time);
+          if (valid.length > 0) return valid;
         }
       }
-
-      points.push({
-        time: t,
-        solar: Math.max(0, solarW),
-        grid: Math.max(0, gridW)
-      });
+    } catch (e) {
+      console.warn('Could not read stored energy history:', e);
     }
-
-    return points;
+    return [];
   }
 
-  async fetchHistory() {
-    if (!this._hass) return;
-    this._lastHistoryFetchTime = Date.now();
+  /**
+   * Save real historical readings to localStorage.
+   * Prunes readings older than 24 hours.
+   */
+  saveStoredHistory() {
+    try {
+      if (!this._historyPoints || !this._historyPoints.length) return;
+      const cutoff = Date.now() - 24 * 3600 * 1000;
+      const valid = this._historyPoints.filter(p => p.time >= cutoff);
+      localStorage.setItem('ha_energy_flow_24h_history_v1', JSON.stringify(valid));
+    } catch (e) {
+      // Ignore localStorage errors (e.g. private browsing quota)
+    }
+  }
 
+  /**
+   * Queries real 24-hour recorder history from Home Assistant Core.
+   * Supports:
+   * 1. Home Assistant Lovelace WebSocket API (`callWS: history/history_during_period`)
+   * 2. Home Assistant Add-on / Web Proxy (`/api/ha-history`)
+   * 3. Home Assistant Core REST API (`callApi: GET history/period/...`)
+   */
+  async fetchHistory() {
+    this._lastHistoryFetchTime = Date.now();
     const now = new Date();
     const startTime = new Date(now.getTime() - 24 * 3600 * 1000);
     const solarId = this._config.solar_entity;
     const gridId = this._config.grid_import_entity;
 
-    try {
-      let data = null;
-      if (this._hass.callWS) {
-        data = await this._hass.callWS({
+    let rawData = null;
+
+    // 1. Try Lovelace WebSocket API
+    if (this._hass && this._hass.callWS) {
+      try {
+        rawData = await this._hass.callWS({
           type: 'history/history_during_period',
           start_time: startTime.toISOString(),
           end_time: now.toISOString(),
@@ -235,34 +219,80 @@ export class HaEnergyFlowCard extends HTMLElement {
           minimal_response: true,
           no_attributes: true
         });
-      } else if (this._hass.callApi) {
-        data = await this._hass.callApi(
+      } catch (e) {
+        // WebSocket query error
+      }
+    }
+
+    // 2. Try Add-on / Web server proxy (/api/ha-history)
+    if (!rawData) {
+      try {
+        const res = await fetch(`api/ha-history?start_time=${encodeURIComponent(startTime.toISOString())}&filter_entity_id=${encodeURIComponent(solarId + ',' + gridId)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.history) {
+            rawData = json.history;
+          }
+        }
+      } catch (e) {
+        // Fetch notice
+      }
+    }
+
+    // 3. Try this._hass.callApi
+    if (!rawData && this._hass && this._hass.callApi) {
+      try {
+        rawData = await this._hass.callApi(
           'GET',
           `history/period/${startTime.toISOString()}?filter_entity_id=${solarId},${gridId}&minimal_response&no_attributes&end_time=${now.toISOString()}`
         );
+      } catch (e) {
+        // Call API notice
       }
+    }
 
-      if (data && (data[solarId] || data[gridId])) {
-        this.processHaHistoryData(data, solarId, gridId, startTime, now);
-        this._historyFetched = true;
-      }
-    } catch (e) {
-      console.warn('Home Assistant History query notice:', e);
+    if (rawData) {
+      this.processHaHistoryData(rawData, solarId, gridId, startTime, now);
+      this._historyFetched = true;
     }
   }
 
-  processHaHistoryData(data, solarId, gridId, startTime, endTime) {
-    const rawSolar = data[solarId] || [];
-    const rawGrid = data[gridId] || [];
+  processHaHistoryData(rawData, solarId, gridId, startTime, endTime) {
+    let rawSolar = [];
+    let rawGrid = [];
+
+    if (Array.isArray(rawData)) {
+      for (const group of rawData) {
+        if (Array.isArray(group) && group.length > 0) {
+          const entId = group[0].entity_id;
+          if (entId === solarId) rawSolar = group;
+          else if (entId === gridId) rawGrid = group;
+        }
+      }
+      if (!rawSolar.length && !rawGrid.length && rawData.length >= 2) {
+        rawSolar = rawData[0] || [];
+        rawGrid = rawData[1] || [];
+      }
+    } else if (rawData && typeof rawData === 'object') {
+      rawSolar = rawData[solarId] || [];
+      rawGrid = rawData[gridId] || [];
+    }
+
+    if (!rawSolar.length && !rawGrid.length) return;
 
     const getValAtTime = (list, targetTime) => {
-      if (!list.length) return null;
+      if (!list || !list.length) return null;
       let closest = null;
-      for (const item of list) {
-        const itemTime = new Date(item.last_changed || item.lu || item.t).getTime();
+      for (let i = 0; i < list.length; i++) {
+        const item = list[i];
+        const tStr = item.last_changed || item.last_updated || item.lu || item.t;
+        const itemTime = tStr ? new Date(tStr).getTime() : 0;
         if (itemTime <= targetTime) {
           const v = parseFloat(item.state || item.s);
-          if (!isNaN(v)) closest = v;
+          if (!isNaN(v)) {
+            const uom = (item.attributes?.unit_of_measurement || item.uom || '').toLowerCase();
+            closest = uom === 'kw' ? v * 1000 : v;
+          }
         } else {
           break;
         }
@@ -270,7 +300,7 @@ export class HaEnergyFlowCard extends HTMLElement {
       return closest;
     };
 
-    const count = 288;
+    const count = 288; // 5-minute sampling over 24h
     const startMs = startTime.getTime();
     const endMs = endTime.getTime();
     const stepMs = (endMs - startMs) / count;
@@ -281,20 +311,30 @@ export class HaEnergyFlowCard extends HTMLElement {
       const sVal = getValAtTime(rawSolar, t);
       const gVal = getValAtTime(rawGrid, t);
 
-      // If entity reported values, use them; otherwise fallback smoothly
-      const fallbackPt = this._historyPoints ? this._historyPoints[i] : null;
-      const finalSolar = sVal !== null ? Math.max(0, sVal) : (fallbackPt ? fallbackPt.solar : 0);
-      const finalGrid = gVal !== null ? Math.max(0, gVal) : (fallbackPt ? fallbackPt.grid : 180);
-
-      newPoints.push({
-        time: t,
-        solar: finalSolar,
-        grid: finalGrid
-      });
+      if (sVal !== null || gVal !== null) {
+        newPoints.push({
+          time: t,
+          solar: Math.max(0, sVal !== null ? sVal : 0),
+          grid: Math.max(0, gVal !== null ? gVal : 0)
+        });
+      }
     }
 
-    if (newPoints.length > 50) {
-      this._historyPoints = newPoints;
+    if (newPoints.length > 5) {
+      // Merge with live recorded points
+      const mergedMap = new Map();
+      for (const pt of newPoints) {
+        mergedMap.set(Math.round(pt.time / 60000), pt);
+      }
+      for (const pt of this._historyPoints) {
+        const key = Math.round(pt.time / 60000);
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, pt);
+        }
+      }
+
+      this._historyPoints = Array.from(mergedMap.values()).sort((a, b) => a.time - b.time);
+      this.saveStoredHistory();
       this.updateChart();
     }
   }
@@ -442,18 +482,29 @@ export class HaEnergyFlowCard extends HTMLElement {
     updateNode('lights', lightsW, lightsW > 2, '#fbbf24');
     updateNode('fridge', fridgeW, fridgeW > 5, '#a78bfa');
 
-    // Update 24h rolling buffer
-    if (!this._historyPoints || !this._historyPoints.length) {
-      this._historyPoints = this.generateInitial24hBaseline();
-    }
+    // Update real 24h rolling buffer
     const now = Date.now();
-    this._historyPoints.push({
-      time: now,
-      solar: Math.max(0, solarW || 0),
-      grid: Math.max(0, gridDemandW || 0)
-    });
-    const cutoff = now - 24 * 3600 * 1000;
-    this._historyPoints = this._historyPoints.filter(p => p.time >= cutoff);
+    const lastPoint = this._historyPoints.length ? this._historyPoints[this._historyPoints.length - 1] : null;
+
+    // Record sample if:
+    // 1. No points exist yet
+    // 2. Over 20 seconds passed since last sample
+    // 3. Significant power change (> 20W) in solar or grid demand (immediately captures kettles, oven, EV)
+    const timeDelta = lastPoint ? (now - lastPoint.time) : 999999;
+    const solarDelta = lastPoint ? Math.abs(solarW - lastPoint.solar) : 9999;
+    const gridDelta = lastPoint ? Math.abs(gridDemandW - lastPoint.grid) : 9999;
+
+    if (timeDelta >= 20000 || solarDelta >= 20 || gridDelta >= 20) {
+      this._historyPoints.push({
+        time: now,
+        solar: Math.max(0, Math.round(solarW || 0)),
+        grid: Math.max(0, Math.round(gridDemandW || 0))
+      });
+
+      const cutoff = now - 24 * 3600 * 1000;
+      this._historyPoints = this._historyPoints.filter(p => p.time >= cutoff);
+      this.saveStoredHistory();
+    }
 
     // Update 24h Trend Chart
     this.updateChart(solarW, gridDemandW);
@@ -461,16 +512,42 @@ export class HaEnergyFlowCard extends HTMLElement {
 
   updateChart(liveSolar = null, liveGrid = null) {
     if (!this.shadowRoot) return;
-    const points = this._historyPoints;
-    if (!points || points.length < 2) return;
+    const points = this._historyPoints || [];
 
-    const svg = this.shadowRoot.querySelector('#chart-svg');
-    if (!svg) return;
+    const elEmpty = this.shadowRoot.querySelector('#chart-empty-state');
+    const elLiveSolar = this.shadowRoot.querySelector('#chart-live-solar');
+    const elPeakSolar = this.shadowRoot.querySelector('#chart-peak-solar');
+    const elTotalSolar = this.shadowRoot.querySelector('#chart-total-solar');
+
+    const elLiveGrid = this.shadowRoot.querySelector('#chart-live-grid');
+    const elPeakGrid = this.shadowRoot.querySelector('#chart-peak-grid');
+    const elTotalGrid = this.shadowRoot.querySelector('#chart-total-grid');
+    const elSelfSufficiency = this.shadowRoot.querySelector('#chart-self-sufficiency');
+    const elRecorderStatus = this.shadowRoot.querySelector('#chart-recorder-status');
 
     const curSolar = liveSolar !== null ? liveSolar : (points[points.length - 1]?.solar || 0);
     const curGrid = liveGrid !== null ? liveGrid : (points[points.length - 1]?.grid || 0);
 
-    // 1. Calculate Peak & Totals over 24 Hours
+    if (elLiveSolar) elLiveSolar.innerText = this.formatWatts(curSolar);
+    if (elLiveGrid) elLiveGrid.innerText = this.formatWatts(curGrid);
+
+    // If insufficient data points for curve drawing
+    if (points.length < 2) {
+      if (elEmpty) {
+        elEmpty.style.display = 'flex';
+        elEmpty.innerHTML = `
+          <div class="pulse-dot" style="width:10px;height:10px;"></div>
+          <span>Recording real live energy telemetry...</span>
+          <span style="font-size:10px;color:#64748b;">Waiting for 24h recorder samples (${points.length} sample logged)</span>
+        `;
+      }
+      if (elRecorderStatus) elRecorderStatus.innerText = 'Telemetry Logging Active';
+      return;
+    }
+
+    if (elEmpty) elEmpty.style.display = 'none';
+
+    // 1. Calculate Real Peaks & Totals across stored readings
     let peakSolar = 0;
     let peakGrid = 0;
     let totalSolarWs = 0;
@@ -491,31 +568,21 @@ export class HaEnergyFlowCard extends HTMLElement {
     const totalSolarKwh = totalSolarWs / 3600000.0;
     const totalGridKwh = totalGridWs / 3600000.0;
 
-    // Update Top Stat Badges
-    const elLiveSolar = this.shadowRoot.querySelector('#chart-live-solar');
-    const elPeakSolar = this.shadowRoot.querySelector('#chart-peak-solar');
-    const elTotalSolar = this.shadowRoot.querySelector('#chart-total-solar');
+    if (elPeakSolar) elPeakSolar.innerText = `Peak ${this.formatWatts(peakSolar)}`;
+    if (elTotalSolar) elTotalSolar.innerText = `Today ${totalSolarKwh.toFixed(1)} kWh`;
 
-    const elLiveGrid = this.shadowRoot.querySelector('#chart-live-grid');
-    const elPeakGrid = this.shadowRoot.querySelector('#chart-peak-grid');
-    const elTotalGrid = this.shadowRoot.querySelector('#chart-total-grid');
-    const elSelfSufficiency = this.shadowRoot.querySelector('#chart-self-sufficiency');
+    if (elPeakGrid) elPeakGrid.innerText = `Peak ${this.formatWatts(peakGrid)}`;
+    if (elTotalGrid) elTotalGrid.innerText = `Imp ${totalGridKwh.toFixed(1)} kWh`;
 
-    if (elLiveSolar) elLiveSolar.innerText = this.formatWatts(curSolar);
-    if (elPeakSolar) elPeakSolar.innerText = `Peak: ${this.formatWatts(peakSolar)}`;
-    if (elTotalSolar) elTotalSolar.innerText = `Gen: ${totalSolarKwh.toFixed(1)} kWh`;
-
-    if (elLiveGrid) elLiveGrid.innerText = this.formatWatts(curGrid);
-    if (elPeakGrid) elPeakGrid.innerText = `Peak: ${this.formatWatts(peakGrid)}`;
-    if (elTotalGrid) elTotalGrid.innerText = `Imp: ${totalGridKwh.toFixed(1)} kWh`;
-
+    // Dynamic Self-Sufficiency & Recorder Badge
     if (elSelfSufficiency) {
-      if (curSolar > curGrid && curSolar > 100) {
+      if (curSolar > curGrid && curSolar > 50) {
         const surplus = curSolar - curGrid;
-        elSelfSufficiency.innerText = `🌿 100% Green Solar (+${surplus.toLocaleString()} W Surplus)`;
+        elSelfSufficiency.innerText = `🌿 100% Green (+${surplus.toLocaleString()} W)`;
         elSelfSufficiency.className = 'chart-stat-badge surplus';
-      } else if (curSolar > 50) {
-        elSelfSufficiency.innerText = `☀️ ${Math.round((curSolar / (curSolar + curGrid)) * 100)}% Solar Offset`;
+      } else if (curSolar > 30) {
+        const pct = Math.round((curSolar / (curSolar + curGrid)) * 100);
+        elSelfSufficiency.innerText = `☀️ ${pct}% Solar Offset`;
         elSelfSufficiency.className = 'chart-stat-badge partial';
       } else {
         elSelfSufficiency.innerText = `⚡ Grid Powered (${curGrid.toLocaleString()} W)`;
@@ -523,20 +590,31 @@ export class HaEnergyFlowCard extends HTMLElement {
       }
     }
 
-    // 2. SVG Geometry Mapping
-    // viewBox is 900 x 320
-    const plotX = 65;
-    const plotY = 25;
-    const plotW = 805;
-    const plotH = 255;
-    const baselineY = plotY + plotH; // 280
+    if (elRecorderStatus) {
+      const tSpanHrs = Math.max(0.1, (points[points.length - 1].time - points[0].time) / 3600000.0);
+      if (tSpanHrs >= 20) {
+        elRecorderStatus.innerText = `Real 24h Recorder (${points.length} pts)`;
+      } else {
+        elRecorderStatus.innerText = `Live Recorded: ${tSpanHrs.toFixed(1)}h (${points.length} pts)`;
+      }
+    }
 
-    const rawMax = Math.max(peakSolar, peakGrid, 3500);
-    const yMax = Math.ceil(rawMax / 1000) * 1000;
+    // 2. SVG Geometry Mapping
+    // viewBox is 920 x 300
+    const plotX = 65;
+    const plotY = 22;
+    const plotW = 835;
+    const plotH = 240;
+    const baselineY = plotY + plotH; // 262
+
+    const rawMax = Math.max(peakSolar, peakGrid, 2500);
+    // Round to nearest 500W or 1000W
+    const stepInterval = rawMax > 5000 ? 2000 : (rawMax > 2000 ? 1000 : 500);
+    const yMax = Math.ceil(rawMax / stepInterval) * stepInterval;
 
     const tStart = points[0].time;
     const tEnd = points[points.length - 1].time;
-    const tSpan = Math.max(1, tEnd - tStart);
+    const tSpan = Math.max(1000, tEnd - tStart);
 
     const mapX = (t) => plotX + ((t - tStart) / tSpan) * plotW;
     const mapY = (w) => baselineY - (Math.min(w, yMax) / yMax) * plotH;
@@ -545,43 +623,43 @@ export class HaEnergyFlowCard extends HTMLElement {
     const gridLinesGroup = this.shadowRoot.querySelector('#chart-grid-lines');
     if (gridLinesGroup) {
       let gridHtml = '';
-      const stepCount = 4;
-      const stepVal = yMax / stepCount;
+      const stepCount = Math.min(5, Math.max(3, Math.round(yMax / stepInterval)));
+      const actualStep = yMax / stepCount;
 
       for (let i = 0; i <= stepCount; i++) {
-        const val = i * stepVal;
+        const val = i * actualStep;
         const y = mapY(val);
-        const label = val >= 1000 ? `${(val / 1000).toFixed(0)} kW` : `${val} W`;
+        const label = val >= 1000 ? `${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)} kW` : `${Math.round(val)} W`;
 
         gridHtml += `
-          <line x1="${plotX}" y1="${y}" x2="${plotX + plotW}" y2="${y}" stroke="rgba(255, 255, 255, 0.07)" stroke-dasharray="4 4" />
-          <text x="${plotX - 10}" y="${y + 4}" fill="#64748b" font-size="11" font-weight="600" text-anchor="end">${label}</text>
+          <line x1="${plotX}" y1="${y}" x2="${plotX + plotW}" y2="${y}" stroke="rgba(255, 255, 255, 0.05)" stroke-dasharray="3 4" />
+          <text x="${plotX - 12}" y="${y + 4}" fill="#64748b" font-size="10" font-weight="600" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${label}</text>
         `;
       }
       gridLinesGroup.innerHTML = gridHtml;
     }
 
-    // 4. Time X-Axis Markers (-24h ... Now)
+    // 4. Time X-Axis Markers
     const xLabelsGroup = this.shadowRoot.querySelector('#chart-x-labels');
     if (xLabelsGroup) {
       let xHtml = '';
-      const hourIntervals = 6;
-      for (let h = 0; h <= 24; h += 4) {
-        const targetT = tEnd - (24 - h) * 3600 * 1000;
+      const numTicks = 6;
+      for (let i = 0; i <= numTicks; i++) {
+        const targetT = tStart + (i / numTicks) * tSpan;
         const x = mapX(targetT);
         const d = new Date(targetT);
         const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        const label = h === 24 ? 'Now' : (h === 0 ? '-24h' : timeStr);
+        const label = i === numTicks ? 'Now' : timeStr;
 
         xHtml += `
-          <line x1="${x}" y1="${baselineY}" x2="${x}" y2="${baselineY + 5}" stroke="rgba(255, 255, 255, 0.2)" />
-          <text x="${x}" y="${baselineY + 20}" fill="#94a3b8" font-size="10" font-weight="600" text-anchor="middle">${label}</text>
+          <line x1="${x}" y1="${baselineY}" x2="${x}" y2="${baselineY + 4}" stroke="rgba(255, 255, 255, 0.15)" />
+          <text x="${x}" y="${baselineY + 18}" fill="#94a3b8" font-size="10" font-weight="600" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif">${label}</text>
         `;
       }
       xLabelsGroup.innerHTML = xHtml;
     }
 
-    // 5. Generate Catmull-Rom Smooth Paths
+    // 5. Generate Smooth Monotone Cubic Spline Paths
     const solarCoords = points.map(p => ({ x: mapX(p.time), y: mapY(p.solar), ...p }));
     const gridCoords = points.map(p => ({ x: mapX(p.time), y: mapY(p.grid), ...p }));
 
@@ -595,13 +673,19 @@ export class HaEnergyFlowCard extends HTMLElement {
     const gridAreaD = `${gridLineD} L ${gridCoords[gridCoords.length - 1].x.toFixed(1)} ${baselineY} L ${gridCoords[0].x.toFixed(1)} ${baselineY} Z`;
 
     const elSolarLine = this.shadowRoot.querySelector('#chart-solar-line');
+    const elSolarGlow = this.shadowRoot.querySelector('#chart-solar-glow');
     const elSolarArea = this.shadowRoot.querySelector('#chart-solar-area');
+
     const elGridLine = this.shadowRoot.querySelector('#chart-grid-line');
+    const elGridGlow = this.shadowRoot.querySelector('#chart-grid-glow');
     const elGridArea = this.shadowRoot.querySelector('#chart-grid-area');
 
     if (elSolarLine) elSolarLine.setAttribute('d', solarLineD);
+    if (elSolarGlow) elSolarGlow.setAttribute('d', solarLineD);
     if (elSolarArea) elSolarArea.setAttribute('d', solarAreaD);
+
     if (elGridLine) elGridLine.setAttribute('d', gridLineD);
+    if (elGridGlow) elGridGlow.setAttribute('d', gridLineD);
     if (elGridArea) elGridArea.setAttribute('d', gridAreaD);
 
     // 6. Highlight "Zero Grid" / Self-Sufficiency Surplus Zone (where Solar > Grid)
@@ -614,7 +698,7 @@ export class HaEnergyFlowCard extends HTMLElement {
       for (let i = 0; i < points.length; i++) {
         const s = solarCoords[i];
         const g = gridCoords[i];
-        if (s.solar > g.grid && s.solar > 100) {
+        if (s.solar > g.grid && s.solar > 80) {
           if (!inSurplus) {
             inSurplus = true;
             surplusSeg = [s];
@@ -642,21 +726,65 @@ export class HaEnergyFlowCard extends HTMLElement {
     }
   }
 
+  /**
+   * Monotone Cubic Hermite Spline (Fritsch-Carlson algorithm).
+   * Guarantees smooth, aesthetic curves without overshooting or dipping below zero
+   * when instantaneous appliance spikes occur.
+   */
   buildSmoothPath(pts) {
-    if (!pts.length) return '';
-    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+    if (!pts || !pts.length) return '';
+    if (pts.length === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    if (pts.length === 2) {
+      return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+    }
+
+    const n = pts.length;
+    const dx = new Float64Array(n - 1);
+    const dy = new Float64Array(n - 1);
+    const slopes = new Float64Array(n - 1);
+
+    for (let i = 0; i < n - 1; i++) {
+      dx[i] = pts[i + 1].x - pts[i].x;
+      dy[i] = pts[i + 1].y - pts[i].y;
+      slopes[i] = dx[i] === 0 ? 0 : dy[i] / dx[i];
+    }
+
+    const m = new Float64Array(n);
+    m[0] = slopes[0];
+    for (let i = 1; i < n - 1; i++) {
+      if (slopes[i - 1] * slopes[i] <= 0) {
+        m[i] = 0;
+      } else {
+        m[i] = (slopes[i - 1] + slopes[i]) / 2;
+      }
+    }
+    m[n - 1] = slopes[n - 2];
+
+    for (let i = 0; i < n - 1; i++) {
+      if (slopes[i] === 0) {
+        m[i] = 0;
+        m[i + 1] = 0;
+      } else {
+        const alpha = m[i] / slopes[i];
+        const beta = m[i + 1] / slopes[i];
+        const hyp = alpha * alpha + beta * beta;
+        if (hyp > 9) {
+          const tau = 3 / Math.sqrt(hyp);
+          m[i] = tau * alpha * slopes[i];
+          m[i + 1] = tau * beta * slopes[i];
+        }
+      }
+    }
 
     let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i === 0 ? i : i - 1];
+    for (let i = 0; i < n - 1; i++) {
       const p1 = pts[i];
       const p2 = pts[i + 1];
-      const p3 = pts[i + 2] || p2;
-
-      const cp1x = p1.x + (p2.x - p0.x) / 6;
-      const cp1y = p1.y + (p2.y - p0.y) / 6;
-      const cp2x = p2.x - (p3.x - p1.x) / 6;
-      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      const segDx = dx[i] / 3;
+      const cp1x = p1.x + segDx;
+      const cp1y = p1.y + m[i] * segDx;
+      const cp2x = p2.x - segDx;
+      const cp2y = p2.y - m[i + 1] * segDx;
 
       d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
     }
@@ -679,7 +807,7 @@ export class HaEnergyFlowCard extends HTMLElement {
       const rect = svg.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const relX = clientX - rect.left;
-      const svgX = (relX / rect.width) * 900;
+      const svgX = (relX / rect.width) * 920;
 
       // Find closest point
       let closest = coords[0];
@@ -695,7 +823,7 @@ export class HaEnergyFlowCard extends HTMLElement {
       if (!closest) return;
 
       const gridPt = this._cachedGridCoords ? this._cachedGridCoords.find(p => p.time === closest.time) : null;
-      const gridY = gridPt ? gridPt.y : 280;
+      const gridY = gridPt ? gridPt.y : 262;
       const gridVal = gridPt ? gridPt.grid : 0;
 
       // Update cursor line and circles
@@ -721,36 +849,37 @@ export class HaEnergyFlowCard extends HTMLElement {
       const timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
       const dayPrefix = isToday ? 'Today' : 'Yesterday';
 
-      let statusMsg = '';
-      if (closest.solar > gridVal && closest.solar > 100) {
+      let statusBadge = '';
+      if (closest.solar > gridVal && closest.solar > 80) {
         const surplus = closest.solar - gridVal;
-        statusMsg = `<div style="color:#10b981;font-weight:700;margin-top:3px;">🌿 100% Green Solar (+${surplus.toLocaleString()} W surplus)</div>`;
+        statusBadge = `<div style="display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;background:rgba(16,185,129,0.18);border:1px solid rgba(16,185,129,0.35);color:#10b981;font-weight:700;font-size:10px;">🌿 100% Green (+${surplus.toLocaleString()} W surplus)</div>`;
       } else if (gridVal > closest.solar) {
         const imp = gridVal - closest.solar;
-        statusMsg = `<div style="color:#38bdf8;font-weight:600;margin-top:3px;">⚡ Grid Demand (${imp.toLocaleString()} W imported)</div>`;
+        statusBadge = `<div style="display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;background:rgba(56,189,248,0.15);border:1px solid rgba(56,189,248,0.3);color:#38bdf8;font-weight:600;font-size:10px;">⚡ Grid Demand (${imp.toLocaleString()} W imported)</div>`;
       }
 
       tooltip.innerHTML = `
-        <div style="font-weight:700;color:#94a3b8;font-size:10px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:2px;">
-          🕒 ${dayPrefix} ${timeStr}
+        <div style="font-weight:700;color:#94a3b8;font-size:11px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:3px;display:flex;justify-content:space-between;gap:12px;">
+          <span>🕒 ${dayPrefix}, ${timeStr}</span>
+          <span style="color:#64748b;font-weight:600;">Real Telemetry</span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;color:#f59e0b;font-weight:700;">
-          <span>☀️ Solar:</span>
-          <span>${Math.round(closest.solar).toLocaleString()} W</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;color:#f59e0b;font-weight:700;font-size:12px;margin-bottom:3px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>Solar:</span>
+          <span style="font-variant-numeric:tabular-nums;">${Math.round(closest.solar).toLocaleString()} W</span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;color:#38bdf8;font-weight:700;">
-          <span>⚡ Grid Demand:</span>
-          <span>${Math.round(gridVal).toLocaleString()} W</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;color:#38bdf8;font-weight:700;font-size:12px;">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:7px;height:7px;border-radius:50%;background:#38bdf8;display:inline-block;"></span>Grid Demand:</span>
+          <span style="font-variant-numeric:tabular-nums;">${Math.round(gridVal).toLocaleString()} W</span>
         </div>
-        ${statusMsg}
+        ${statusBadge}
       `;
 
       tooltip.style.display = 'block';
-      const tooltipX = (closest.x / 900) * rect.width;
-      const tooltipY = Math.min((Math.min(closest.y, gridY) / 320) * rect.height, rect.height - 80);
+      const tooltipX = (closest.x / 920) * rect.width;
+      const tooltipY = Math.min((Math.min(closest.y, gridY) / 300) * rect.height, rect.height - 70);
 
       tooltip.style.left = `${tooltipX}px`;
-      tooltip.style.top = `${Math.max(10, tooltipY)}px`;
+      tooltip.style.top = `${Math.max(12, tooltipY)}px`;
     };
 
     const hidePointer = () => {
@@ -1155,76 +1284,95 @@ export class HaEnergyFlowCard extends HTMLElement {
           color: #64748b;
         }
 
-        /* 24-Hour Trend Chart Styles */
+        /* 24-Hour Trend Chart Styles - Apple iOS Dark Glass Aesthetic */
         .chart-container {
-          background: rgba(12, 16, 23, 0.75);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border-radius: 14px;
+          background: radial-gradient(130% 130% at 50% 0%, rgba(18, 28, 48, 0.72) 0%, rgba(9, 14, 24, 0.9) 60%, rgba(5, 8, 15, 0.98) 100%);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-radius: 16px;
           display: flex;
           flex-direction: column;
           width: 100%;
           height: 100%;
           min-height: 0;
-          padding: 12px 14px;
+          padding: 14px 18px 12px 18px;
           box-sizing: border-box;
           position: relative;
           overflow: hidden;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 32px rgba(0, 0, 0, 0.4);
         }
 
         .chart-stats-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-bottom: 6px;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 10px;
+          margin-bottom: 12px;
           flex-shrink: 0;
         }
 
         .chart-stat-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          background: rgba(255, 255, 255, 0.04);
+          gap: 10px;
+          background: rgba(255, 255, 255, 0.035);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 10px;
-          padding: 5px 12px;
+          backdrop-filter: blur(12px);
+          border-radius: 12px;
+          padding: 8px 14px;
+          transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .chart-stat-item:hover {
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.16);
         }
 
         .chart-stat-dot {
-          width: 8px;
-          height: 8px;
+          width: 9px;
+          height: 9px;
           border-radius: 50%;
           flex-shrink: 0;
         }
         .chart-stat-dot.solar {
           background: #f59e0b;
-          box-shadow: 0 0 10px #f59e0b;
+          box-shadow: 0 0 12px #f59e0b;
         }
         .chart-stat-dot.grid {
-          background: #3b82f6;
-          box-shadow: 0 0 10px #3b82f6;
+          background: #38bdf8;
+          box-shadow: 0 0 12px #38bdf8;
+        }
+        .chart-stat-dot.recorder {
+          background: #10b981;
+          box-shadow: 0 0 12px #10b981;
+          animation: pulse 2s infinite ease-in-out;
         }
 
         .chart-stat-info {
           display: flex;
           flex-direction: column;
-          gap: 1px;
+          gap: 2px;
+          min-width: 0;
+          flex: 1;
         }
 
         .chart-stat-label {
-          font-size: 9px;
+          font-size: 10px;
           font-weight: 700;
           color: #94a3b8;
-          letter-spacing: 0.3px;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
         }
 
         .chart-stat-val {
-          font-size: 13px;
-          font-weight: 700;
+          font-size: 16px;
+          font-weight: 800;
           color: #f8fafc;
+          letter-spacing: -0.4px;
+          font-variant-numeric: tabular-nums;
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
         }
         .chart-stat-val.solar {
           color: #f59e0b;
@@ -1236,10 +1384,13 @@ export class HaEnergyFlowCard extends HTMLElement {
         .chart-stat-meta {
           display: flex;
           flex-direction: column;
-          font-size: 9px;
+          gap: 2px;
+          font-size: 10px;
+          font-weight: 600;
           color: #64748b;
-          padding-left: 8px;
+          padding-left: 10px;
           border-left: 1px solid rgba(255, 255, 255, 0.08);
+          white-space: nowrap;
         }
 
         .chart-stat-badge {
@@ -1247,6 +1398,9 @@ export class HaEnergyFlowCard extends HTMLElement {
           font-weight: 700;
           padding: 3px 8px;
           border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
         }
         .chart-stat-badge.surplus {
           background: rgba(16, 185, 129, 0.15);
@@ -1259,9 +1413,9 @@ export class HaEnergyFlowCard extends HTMLElement {
           border: 1px solid rgba(245, 158, 11, 0.3);
         }
         .chart-stat-badge.grid {
-          background: rgba(59, 130, 246, 0.15);
+          background: rgba(56, 189, 248, 0.15);
           color: #38bdf8;
-          border: 1px solid rgba(59, 130, 246, 0.3);
+          border: 1px solid rgba(56, 189, 248, 0.3);
         }
 
         .chart-svg-wrap {
@@ -1284,21 +1438,38 @@ export class HaEnergyFlowCard extends HTMLElement {
 
         .chart-tooltip {
           position: absolute;
-          background: rgba(15, 23, 42, 0.95);
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border-radius: 10px;
-          padding: 8px 12px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+          background: rgba(13, 20, 36, 0.94);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border-radius: 12px;
+          padding: 10px 14px;
+          box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7);
           pointer-events: none;
           z-index: 50;
           white-space: nowrap;
           font-size: 11px;
-          line-height: 1.4;
+          line-height: 1.45;
           transform: translate(-50%, -100%);
-          margin-top: -10px;
+          margin-top: -12px;
           transition: left 0.05s ease, top 0.05s ease;
+        }
+
+        .chart-empty-state {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          color: #94a3b8;
+          font-size: 12px;
+          font-weight: 500;
+          background: rgba(9, 14, 25, 0.85);
+          backdrop-filter: blur(12px);
+          border-radius: 12px;
+          z-index: 20;
         }
       </style>
 
@@ -1532,86 +1703,97 @@ export class HaEnergyFlowCard extends HTMLElement {
               <div class="chart-stat-item">
                 <div class="chart-stat-dot solar"></div>
                 <div class="chart-stat-info">
-                  <span class="chart-stat-label">☀️ SOLAR (W)</span>
+                  <span class="chart-stat-label">☀️ Rooftop Solar</span>
                   <span class="chart-stat-val solar" id="chart-live-solar">0 W</span>
                 </div>
                 <div class="chart-stat-meta">
-                  <span id="chart-peak-solar">Peak: 0 W</span>
-                  <span id="chart-total-solar">Gen: 0 kWh</span>
+                  <span id="chart-peak-solar">Peak 0 W</span>
+                  <span id="chart-total-solar">Today 0.0 kWh</span>
                 </div>
               </div>
 
               <div class="chart-stat-item">
                 <div class="chart-stat-dot grid"></div>
                 <div class="chart-stat-info">
-                  <span class="chart-stat-label">⚡ GRID DEMAND (W)</span>
+                  <span class="chart-stat-label">⚡ Grid Demand</span>
                   <span class="chart-stat-val grid" id="chart-live-grid">0 W</span>
                 </div>
                 <div class="chart-stat-meta">
-                  <span id="chart-peak-grid">Peak: 0 W</span>
-                  <span id="chart-total-grid">Imp: 0 kWh</span>
+                  <span id="chart-peak-grid">Peak 0 W</span>
+                  <span id="chart-total-grid">Imp 0.0 kWh</span>
                 </div>
               </div>
 
               <div class="chart-stat-item">
+                <div class="chart-stat-dot recorder"></div>
                 <div class="chart-stat-info">
-                  <span class="chart-stat-label">🌿 24H POWER BALANCE</span>
+                  <span class="chart-stat-label">🌿 Net Power Balance</span>
                   <span class="chart-stat-badge surplus" id="chart-self-sufficiency">100% Green Solar</span>
+                </div>
+                <div class="chart-stat-meta">
+                  <span id="chart-recorder-status" style="color:#10b981;">Real 24h Telemetry</span>
                 </div>
               </div>
             </div>
 
             <!-- SVG Vector Dual-Curve Graph -->
             <div class="chart-svg-wrap">
-              <svg id="chart-svg" viewBox="0 0 900 320" preserveAspectRatio="none">
+              <svg id="chart-svg" viewBox="0 0 920 300" preserveAspectRatio="none">
                 <defs>
                   <!-- Gradient Fills -->
                   <linearGradient id="solar-area-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.38" />
-                    <stop offset="65%" stop-color="#f59e0b" stop-opacity="0.08" />
+                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.32" />
+                    <stop offset="65%" stop-color="#f59e0b" stop-opacity="0.06" />
                     <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
                   </linearGradient>
 
                   <linearGradient id="grid-area-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35" />
-                    <stop offset="65%" stop-color="#3b82f6" stop-opacity="0.06" />
-                    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+                    <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.28" />
+                    <stop offset="65%" stop-color="#38bdf8" stop-opacity="0.05" />
+                    <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
                   </linearGradient>
 
-                  <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="2" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
+                  <linearGradient id="surplus-area-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#10b981" stop-opacity="0.25" />
+                    <stop offset="100%" stop-color="#10b981" stop-opacity="0.02" />
+                  </linearGradient>
                 </defs>
 
                 <!-- Background Horizontal Grid Lines & Y-Axis Labels -->
                 <g id="chart-grid-lines"></g>
 
                 <!-- Zero Grid / Self-Sufficiency Surplus Zone -->
-                <path id="chart-surplus-area" fill="rgba(16, 185, 129, 0.12)" />
+                <path id="chart-surplus-area" fill="url(#surplus-area-grad)" />
 
                 <!-- Curve Gradient Area Fills -->
                 <path id="chart-solar-area" fill="url(#solar-area-grad)" />
                 <path id="chart-grid-area" fill="url(#grid-area-grad)" />
 
-                <!-- Instantaneous Trend Lines -->
-                <path id="chart-grid-line" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#neon-glow)" />
-                <path id="chart-solar-line" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#neon-glow)" />
+                <!-- Glow Layer Under Strokes -->
+                <path id="chart-grid-glow" fill="none" stroke="#38bdf8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" />
+                <path id="chart-solar-glow" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.22" />
 
-                <!-- X-Axis Timeline Markers (-24h ... Now) -->
+                <!-- Crisp Vector Trend Lines -->
+                <path id="chart-grid-line" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                <path id="chart-solar-line" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+
+                <!-- X-Axis Timeline Markers -->
                 <g id="chart-x-labels"></g>
 
                 <!-- Interactive Scrubber Cursor Line & Circles -->
-                <line id="chart-cursor-line" x1="0" y1="25" x2="0" y2="280" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.5" stroke-dasharray="3 3" style="display:none;" />
-                <circle id="chart-cursor-solar" r="4.5" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5" style="display:none;" />
-                <circle id="chart-cursor-grid" r="4.5" fill="#3b82f6" stroke="#ffffff" stroke-width="1.5" style="display:none;" />
+                <line id="chart-cursor-line" x1="0" y1="22" x2="0" y2="262" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.5" stroke-dasharray="3 3" style="display:none;" />
+                <circle id="chart-cursor-solar" r="5" fill="#f59e0b" stroke="#ffffff" stroke-width="2" style="display:none;" />
+                <circle id="chart-cursor-grid" r="5" fill="#38bdf8" stroke="#ffffff" stroke-width="2" style="display:none;" />
               </svg>
 
               <!-- Floating Scrubber Glass Tooltip -->
               <div id="chart-tooltip" class="chart-tooltip" style="display:none;"></div>
+
+              <!-- Real Telemetry Empty / Loading State -->
+              <div id="chart-empty-state" class="chart-empty-state" style="display:none;">
+                <div class="pulse-dot" style="width:10px;height:10px;"></div>
+                <span>Recording real live energy telemetry...</span>
+              </div>
             </div>
           </div>
         </div>
