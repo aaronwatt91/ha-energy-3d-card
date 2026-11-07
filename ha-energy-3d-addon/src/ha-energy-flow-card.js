@@ -515,12 +515,16 @@ export class HaEnergyFlowCard extends HTMLElement {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 6px;
+          width: 100%;
         }
 
         .node-title-wrap {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
+          min-width: 0;
+          flex: 1;
         }
 
         .node-icon {
@@ -528,6 +532,7 @@ export class HaEnergyFlowCard extends HTMLElement {
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         .node-title {
@@ -558,9 +563,12 @@ export class HaEnergyFlowCard extends HTMLElement {
         .status-pill {
           font-size: 8px;
           font-weight: 700;
-          padding: 1px 5px;
+          padding: 1.5px 6px;
           border-radius: 4px;
           text-transform: uppercase;
+          flex-shrink: 0;
+          white-space: nowrap;
+          line-height: 1.2;
         }
 
         .status-pill.active {
@@ -587,7 +595,7 @@ export class HaEnergyFlowCard extends HTMLElement {
         </div>
 
         <div class="svg-container">
-          <svg viewBox="0 0 760 440">
+          <svg viewBox="0 0 780 440">
             <defs>
               <filter id="glow-solar" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="3" result="blur" />
@@ -665,7 +673,7 @@ export class HaEnergyFlowCard extends HTMLElement {
             </g>
 
             <!-- 1. Solar Inverter Node (Top Left) -->
-            <foreignObject x="50" y="60" width="135" height="70">
+            <foreignObject x="20" y="60" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-solar">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -682,7 +690,7 @@ export class HaEnergyFlowCard extends HTMLElement {
             </foreignObject>
 
             <!-- 2. Grid Node (Bottom Left - Import/Export) -->
-            <foreignObject x="50" y="300" width="135" height="70">
+            <foreignObject x="20" y="300" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-grid">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -699,7 +707,7 @@ export class HaEnergyFlowCard extends HTMLElement {
             </foreignObject>
 
             <!-- 3. Central Home Node (Center) -->
-            <foreignObject x="325" y="175" width="130" height="90">
+            <foreignObject x="325" y="170" width="130" height="95">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card home" id="box-home">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -716,7 +724,7 @@ export class HaEnergyFlowCard extends HTMLElement {
             </foreignObject>
 
             <!-- 4. Zappi EV Charger (Top Right) -->
-            <foreignObject x="595" y="30" width="135" height="70">
+            <foreignObject x="595" y="30" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-ev">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -733,7 +741,7 @@ export class HaEnergyFlowCard extends HTMLElement {
             </foreignObject>
 
             <!-- 5. LG TV (Mid-Top Right) -->
-            <foreignObject x="595" y="130" width="135" height="70">
+            <foreignObject x="595" y="130" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-tv">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -750,7 +758,7 @@ export class HaEnergyFlowCard extends HTMLElement {
             </foreignObject>
 
             <!-- 6. Matter Lights (Mid-Bottom Right) -->
-            <foreignObject x="595" y="230" width="135" height="70">
+            <foreignObject x="595" y="230" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-lights">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -767,9 +775,21 @@ export class HaEnergyFlowCard extends HTMLElement {
             </foreignObject>
 
             <!-- 7. Fridge (Bottom Right) -->
-            <foreignObject x="595" y="330" width="135" height="70">
+            <foreignObject x="595" y="330" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-fridge">
                 <div class="node-header">
+                  <div class="node-title-wrap">
+                    <span class="node-icon">❄️</span>
+                    <span class="node-title">Fridge</span>
+                  </div>
+                  <span class="status-pill idle" id="pill-fridge">IDLE</span>
+                </div>
+                <div class="node-value">
+                  <span id="val-fridge">0 W</span>
+                  <span class="node-sub" id="sub-fridge"></span>
+                </div>
+              </div>
+            </foreignObject>
                   <div class="node-title-wrap">
                     <span class="node-icon">❄️</span>
                     <span class="node-title">Fridge</span>

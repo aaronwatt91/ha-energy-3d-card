@@ -1,4 +1,4 @@
-var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"open"}),this._config={},this._hass=null,this._animFrame=null,this._lastTimestamp=0,this._particles={}}static getStubConfig(){return{title:"Live Energy Flow",solar_entity:"sensor.solax_snm9wncrqy_pv1_power",grid_import_entity:"sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand",grid_export_entity:"sensor.solax_snm9wncrqy_exported_power",ev_entity:"input_number.zappi_ev_power",tv_entity:"sensor.living_room_tv_plug_power",lights_entity:"input_number.matter_lights_power",fridge_entity:"sensor.refrigerator_power"}}setConfig(t){this._config={title:"Live Energy Flow",height:"100%",solar_entity:"sensor.solax_snm9wncrqy_pv1_power",grid_import_entity:"sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand",grid_export_entity:"sensor.solax_snm9wncrqy_exported_power",ev_entity:"input_number.zappi_ev_power",tv_entity:"sensor.living_room_tv_plug_power",lights_entity:"input_number.matter_lights_power",fridge_entity:"sensor.refrigerator_power",...t},this._config.height&&(this.style.height=this._config.height),this.render()}set hass(t){this._hass=t,this.updateData()}connectedCallback(){this.startAnimation()}disconnectedCallback(){this.stopAnimation()}getCardSize(){return 4}calculateDuration(t){if(!t||t<=4)return 0;let i=6/(t/500);return Math.max(.8,Math.min(5,i))}getEntityNumeric(t,i=0){if(!this._hass||!t)return i;let e=this._hass.states[t];if(!e||e.state==="unavailable"||e.state==="unknown")return i;let s=parseFloat(e.state);return isNaN(s)?i:(e.attributes?.unit_of_measurement||"W").toLowerCase().trim()==="kw"?s*1e3:s}formatWatts(t){return`${Math.max(0,Math.round(t||0)).toLocaleString()} W`}formatKwSubtitle(t){let i=Math.max(0,t||0);return i>=1e3?`${(i/1e3).toFixed(2)} kW`:""}getLightsPowerFallback(){if(!this._hass?.states)return 0;let t=0;for(let[i,e]of Object.entries(this._hass.states))i.startsWith("light.")&&e.state==="on"&&t++;return t*7}getEvPowerFallback(){let t=this.getEntityNumeric("sensor.myenergi_zappi_30084500_internal_load_ct1",0);return t>0?t:this.getEntityNumeric("sensor.myenergi_zappi_30084500_power_ct_internal_load",0)}getSolarPowerFallback(){let t=this.getEntityNumeric("sensor.solax_snm9wncrqy_pv1_power",0),i=this.getEntityNumeric("sensor.solax_snm9wncrqy_pv2_power",0);return t+i>0?t+i:this.getEntityNumeric("sensor.solax_snm9wncrqy_ac_output_power",0)}updateData(){if(!this.shadowRoot)return;let t=this.getEntityNumeric(this._config.solar_entity,-1);t<0&&(t=this.getSolarPowerFallback());let i=this.getEntityNumeric(this._config.grid_import_entity,0),e=this.getEntityNumeric(this._config.grid_export_entity,0);e>25e3&&(e=0);let s=0,a=0;e>10?(a=e,s=0):i<-10?(a=Math.abs(i),s=0):(s=Math.max(0,i),a=0);let o=this.getEntityNumeric(this._config.ev_entity,-1);o<0&&(o=this.getEvPowerFallback());let l=this.getEntityNumeric(this._config.tv_entity,0),r=this.getEntityNumeric(this._config.lights_entity,-1);r<0&&(r=this.getLightsPowerFallback());let n=this.getEntityNumeric(this._config.fridge_entity,0),f=o+l+r+n,d=Math.max(0,s+t-a);d<f&&(d=f),this._flows={solar:{active:t>5,watts:t,dur:this.calculateDuration(t),color:"#f59e0b",pathId:"path-solar"},grid_import:{active:s>5,watts:s,dur:this.calculateDuration(s),color:"#3b82f6",pathId:"path-grid-import"},grid_export:{active:a>5,watts:a,dur:this.calculateDuration(a),color:"#10b981",pathId:"path-grid-export"},ev:{active:o>5,watts:o,dur:this.calculateDuration(o),color:"#06d6a0",pathId:"path-ev"},tv:{active:l>5,watts:l,dur:this.calculateDuration(l),color:"#38bdf8",pathId:"path-tv"},lights:{active:r>2,watts:r,dur:this.calculateDuration(r),color:"#fbbf24",pathId:"path-lights"},fridge:{active:n>5,watts:n,dur:this.calculateDuration(n),color:"#a78bfa",pathId:"path-fridge"}};let c=(w,y,m,E)=>{let k=this.shadowRoot.querySelector(`#val-${w}`),F=this.shadowRoot.querySelector(`#sub-${w}`),h=this.shadowRoot.querySelector(`#box-${w}`),b=this.shadowRoot.querySelector(`#pill-${w}`);k&&(k.innerText=this.formatWatts(y)),F&&(F.innerText=this.formatKwSubtitle(y)),h&&(h.classList.toggle("active",m),m?(h.style.borderColor=E,h.style.boxShadow=`0 0 20px ${E}33`):(h.style.borderColor="rgba(255, 255, 255, 0.12)",h.style.boxShadow="none")),b&&(b.innerText=m?"ACTIVE":"IDLE",b.className=`status-pill ${m?"active":"idle"}`)};c("solar",t,t>5,"#f59e0b");let p=a>5,g=p?a:s,u=g>5,L=p?"#10b981":"#3b82f6",M=p?"Grid Export":"Grid Import",_=this.shadowRoot.querySelector("#title-grid");_&&(_.innerText=M),c("grid",g,u,L),c("home",d,d>5,"#0ea5e9"),c("ev",o,o>5,"#06d6a0"),c("tv",l,l>5,"#38bdf8"),c("lights",r,r>2,"#fbbf24"),c("fridge",n,n>5,"#a78bfa")}startAnimation(){if(this._animFrame)return;let t=["solar","grid_import","grid_export","ev","tv","lights","fridge"];for(let e of t)this._particles[e]||(this._particles[e]=[0,.33,.66]);let i=e=>{this._lastTimestamp||(this._lastTimestamp=e);let s=(e-this._lastTimestamp)/1e3;if(this._lastTimestamp=e,this._flows)for(let[a,o]of Object.entries(this._flows)){let l=this.shadowRoot.querySelector(`#${o.pathId}`),r=this.shadowRoot.querySelector(`#particles-${a}`);if(!l||!r)continue;if(!o.active||o.dur<=0){r.style.opacity="0";continue}r.style.opacity="1";let n=l.getTotalLength?l.getTotalLength():0;if(n<=0)continue;let f=s/o.dur,d=r.querySelectorAll("circle");this._particles[a]=this._particles[a].map((c,p)=>{let g=(c+f)%1,u=l.getPointAtLength(g*n);return d[p]&&(d[p].setAttribute("cx",u.x),d[p].setAttribute("cy",u.y)),g})}this._animFrame=requestAnimationFrame(i)};this._animFrame=requestAnimationFrame(i)}stopAnimation(){this._animFrame&&(cancelAnimationFrame(this._animFrame),this._animFrame=null)}render(){let t=this._config.title||"Live Energy Flow";this.shadowRoot.innerHTML=`
+var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"open"}),this._config={},this._hass=null,this._animFrame=null,this._lastTimestamp=0,this._particles={}}static getStubConfig(){return{title:"Live Energy Flow",solar_entity:"sensor.solax_snm9wncrqy_pv1_power",grid_import_entity:"sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand",grid_export_entity:"sensor.solax_snm9wncrqy_exported_power",ev_entity:"input_number.zappi_ev_power",tv_entity:"sensor.living_room_tv_plug_power",lights_entity:"input_number.matter_lights_power",fridge_entity:"sensor.refrigerator_power"}}setConfig(t){this._config={title:"Live Energy Flow",height:"100%",solar_entity:"sensor.solax_snm9wncrqy_pv1_power",grid_import_entity:"sensor.octopus_energy_electricity_22l3956422_3200000391421_current_demand",grid_export_entity:"sensor.solax_snm9wncrqy_exported_power",ev_entity:"input_number.zappi_ev_power",tv_entity:"sensor.living_room_tv_plug_power",lights_entity:"input_number.matter_lights_power",fridge_entity:"sensor.refrigerator_power",...t},this._config.height&&(this.style.height=this._config.height),this.render()}set hass(t){this._hass=t,this.updateData()}connectedCallback(){this.startAnimation()}disconnectedCallback(){this.stopAnimation()}getCardSize(){return 4}calculateDuration(t){if(!t||t<=4)return 0;let i=6/(t/500);return Math.max(.8,Math.min(5,i))}getEntityNumeric(t,i=0){if(!this._hass||!t)return i;let e=this._hass.states[t];if(!e||e.state==="unavailable"||e.state==="unknown")return i;let s=parseFloat(e.state);return isNaN(s)?i:(e.attributes?.unit_of_measurement||"W").toLowerCase().trim()==="kw"?s*1e3:s}formatWatts(t){return`${Math.max(0,Math.round(t||0)).toLocaleString()} W`}formatKwSubtitle(t){let i=Math.max(0,t||0);return i>=1e3?`${(i/1e3).toFixed(2)} kW`:""}getLightsPowerFallback(){if(!this._hass?.states)return 0;let t=0;for(let[i,e]of Object.entries(this._hass.states))i.startsWith("light.")&&e.state==="on"&&t++;return t*7}getEvPowerFallback(){let t=this.getEntityNumeric("sensor.myenergi_zappi_30084500_internal_load_ct1",0);return t>0?t:this.getEntityNumeric("sensor.myenergi_zappi_30084500_power_ct_internal_load",0)}getSolarPowerFallback(){let t=this.getEntityNumeric("sensor.solax_snm9wncrqy_pv1_power",0),i=this.getEntityNumeric("sensor.solax_snm9wncrqy_pv2_power",0);return t+i>0?t+i:this.getEntityNumeric("sensor.solax_snm9wncrqy_ac_output_power",0)}updateData(){if(!this.shadowRoot)return;let t=this.getEntityNumeric(this._config.solar_entity,-1);t<0&&(t=this.getSolarPowerFallback());let i=this.getEntityNumeric(this._config.grid_import_entity,0),e=this.getEntityNumeric(this._config.grid_export_entity,0);e>25e3&&(e=0);let s=0,a=0;e>10?(a=e,s=0):i<-10?(a=Math.abs(i),s=0):(s=Math.max(0,i),a=0);let o=this.getEntityNumeric(this._config.ev_entity,-1);o<0&&(o=this.getEvPowerFallback());let l=this.getEntityNumeric(this._config.tv_entity,0),r=this.getEntityNumeric(this._config.lights_entity,-1);r<0&&(r=this.getLightsPowerFallback());let n=this.getEntityNumeric(this._config.fridge_entity,0),f=o+l+r+n,c=Math.max(0,s+t-a);c<f&&(c=f),this._flows={solar:{active:t>5,watts:t,dur:this.calculateDuration(t),color:"#f59e0b",pathId:"path-solar"},grid_import:{active:s>5,watts:s,dur:this.calculateDuration(s),color:"#3b82f6",pathId:"path-grid-import"},grid_export:{active:a>5,watts:a,dur:this.calculateDuration(a),color:"#10b981",pathId:"path-grid-export"},ev:{active:o>5,watts:o,dur:this.calculateDuration(o),color:"#06d6a0",pathId:"path-ev"},tv:{active:l>5,watts:l,dur:this.calculateDuration(l),color:"#38bdf8",pathId:"path-tv"},lights:{active:r>2,watts:r,dur:this.calculateDuration(r),color:"#fbbf24",pathId:"path-lights"},fridge:{active:n>5,watts:n,dur:this.calculateDuration(n),color:"#a78bfa",pathId:"path-fridge"}};let d=(w,y,b,E)=>{let k=this.shadowRoot.querySelector(`#val-${w}`),F=this.shadowRoot.querySelector(`#sub-${w}`),h=this.shadowRoot.querySelector(`#box-${w}`),m=this.shadowRoot.querySelector(`#pill-${w}`);k&&(k.innerText=this.formatWatts(y)),F&&(F.innerText=this.formatKwSubtitle(y)),h&&(h.classList.toggle("active",b),b?(h.style.borderColor=E,h.style.boxShadow=`0 0 20px ${E}33`):(h.style.borderColor="rgba(255, 255, 255, 0.12)",h.style.boxShadow="none")),m&&(m.innerText=b?"ACTIVE":"IDLE",m.className=`status-pill ${b?"active":"idle"}`)};d("solar",t,t>5,"#f59e0b");let p=a>5,g=p?a:s,u=g>5,L=p?"#10b981":"#3b82f6",M=p?"Grid Export":"Grid Import",_=this.shadowRoot.querySelector("#title-grid");_&&(_.innerText=M),d("grid",g,u,L),d("home",c,c>5,"#0ea5e9"),d("ev",o,o>5,"#06d6a0"),d("tv",l,l>5,"#38bdf8"),d("lights",r,r>2,"#fbbf24"),d("fridge",n,n>5,"#a78bfa")}startAnimation(){if(this._animFrame)return;let t=["solar","grid_import","grid_export","ev","tv","lights","fridge"];for(let e of t)this._particles[e]||(this._particles[e]=[0,.33,.66]);let i=e=>{this._lastTimestamp||(this._lastTimestamp=e);let s=(e-this._lastTimestamp)/1e3;if(this._lastTimestamp=e,this._flows)for(let[a,o]of Object.entries(this._flows)){let l=this.shadowRoot.querySelector(`#${o.pathId}`),r=this.shadowRoot.querySelector(`#particles-${a}`);if(!l||!r)continue;if(!o.active||o.dur<=0){r.style.opacity="0";continue}r.style.opacity="1";let n=l.getTotalLength?l.getTotalLength():0;if(n<=0)continue;let f=s/o.dur,c=r.querySelectorAll("circle");this._particles[a]=this._particles[a].map((d,p)=>{let g=(d+f)%1,u=l.getPointAtLength(g*n);return c[p]&&(c[p].setAttribute("cx",u.x),c[p].setAttribute("cy",u.y)),g})}this._animFrame=requestAnimationFrame(i)};this._animFrame=requestAnimationFrame(i)}stopAnimation(){this._animFrame&&(cancelAnimationFrame(this._animFrame),this._animFrame=null)}render(){let t=this._config.title||"Live Energy Flow";this.shadowRoot.innerHTML=`
       <style>
         :host {
           display: flex;
@@ -173,12 +173,16 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 6px;
+          width: 100%;
         }
 
         .node-title-wrap {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
+          min-width: 0;
+          flex: 1;
         }
 
         .node-icon {
@@ -186,6 +190,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         .node-title {
@@ -216,9 +221,12 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
         .status-pill {
           font-size: 8px;
           font-weight: 700;
-          padding: 1px 5px;
+          padding: 1.5px 6px;
           border-radius: 4px;
           text-transform: uppercase;
+          flex-shrink: 0;
+          white-space: nowrap;
+          line-height: 1.2;
         }
 
         .status-pill.active {
@@ -245,7 +253,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
         </div>
 
         <div class="svg-container">
-          <svg viewBox="0 0 760 440">
+          <svg viewBox="0 0 780 440">
             <defs>
               <filter id="glow-solar" x="-20%" y="-20%" width="140%" height="140%">
                 <feGaussianBlur stdDeviation="3" result="blur" />
@@ -323,7 +331,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
             </g>
 
             <!-- 1. Solar Inverter Node (Top Left) -->
-            <foreignObject x="50" y="60" width="135" height="70">
+            <foreignObject x="20" y="60" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-solar">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -340,7 +348,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
             </foreignObject>
 
             <!-- 2. Grid Node (Bottom Left - Import/Export) -->
-            <foreignObject x="50" y="300" width="135" height="70">
+            <foreignObject x="20" y="300" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-grid">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -357,7 +365,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
             </foreignObject>
 
             <!-- 3. Central Home Node (Center) -->
-            <foreignObject x="325" y="175" width="130" height="90">
+            <foreignObject x="325" y="170" width="130" height="95">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card home" id="box-home">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -374,7 +382,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
             </foreignObject>
 
             <!-- 4. Zappi EV Charger (Top Right) -->
-            <foreignObject x="595" y="30" width="135" height="70">
+            <foreignObject x="595" y="30" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-ev">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -391,7 +399,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
             </foreignObject>
 
             <!-- 5. LG TV (Mid-Top Right) -->
-            <foreignObject x="595" y="130" width="135" height="70">
+            <foreignObject x="595" y="130" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-tv">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -408,7 +416,7 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
             </foreignObject>
 
             <!-- 6. Matter Lights (Mid-Bottom Right) -->
-            <foreignObject x="595" y="230" width="135" height="70">
+            <foreignObject x="595" y="230" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-lights">
                 <div class="node-header">
                   <div class="node-title-wrap">
@@ -425,9 +433,21 @@ var v=class extends HTMLElement{constructor(){super(),this.attachShadow({mode:"o
             </foreignObject>
 
             <!-- 7. Fridge (Bottom Right) -->
-            <foreignObject x="595" y="330" width="135" height="70">
+            <foreignObject x="595" y="330" width="165" height="70">
               <div xmlns="http://www.w3.org/1999/xhtml" class="node-card" id="box-fridge">
                 <div class="node-header">
+                  <div class="node-title-wrap">
+                    <span class="node-icon">\u2744\uFE0F</span>
+                    <span class="node-title">Fridge</span>
+                  </div>
+                  <span class="status-pill idle" id="pill-fridge">IDLE</span>
+                </div>
+                <div class="node-value">
+                  <span id="val-fridge">0 W</span>
+                  <span class="node-sub" id="sub-fridge"></span>
+                </div>
+              </div>
+            </foreignObject>
                   <div class="node-title-wrap">
                     <span class="node-icon">\u2744\uFE0F</span>
                     <span class="node-title">Fridge</span>
